@@ -17,6 +17,14 @@ BL = 25
 
 Vbat_Pin = 29
 
+def pict_to_fbuff(path,x,y):
+    with open(path, 'rb') as f:
+        #f.readline() # Magic number
+        #f.readline() # Creator comment
+        #f.readline() # Dimensions
+        data = bytearray(f.read())
+    return framebuf.FrameBuffer(data, x, y, framebuf.RGB565)
+
 
 
 class LCD_1inch28(framebuf.FrameBuffer):
@@ -331,6 +339,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.cs(0)
         self.spi.write(self.buffer)
         self.cs(1)
+        
+    def display_lxb_logo(self):
+        lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin",89,120)
+
+        self.blit(lxb_fbuf, 75, 60)
+        self.show()
 
 
 class QMI8658(object):
@@ -413,8 +427,11 @@ if __name__=='__main__':
     LCD = LCD_1inch28()
     LCD.set_bl_pwm(65535)
     qmi8658=QMI8658()
-    Vbat= ADC(Pin(Vbat_Pin))   
+    Vbat= ADC(Pin(Vbat_Pin))
     
+    LCD.display_lxb_logo()
+    time.sleep(10)
+
     while(True):
         #read QMI8658
         xyz=qmi8658.Read_XYZ()
