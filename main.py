@@ -5,6 +5,9 @@ import machine
 
 DEBUG = True
 
+lxEuclidConfig = LxEuclidConfig()
+LCD = LCD_1inch28(lxEuclidConfig)
+
 def is_usb_connected():
     SIE_STATUS=const(0x50110000+0x50)
     CONNECTED=const(1<<16)
@@ -14,10 +17,14 @@ def is_usb_connected():
         return True
     else:
         return False
+    
+def display_thread():
+    while(True):
+        LCD.display_rythms()
+        time.sleep(0.5)
+        lxEuclidConfig.incr_steps()
 
 if __name__=='__main__':
-    lxEuclidConfig = LxEuclidConfig()
-    LCD = LCD_1inch28(lxEuclidConfig)
     LCD.set_bl_pwm(65535)    
     LCD.display_lxb_logo()
     time.sleep(2)    
@@ -25,7 +32,7 @@ if __name__=='__main__':
     if is_usb_connected() and DEBUG == False:
         LCD.display_programming_mode()
     else:
-        LCD.display_rythms()
+        display_thread()
     
     print("quit")
     

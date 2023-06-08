@@ -57,8 +57,11 @@ class euclidieanRythm:
 
     def incr_step(self):
         self.current_step = (self.current_step +1)
-        if self.current_step > self.beats:
+        if self.current_step > self.beats-1:
             self.current_step = 0
+            
+    def reset_step(self):
+        self.current_step = 0
             
     def get_current_step(self):
         return self.rythm[(self.current_step+self.offset)%len(self.rythm)]
@@ -111,6 +114,10 @@ class LxEuclidConfig:
     def incr_steps(self):
         for euclidieanRythm in self.euclidieanRythms:
             euclidieanRythm.incr_step()
+            
+    def reset_steps(self):
+        for euclidieanRythm in self.euclidieanRythms:
+            euclidieanRythm.reset_step()
         
     def set_lcd(self, lcd):
         self.lcd = lcd

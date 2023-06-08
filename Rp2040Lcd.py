@@ -56,7 +56,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.white =   0xffff
         self.black =   0x0000
         
-        self.rythm_colors = [0x847E, 0xF819,  0xFD69, 0x4FFD]
+        self.rythm_colors = [0x847E,0xF819,0x4FFD,0xFD69]
         
         self.fill(self.white)
         self.show()
@@ -375,7 +375,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
             index = 0
             len_euclidiean_rythm = len(euclidieanRythm.rythm)
             for index in range(0,len_euclidiean_rythm):
-                coord = polar_to_cartesian(radius, index*degree_step)                
+                coord = polar_to_cartesian(radius, index*degree_step)
+                
+                if index == euclidieanRythm.current_step:
+                     self.circle(coord[0]+120,coord[1]+120,10,self.black,True)
+                         
                 self.circle(coord[0]+120,coord[1]+120,8,self.rythm_colors[rythm_index],euclidieanRythm.rythm[(index+euclidieanRythm.offset)%len_euclidiean_rythm])
             radius = radius - 15
             rythm_index = rythm_index + 1
