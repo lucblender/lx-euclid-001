@@ -55,6 +55,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.blue  =   0xf800
         self.white =   0xffff
         self.black =   0x0000
+        self.grey =    0x3AE7
         
         self.rythm_colors = [0x847E,0xF819,0x4FFD,0xFD69]
         
@@ -140,7 +141,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.write_data(0x20)
 
         self.write_cmd(0x36)
-        self.write_data(0x98)
+        self.write_data(0x58)
 
         self.write_cmd(0x3A)
         self.write_data(0x05) 
@@ -370,17 +371,28 @@ class LCD_1inch28(framebuf.FrameBuffer):
         radius = 110
         rythm_index = 0
         for euclidieanRythm in self.lxEuclidConfig.euclidieanRythms:
-            self.circle(120,120,radius,self.rythm_colors[rythm_index],False)
+            
+            color = self.rythm_colors[rythm_index]
+            highlight_color = self.black
+            if self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_SELECT, STATE_RYTHM_PARAM_INNER_BEAT, STATE_RYTHM_PARAM_INNER_PULSE, STATE_RYTHM_PARAM_INNER_OFFSET]:
+                if rythm_index != self.lxEuclidConfig.sm_rythm_param_counter:
+                    color = self.grey
+                    highlight_color = self.grey
+                    
+            
+            self.circle(120,120,radius,color,False)
             degree_step = 360/euclidieanRythm.beats
             index = 0
             len_euclidiean_rythm = len(euclidieanRythm.rythm)
             for index in range(0,len_euclidiean_rythm):
-                coord = polar_to_cartesian(radius, index*degree_step)
+                coord = polar_to_cartesian(radius, index*degree_step-90)
                 
                 if index == euclidieanRythm.current_step:
-                     self.circle(coord[0]+120,coord[1]+120,10,self.black,True)
-                         
-                self.circle(coord[0]+120,coord[1]+120,8,self.rythm_colors[rythm_index],euclidieanRythm.rythm[(index+euclidieanRythm.offset)%len_euclidiean_rythm])
+                     self.circle(coord[0]+120,coord[1]+120,10,highlight_color,True)
+                filled = euclidieanRythm.rythm[(index-euclidieanRythm.offset)%len_euclidiean_rythm]         
+                self.circle(coord[0]+120,coord[1]+120,8,color,filled)
+                if filled == 0:                         
+                    self.circle(coord[0]+120,coord[1]+120,7,self.white,True)
             radius = radius - 15
             rythm_index = rythm_index + 1
             

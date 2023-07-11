@@ -1,6 +1,6 @@
 from Rp2040Lcd import *
 
-class euclidieanRythm:
+class EuclidieanRythm:
     def __init__(self, beats, pulses, offset):
         self.beats = beats
             
@@ -28,6 +28,12 @@ class euclidieanRythm:
         
     def set_offset(self, offset):
         self.offset = offset%self.beats
+        
+    def incr_offset(self):
+        self.offset = (self.offset + 1)%self.beats
+        
+    def decr_offset(self,):
+        self.offset = (self.offset - 1)%self.beats
 
     def incr_beats(self):  
         self.beats = (self.beats +1)  
@@ -64,7 +70,7 @@ class euclidieanRythm:
         self.current_step = 0
             
     def get_current_step(self):
-        return self.rythm[(self.current_step+self.offset)%len(self.rythm)]
+        return self.rythm[(self.current_step-self.offset)%len(self.rythm)]
 
     # from https://github.com/brianhouse/bjorklund/tree/master
     def __set_rythm_bjorklund(self):
@@ -101,15 +107,79 @@ class euclidieanRythm:
         pattern = pattern[i:] + pattern[0:i]
         self.rythm  = pattern
 
+
+
+STATE_INIT = "init"
+STATE_LIVE = "live"
+STATE_RYTHM_PARAM_SELECT = "Select Rythm"
+STATE_RYTHM_PARAM_INNER_BEAT = "Beat"
+STATE_RYTHM_PARAM_INNER_PULSE = "Pulse"
+STATE_RYTHM_PARAM_INNER_OFFSET = "Offset"
+
+
+EVENT_INIT = "init"
+EVENT_ENC_BTN = "btn"
+EVENT_ENC_INCR = "enc_incr"
+EVENT_ENC_DECR = "enc_decr"
+
+
 class LxEuclidConfig:
     def __init__(self):
         self.euclidieanRythms = []
-        self.euclidieanRythms.append(euclidieanRythm(10, 2, 0))
-        self.euclidieanRythms.append(euclidieanRythm(11, 7, 0))
-        self.euclidieanRythms.append(euclidieanRythm(5, 4, 0))
-        self.euclidieanRythms.append(euclidieanRythm(5, 4, 2))
+        self.euclidieanRythms.append(EuclidieanRythm(10, 2, 0))
+        self.euclidieanRythms.append(EuclidieanRythm(11, 7, 0))
+        self.euclidieanRythms.append(EuclidieanRythm(5, 4, 0))
+        self.euclidieanRythms.append(EuclidieanRythm(5, 4, 0))
         self.lcd = None
+        self.state = STATE_INIT
+        self.on_event(EVENT_INIT)
         
+        self.sm_rythm_param_counter = 0
+        
+    def on_event(self, event):
+        if self.state == STATE_INIT:
+            if event == EVENT_INIT:
+                self.state = STATE_LIVE
+                
+        elif self.state == STATE_LIVE:   
+            if event == EVENT_ENC_BTN:
+                self.state = STATE_RYTHM_PARAM_SELECT
+                self.sm_rythm_param_counter  = 0
+                
+        elif self.state == STATE_RYTHM_PARAM_SELECT:
+            if event == EVENT_ENC_BTN:
+                if self.sm_rythm_param_counter == 4:                    
+                    self.state = STATE_LIVE
+                else:                
+                    self.state = STATE_RYTHM_PARAM_INNER_BEAT
+            elif event == EVENT_ENC_INCR:                
+                self.sm_rythm_param_counter  = (self.sm_rythm_param_counter+1)%5
+            elif event == EVENT_ENC_DECR:
+                self.sm_rythm_param_counter  = (self.sm_rythm_param_counter-1)%5
+            
+        elif self.state == STATE_RYTHM_PARAM_INNER_BEAT:   
+            if event == EVENT_ENC_BTN:
+                self.state = STATE_RYTHM_PARAM_INNER_PULSE
+            elif event == EVENT_ENC_INCR:
+                self.euclidieanRythms[self.sm_rythm_param_counter].incr_beats()
+            elif event == EVENT_ENC_DECR: 
+                self.euclidieanRythms[self.sm_rythm_param_counter].decr_beats()
+            
+        elif self.state == STATE_RYTHM_PARAM_INNER_PULSE:   
+            if event == EVENT_ENC_BTN:
+                self.state = STATE_RYTHM_PARAM_INNER_OFFSET
+            elif event == EVENT_ENC_INCR:
+                self.euclidieanRythms[self.sm_rythm_param_counter].incr_pulses()
+            elif event == EVENT_ENC_DECR: 
+                self.euclidieanRythms[self.sm_rythm_param_counter].decr_pulses()
+            
+        elif self.state == STATE_RYTHM_PARAM_INNER_OFFSET:   
+            if event == EVENT_ENC_BTN:
+                self.state = STATE_RYTHM_PARAM_SELECT
+            elif event == EVENT_ENC_INCR:
+                self.euclidieanRythms[self.sm_rythm_param_counter].incr_offset()
+            elif event == EVENT_ENC_DECR: 
+                self.euclidieanRythms[self.sm_rythm_param_counter].decr_offset()
 
     def incr_steps(self):
         for euclidieanRythm in self.euclidieanRythms:
