@@ -4,6 +4,13 @@ import time
 from lxEuclidConfig import *
 import math
 
+import font.arial6 as arial6
+import font.arial8 as arial8
+import font.arial10 as arial10
+import font.font10 as font10
+import font.font6 as font6
+import writer
+
 I2C_SDA = 6
 I2C_SDL = 7
 
@@ -64,6 +71,16 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.pwm = PWM(Pin(BL))
         self.pwm.freq(5000)
+        
+        self.font_writer_arial6 = writer.Writer(self, arial6)
+        self.font_writer_arial8 = writer.Writer(self, arial8)
+        self.font_writer_arial10 = writer.Writer(self, arial10)
+        self.font_writer_font10 = writer.Writer(self, font10)
+        self.font_writer_font6 = writer.Writer(self, font6)
+        
+        
+        self.return_selected= pict_to_fbuff("return_selected.bin",40,40)
+        self.return_unselected= pict_to_fbuff("return_unselected.bin",40,40)
         
     def write_cmd(self, cmd):
         self.cs(1)
@@ -360,16 +377,39 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.show()
         
     def display_lxb_logo(self):
-        lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin",89,120)
-        self.show()
+        #lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin",89,120)
 
-        self.blit(lxb_fbuf, 75, 60)
+        #self.blit(self.lxb_fbuf, 75, 60)
         self.show()
         
     def display_rythms(self):
         self.fill(self.white)
         radius = 110
         rythm_index = 0
+        
+        if self.lxEuclidConfig.state == STATE_RYTHM_PARAM_SELECT:        
+            if self.lxEuclidConfig.sm_rythm_param_counter == 4:
+                self.blit(self.return_selected, 100, 100)
+            else:
+                self.blit(self.return_unselected, 100, 100)
+        elif self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_INNER_BEAT,STATE_RYTHM_PARAM_INNER_PULSE,STATE_RYTHM_PARAM_INNER_OFFSET]:
+            
+            b = "{0:0=2d}".format(self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter].beats)
+            p = "{0:0=2d}".format(self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter].pulses)
+            o = "{0:0=2d}".format(self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter].offset)
+            if self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_BEAT:            
+                self.font_writer_font10.text(str(b),100,100,self.black)       
+                self.font_writer_font10.text(str(p),100,120,self.grey)       
+                self.font_writer_font10.text(str(o),140,110,self.grey)
+            elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_PULSE:           
+                self.font_writer_font10.text(str(b),100,100,self.grey)       
+                self.font_writer_font10.text(str(p),100,120,self.black)       
+                self.font_writer_font10.text(str(o),140,110,self.grey)
+            elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_OFFSET:           
+                self.font_writer_font10.text(str(b),100,100,self.grey)       
+                self.font_writer_font10.text(str(p),100,120,self.grey)       
+                self.font_writer_font10.text(str(o),140,110,self.black)
+        
         for euclidieanRythm in self.lxEuclidConfig.euclidieanRythms:
             
             color = self.rythm_colors[rythm_index]
@@ -393,7 +433,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.circle(coord[0]+120,coord[1]+120,8,color,filled)
                 if filled == 0:                         
                     self.circle(coord[0]+120,coord[1]+120,7,self.white,True)
-            radius = radius - 15
+            radius = radius - 20
             rythm_index = rythm_index + 1
             
         self.show()
