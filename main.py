@@ -14,7 +14,7 @@ def print_ram(code = ""):
 
 print_ram("14")
 
-DEBUG = True
+MAX_TAP_DELAY_MS = 3000
 
 rotary = Rotary(20, 21, 22)
 print_ram("19")
@@ -24,14 +24,16 @@ print_ram("21")
 LCD = LCD_1inch28(lxEuclidConfig)
 print_ram("23")
 
+last_tap_ms = 0
+tap_delay_ms = 500
 
 
 def rotary_changed(change):
     global lxEuclidConfig
-    if change == Rotary.ROT_CW:
+    if change == Rotary.ROT_CCW:
         lxEuclidConfig.on_event(EVENT_ENC_INCR)
         print("+")
-    elif change == Rotary.ROT_CCW:
+    elif change == Rotary.ROT_CW:
         lxEuclidConfig.on_event(EVENT_ENC_DECR)
         print("-")
     elif change == Rotary.SW_PRESS:
@@ -47,10 +49,17 @@ def lxhardware_changed(change):
         print("CLK_FALL")
     elif change == lxHardware.RST_RISE:
         print("RST_RISE")
+        lxEuclidConfig.reset_steps()
     elif change == lxHardware.RST_FALL:
         print("RST_FALL")
     elif change == lxHardware.BTN_TAP_RISE:
         print("BTN_TAP_RISE")
+        global last_tap_ms, tap_delay_ms
+        temp_last_tap_ms = time.ticks_ms()
+        temp_tap_delay = temp_last_tap_ms - last_tap_ms
+        if temp_tap_delay > 0 and temp_tap_delay < MAX_TAP_DELAY_MS:
+            tap_delay_ms = temp_tap_delay
+        last_tap_ms = temp_last_tap_ms
     elif change == lxHardware.BTN_TAP_FALL:
         print("BTN_TAP_FALL")
     
@@ -72,15 +81,7 @@ def is_usb_connected():
 def display_thread():
     while(True):
         LCD.display_rythms()
-        lxHardware.set_clk_led()
-        lxHardware.set_gate(0)
-        time.sleep(0.1)
-        lxHardware.clear_clk_led()
-        lxHardware.clear_gate(0)
-        lxHardware.clear_gate(1)
-        lxHardware.clear_gate(2)
-        lxHardware.clear_gate(3)
-        time.sleep(0.5)
+        time.sleep(tap_delay_ms/1000)
         lxEuclidConfig.incr_steps()
 
 if __name__=='__main__':
@@ -93,7 +94,7 @@ if __name__=='__main__':
     
     print_ram("68")
     
-    if is_usb_connected() and DEBUG == False:
+    if is_usb_connected() and lxHardware.get_btn_tap_pin_value() == 0:
         LCD.display_programming_mode()
     else:
         display_thread()

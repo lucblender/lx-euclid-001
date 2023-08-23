@@ -69,6 +69,7 @@ class LxHardware:
         else:
             micropython.schedule(self.call_handlers, LxHardware.RST_FALL)
         
+
     def btn_tap_pin_change(self, pin):
         if self.btn_tap_pin_status == self.btn_tap_pin.value():
             return
@@ -78,6 +79,9 @@ class LxHardware:
         else:
             micropython.schedule(self.call_handlers, LxHardware.BTN_TAP_RISE)
         
+    def get_btn_tap_pin_value(self):
+        return self.btn_tap_pin.value()
+    
     def set_clk_led(self):
         self.clk_out_led.value(1)
         

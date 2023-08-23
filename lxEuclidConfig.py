@@ -1,4 +1,8 @@
 from Rp2040Lcd import *
+from machine import Timer
+
+T_CLK_LED_ON_MS = 10
+T_GATE_ON_MS = 1
 
 class EuclidieanRythm:
     def __init__(self, beats, pulses, offset):
@@ -184,12 +188,24 @@ class LxEuclidConfig:
 
     def incr_steps(self):
         index = 0
+        callback_param_dict = {}
+        self.lxHardware.set_clk_led()
         for euclidieanRythm in self.euclidieanRythms:
             euclidieanRythm.incr_step()
             if euclidieanRythm.get_current_step():
                 self.lxHardware.set_gate(index)
+                callback_param_dict[index] = index
             index = index + 1
+        tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
+        tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
             
+    def callback_clear_gates(self, timer):
+        for i in range(0,4):
+            self.lxHardware.clear_gate(i)
+            
+    def callback_clear_led(self, timer):
+        self.lxHardware.clear_clk_led()
+        
     def reset_steps(self):
         for euclidieanRythm in self.euclidieanRythms:
             euclidieanRythm.reset_step()
