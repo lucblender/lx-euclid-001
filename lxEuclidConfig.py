@@ -124,12 +124,13 @@ EVENT_ENC_DECR = "enc_decr"
 
 
 class LxEuclidConfig:
-    def __init__(self):
+    def __init__(self, lxHardware):
+        self.lxHardware = lxHardware
         self.euclidieanRythms = []
-        self.euclidieanRythms.append(EuclidieanRythm(10, 2, 0))
-        self.euclidieanRythms.append(EuclidieanRythm(11, 7, 0))
-        self.euclidieanRythms.append(EuclidieanRythm(5, 4, 0))
-        self.euclidieanRythms.append(EuclidieanRythm(5, 4, 0))
+        self.euclidieanRythms.append(EuclidieanRythm(8, 4, 0))
+        self.euclidieanRythms.append(EuclidieanRythm(8, 2, 0))
+        self.euclidieanRythms.append(EuclidieanRythm(4, 3, 0))
+        self.euclidieanRythms.append(EuclidieanRythm(4, 2, 0))
         self.lcd = None
         self.state = STATE_INIT
         self.on_event(EVENT_INIT)
@@ -182,8 +183,12 @@ class LxEuclidConfig:
                 self.euclidieanRythms[self.sm_rythm_param_counter].decr_offset()
 
     def incr_steps(self):
+        index = 0
         for euclidieanRythm in self.euclidieanRythms:
             euclidieanRythm.incr_step()
+            if euclidieanRythm.get_current_step():
+                self.lxHardware.set_gate(index)
+            index = index + 1
             
     def reset_steps(self):
         for euclidieanRythm in self.euclidieanRythms:
