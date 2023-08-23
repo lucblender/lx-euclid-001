@@ -4,12 +4,11 @@ import time
 from lxEuclidConfig import *
 import math
 
-import font.arial6 as arial6
-import font.arial8 as arial8
-import font.arial10 as arial10
 import font.font10 as font10
 import font.font6 as font6
 import writer
+import zlib
+import gc
 
 I2C_SDA = 6
 I2C_SDL = 7
@@ -24,13 +23,21 @@ BL = 25
 
 Vbat_Pin = 29
 
+def rgb888_to_rgb565(R,G,B): # Convert RGB888 to RGB565
+    return (((G&0b00011100)<<3) +((R&0b11111000)>>3)<<8) + (B&0b11111000)+((G&0b11100000)>>5)
+
+def print_ram(code = ""):
+    print(code, "in lcd ram: ", gc.mem_free())
+
 def pict_to_fbuff(path,x,y):
     with open(path, 'rb') as f:
-        #f.readline() # Magic number
-        #f.readline() # Creator comment
-        #f.readline() # Dimensions
         data = bytearray(f.read())
     return framebuf.FrameBuffer(data, x, y, framebuf.RGB565)
+
+def zlib_pict_to_fbuff(path,x,y):   
+    with open(path, "rb") as filedata:
+        zdata = bytearray(zlib.DecompIO(filedata).read())
+    return framebuf.FrameBuffer(zdata, x, y, framebuf.RGB565)
 
 
 def polar_to_cartesian(radius, theta):
@@ -41,6 +48,7 @@ def polar_to_cartesian(radius, theta):
 
 class LCD_1inch28(framebuf.FrameBuffer):
     def __init__(self, lxEuclidConfig):
+        print_ram("48")
         self.lxEuclidConfig = lxEuclidConfig
         self.lxEuclidConfig.set_lcd(self)
         self.width = 240
@@ -53,18 +61,25 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.spi = SPI(1,100_000_000,polarity=0, phase=0,sck=Pin(SCK),mosi=Pin(MOSI),miso=None)
         self.dc = Pin(DC,Pin.OUT)
         self.dc(1)
-        self.buffer = bytearray(self.height * self.width * 2)
-        super().__init__(self.buffer, self.width, self.height, framebuf.RGB565)
-        self.init_display()
         
-        self.red   =   0x07E0
+        print_ram("62")
+        self.buffer = bytearray(self.height * self.width * 2)
+        super().__init__(self.buffer, self.width, self.height, framebuf.RGB565)        
+        gc.collect()
+        print_ram("65")
+        self.init_display()
+        gc.collect()
+        print_ram("67")
+        
+        self.blue  =   0x07E0
         self.green =   0x001f
-        self.blue  =   0xf800
+        self.red   =   0xf800
         self.white =   0xffff
         self.black =   0x0000
-        self.grey =    0x3AE7
+        self.grey =    rgb888_to_rgb565(54,54,54)
         
-        self.rythm_colors = [0x847E,0xF819,0x4FFD,0xFD69]
+        
+        self.rythm_colors = [rgb888_to_rgb565(31,176,255),rgb888_to_rgb565(218,130,255),rgb888_to_rgb565(255,155,122),rgb888_to_rgb565(237, 255, 156)]
         
         self.fill(self.white)
         self.show()
@@ -72,15 +87,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.pwm = PWM(Pin(BL))
         self.pwm.freq(5000)
         
-        self.font_writer_arial6 = writer.Writer(self, arial6)
-        self.font_writer_arial8 = writer.Writer(self, arial8)
-        self.font_writer_arial10 = writer.Writer(self, arial10)
         self.font_writer_font10 = writer.Writer(self, font10)
         self.font_writer_font6 = writer.Writer(self, font6)
         
+        self.return_selected= None
+        self.return_unselected= None
         
-        self.return_selected= pict_to_fbuff("return_selected.bin",40,40)
-        self.return_unselected= pict_to_fbuff("return_unselected.bin",40,40)
         
     def write_cmd(self, cmd):
         self.cs(1)
@@ -377,43 +389,52 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.show()
         
     def display_lxb_logo(self):
-        #lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin",89,120)
+        #lxb_fbuf = zlib_pict_to_fbuff("helixbyte.z",89,120)
+        lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin",89,120)
 
-        #self.blit(self.lxb_fbuf, 75, 60)
+        self.blit(lxb_fbuf, 75, 60)
         self.show()
+        del lxb_fbuf
+        gc.collect()
         
     def display_rythms(self):
-        self.fill(self.white)
+        self.fill(self.black)
         radius = 110
         rythm_index = 0
         
         if self.lxEuclidConfig.state == STATE_RYTHM_PARAM_SELECT:        
             if self.lxEuclidConfig.sm_rythm_param_counter == 4:
+                if self.return_selected == None:
+                    self.return_selected= pict_to_fbuff("return_selected.bin",40,40)        
                 self.blit(self.return_selected, 100, 100)
             else:
+                if self.return_unselected == None:
+                    self.return_unselected= pict_to_fbuff("return_unselected.bin",40,40)
                 self.blit(self.return_unselected, 100, 100)
         elif self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_INNER_BEAT,STATE_RYTHM_PARAM_INNER_PULSE,STATE_RYTHM_PARAM_INNER_OFFSET]:
             
             b = "{0:0=2d}".format(self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter].beats)
             p = "{0:0=2d}".format(self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter].pulses)
             o = "{0:0=2d}".format(self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter].offset)
+            
+            highlight_color = self.rythm_colors[self.lxEuclidConfig.sm_rythm_param_counter]
             if self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_BEAT:            
-                self.font_writer_font10.text(str(b),100,100,self.black)       
+                self.font_writer_font10.text(str(b),100,100,highlight_color)       
                 self.font_writer_font10.text(str(p),100,120,self.grey)       
                 self.font_writer_font10.text(str(o),140,110,self.grey)
             elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_PULSE:           
                 self.font_writer_font10.text(str(b),100,100,self.grey)       
-                self.font_writer_font10.text(str(p),100,120,self.black)       
+                self.font_writer_font10.text(str(p),100,120,highlight_color)       
                 self.font_writer_font10.text(str(o),140,110,self.grey)
             elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_OFFSET:           
                 self.font_writer_font10.text(str(b),100,100,self.grey)       
                 self.font_writer_font10.text(str(p),100,120,self.grey)       
-                self.font_writer_font10.text(str(o),140,110,self.black)
+                self.font_writer_font10.text(str(o),140,110,highlight_color)
         
         for euclidieanRythm in self.lxEuclidConfig.euclidieanRythms:
             
             color = self.rythm_colors[rythm_index]
-            highlight_color = self.black
+            highlight_color = self.white
             if self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_SELECT, STATE_RYTHM_PARAM_INNER_BEAT, STATE_RYTHM_PARAM_INNER_PULSE, STATE_RYTHM_PARAM_INNER_OFFSET]:
                 if rythm_index != self.lxEuclidConfig.sm_rythm_param_counter:
                     color = self.grey
@@ -432,7 +453,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 filled = euclidieanRythm.rythm[(index-euclidieanRythm.offset)%len_euclidiean_rythm]         
                 self.circle(coord[0]+120,coord[1]+120,8,color,filled)
                 if filled == 0:                         
-                    self.circle(coord[0]+120,coord[1]+120,7,self.white,True)
+                    self.circle(coord[0]+120,coord[1]+120,7,self.black,True)
             radius = radius - 20
             rythm_index = rythm_index + 1
             
@@ -512,45 +533,5 @@ class QMI8658(object):
             xyz[i+3]=raw_xyz[i+3]*1.0/gyro_lsb_div
         return xyz
 
-
-
-if __name__=='__main__':
-  
-    LCD = LCD_1inch28()
-    LCD.set_bl_pwm(65535)
-    qmi8658=QMI8658()
-    Vbat= ADC(Pin(Vbat_Pin))
-    
-    LCD.display_lxb_logo()
-    time.sleep(10)
-
-    while(True):
-        #read QMI8658
-        xyz=qmi8658.Read_XYZ()
-        
-        LCD.fill(LCD.white)
-        
-        LCD.fill_rect(0,0,240,40,LCD.red)
-        LCD.text("RP2040-LCD-1.28",60,25,LCD.white)
-        
-        LCD.fill_rect(0,40,240,40,LCD.blue)
-        LCD.text("Waveshare",80,57,LCD.white)
-        
-        LCD.fill_rect(0,80,120,120,0x1805)
-        LCD.text("ACC_X={:+.2f}".format(xyz[0]),20,100-3,LCD.white)
-        LCD.text("ACC_Y={:+.2f}".format(xyz[1]),20,140-3,LCD.white)
-        LCD.text("ACC_Z={:+.2f}".format(xyz[2]),20,180-3,LCD.white)
-
-        LCD.fill_rect(120,80,120,120,0xF073)
-        LCD.text("GYR_X={:+3.2f}".format(xyz[3]),125,100-3,LCD.white)
-        LCD.text("GYR_Y={:+3.2f}".format(xyz[4]),125,140-3,LCD.white)
-        LCD.text("GYR_Z={:+3.2f}".format(xyz[5]),125,180-3,LCD.white)
-        
-        LCD.fill_rect(0,200,240,40,0x180f)
-        reading = Vbat.read_u16()*3.3/65535*2
-        LCD.text("Vbat={:.2f}".format(reading),80,215,LCD.white)
-        
-        LCD.show()
-        time.sleep(0.1)
 
 
