@@ -1,6 +1,8 @@
 from Rp2040Lcd import *
 from machine import Timer
 
+from MenuNavigationMap import *
+
 T_CLK_LED_ON_MS = 10
 T_GATE_ON_MS = 1
 
@@ -29,6 +31,7 @@ class EuclidieanRythm:
         print(self.rythm)
         
         self.current_step = 0
+        self.inverted_output = 0
         
     def set_offset(self, offset):
         self.offset = offset%self.beats
@@ -115,21 +118,34 @@ class EuclidieanRythm:
 
 STATE_INIT = "init"
 STATE_LIVE = "live"
+STATE_PARAMETERS = "parameters"
 STATE_RYTHM_PARAM_SELECT = "Select Rythm"
 STATE_RYTHM_PARAM_INNER_BEAT = "Beat"
 STATE_RYTHM_PARAM_INNER_PULSE = "Pulse"
 STATE_RYTHM_PARAM_INNER_OFFSET = "Offset"
+
+MAIN_MENU_PARAMETER_INDEX = 4
+MAIN_MENU_RETURN_INDEX = 5
 
 
 EVENT_INIT = "init"
 EVENT_ENC_BTN = "btn"
 EVENT_ENC_INCR = "enc_incr"
 EVENT_ENC_DECR = "enc_decr"
+EVENT_TAP_BTN = "tap_btn"
 
 
 class LxEuclidConfig:
+    TAP_MODE = 0
+    CLK_IN = 1
+    
+    CLK_RISING_EDGE = 0
+    CLK_FALLING_EDGE = 1
+    CLK_BOTH_EDGES = 1
+    
     def __init__(self, lxHardware):
         self.lxHardware = lxHardware
+        self.LCD = None
         self.euclidieanRythms = []
         self.euclidieanRythms.append(EuclidieanRythm(8, 4, 0))
         self.euclidieanRythms.append(EuclidieanRythm(8, 2, 0))
@@ -140,6 +156,25 @@ class LxEuclidConfig:
         self.on_event(EVENT_INIT)
         
         self.sm_rythm_param_counter = 0
+        
+        self.clk_mode = LxEuclidConfig.CLK_IN
+        self.clk_polarity = LxEuclidConfig.CLK_RISING_EDGE
+        
+        self.menu_navigation_map = get_menu_navigation_map()
+        
+        self.menu_navigation_map["Outputs"]["Out 0"]["data_pointer"] = self.euclidieanRythms[0]
+        self.menu_navigation_map["Outputs"]["Out 1"]["data_pointer"] = self.euclidieanRythms[1]
+        self.menu_navigation_map["Outputs"]["Out 2"]["data_pointer"] = self.euclidieanRythms[2]
+        self.menu_navigation_map["Outputs"]["Out 3"]["data_pointer"] = self.euclidieanRythms[3]
+        self.menu_navigation_map["Clock"]["data_pointer"] = self
+        
+        self.current_menu_len = len(self.menu_navigation_map)
+        self.current_menu_selected = 0
+        self.current_menu_value = 0
+        self.menu_path = []
+        
+    def setLCD(self, LCD):
+        self.LCD = LCD
         
     def on_event(self, event):
         if self.state == STATE_INIT:
@@ -153,14 +188,17 @@ class LxEuclidConfig:
                 
         elif self.state == STATE_RYTHM_PARAM_SELECT:
             if event == EVENT_ENC_BTN:
-                if self.sm_rythm_param_counter == 4:                    
+                if self.sm_rythm_param_counter == MAIN_MENU_RETURN_INDEX:                    
                     self.state = STATE_LIVE
+                elif self.sm_rythm_param_counter == MAIN_MENU_PARAMETER_INDEX:
+                    print("STATE_PARAMETERS")
+                    self.state = STATE_PARAMETERS
                 else:                
                     self.state = STATE_RYTHM_PARAM_INNER_BEAT
             elif event == EVENT_ENC_INCR:                
-                self.sm_rythm_param_counter  = (self.sm_rythm_param_counter+1)%5
+                self.sm_rythm_param_counter  = (self.sm_rythm_param_counter+1)%6
             elif event == EVENT_ENC_DECR:
-                self.sm_rythm_param_counter  = (self.sm_rythm_param_counter-1)%5
+                self.sm_rythm_param_counter  = (self.sm_rythm_param_counter-1)%6
             
         elif self.state == STATE_RYTHM_PARAM_INNER_BEAT:   
             if event == EVENT_ENC_BTN:
@@ -185,6 +223,19 @@ class LxEuclidConfig:
                 self.euclidieanRythms[self.sm_rythm_param_counter].incr_offset()
             elif event == EVENT_ENC_DECR: 
                 self.euclidieanRythms[self.sm_rythm_param_counter].decr_offset()
+                
+        elif self.state == STATE_PARAMETERS:
+            if event == EVENT_ENC_BTN:
+                self.menu_enter_pressed()
+            elif event == EVENT_ENC_INCR:
+                self.menu_down_action()
+            elif event == EVENT_ENC_DECR: 
+                self.menu_up_action()
+            elif event == EVENT_TAP_BTN:
+                success = self.menu_back_pressed()
+                if success == False:
+                    self.state = STATE_RYTHM_PARAM_SELECT
+                    
 
     def incr_steps(self):
         index = 0
@@ -193,15 +244,16 @@ class LxEuclidConfig:
         for euclidieanRythm in self.euclidieanRythms:
             euclidieanRythm.incr_step()
             if euclidieanRythm.get_current_step():
-                self.lxHardware.set_gate(index)
+                self.lxHardware.set_gate(index, euclidieanRythm.inverted_output)
                 callback_param_dict[index] = index
             index = index + 1
         tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
         tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
+        self.LCD.set_need_display()
             
     def callback_clear_gates(self, timer):
         for i in range(0,4):
-            self.lxHardware.clear_gate(i)
+            self.lxHardware.clear_gate(i, self.euclidieanRythms[i].inverted_output)
             
     def callback_clear_led(self, timer):
         self.lxHardware.clear_clk_led()
@@ -212,3 +264,82 @@ class LxEuclidConfig:
         
     def set_lcd(self, lcd):
         self.lcd = lcd
+    
+    
+    def menu_back_pressed(self):
+        if len(self.menu_path) > 0:
+            self.menu_path = self.menu_path[:-1]
+            self.current_menu_selected = 0
+            current_keys, _ = self.get_current_menu_keys()
+            self.current_menu_len = len(current_keys)
+            return True
+        else:
+            return False
+            
+    def menu_enter_pressed(self):
+        current_keys, in_last_sub_menu  = self.get_current_menu_keys()
+        if in_last_sub_menu:
+            # need to change value
+            tmp_menu_selected = self.menu_navigation_map
+            for key_path in self.menu_path:
+                tmp_menu_selected = tmp_menu_selected[key_path]
+            attribute_name = tmp_menu_selected["attribute_name"]
+            attribute_value = setattr(self.get_current_data_pointer(), attribute_name,self.current_menu_selected)
+            self.current_menu_value = self.current_menu_selected
+            print("self.get_current_data_pointer()", self.get_current_data_pointer(), "attribute_name", attribute_name, "self.current_menu_selected", self.current_menu_selected)
+            self.save_data()
+        else:
+            self.menu_path.append(current_keys[self.current_menu_selected])
+            self.current_menu_selected = 0            
+            current_keys, in_last_sub_menu  = self.get_current_menu_keys()   
+            self.current_menu_len = len(current_keys)
+            if in_last_sub_menu:
+                tmp_menu_selected = self.menu_navigation_map
+                for key_path in self.menu_path:
+                    tmp_menu_selected = tmp_menu_selected[key_path]     
+                attribute_name = tmp_menu_selected["attribute_name"]
+                attribute_value = getattr(self.get_current_data_pointer(), attribute_name)
+                self.current_menu_selected = attribute_value
+                self.current_menu_value = attribute_value
+    def menu_up_action(self):
+        if self.current_menu_selected > 0:
+            self.current_menu_selected = self.current_menu_selected - 1
+   
+    def menu_down_action(self):
+       if self.current_menu_selected < self.current_menu_len-1:
+            self.current_menu_selected = self.current_menu_selected + 1
+       
+    def save_data(self):
+        print("save_data")
+    def load_data(self):
+        print("load_data")
+        
+    
+    def get_current_data_pointer(self):
+        tmp_menu_selected = self.menu_navigation_map
+        i = 0
+        for key_path in self.menu_path:
+            tmp_menu_selected = tmp_menu_selected[key_path]
+            if "data_pointer" in tmp_menu_selected.keys():
+                return tmp_menu_selected["data_pointer"]
+        return None
+    
+    def get_current_menu_keys(self):
+        in_last_sub_menu = False
+        if len(self.menu_path) == 0:
+            current_keys = list(self.menu_navigation_map.keys())
+        else:
+            tmp_menu_selected = self.menu_navigation_map
+            for key_path in self.menu_path:
+                tmp_menu_selected = tmp_menu_selected[key_path]
+                
+            current_keys = list(tmp_menu_selected.keys())
+        if "values" in current_keys:
+            tmp_menu_selected = self.menu_navigation_map
+            for key_path in self.menu_path:
+                tmp_menu_selected = tmp_menu_selected[key_path]
+            current_keys = tmp_menu_selected["values"]
+            in_last_sub_menu  = True
+        if "data_pointer" in current_keys:
+            current_keys.remove("data_pointer")
+        return current_keys, in_last_sub_menu

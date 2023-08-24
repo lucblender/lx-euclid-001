@@ -88,11 +88,17 @@ class LxHardware:
     def clear_clk_led(self):
         self.clk_out_led.value(0)
         
-    def set_gate(self, gate_index):
-        self.gates[gate_index].value(1)
+    def set_gate(self, gate_index, inverted):
+        if inverted:
+            self.gates[gate_index].value(0)
+        else:
+            self.gates[gate_index].value(1)
         
-    def clear_gate(self, gate_index):
-        self.gates[gate_index].value(0)
+    def clear_gate(self, gate_index, inverted):
+        if inverted:
+            self.gates[gate_index].value(1)
+        else:
+            self.gates[gate_index].value(0)
         
     def add_handler(self, handler):
         self.handlers.append(handler)
