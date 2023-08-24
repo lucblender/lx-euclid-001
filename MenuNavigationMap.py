@@ -42,6 +42,13 @@ def get_menu_navigation_map():
                 "values": ["Rising edge","Falling edge", "Both edges"],
                 "attribute_name": "clk_polarity"
             }
+         }),
+        "Reset":OrderedDict(
+        {"data_pointer": None,
+            "Reset polarity": {
+                "values": ["Rising edge","Falling edge", "Both edges"],
+                "attribute_name": "rst_polarity"
+            }
          })
     })
     return my_dict

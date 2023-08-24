@@ -141,7 +141,11 @@ class LxEuclidConfig:
     
     CLK_RISING_EDGE = 0
     CLK_FALLING_EDGE = 1
-    CLK_BOTH_EDGES = 1
+    CLK_BOTH_EDGES = 2
+    
+    RST_RISING_EDGE = 0
+    RST_FALLING_EDGE = 1
+    RST_BOTH_EDGES = 2
     
     def __init__(self, lxHardware):
         self.lxHardware = lxHardware
@@ -159,6 +163,7 @@ class LxEuclidConfig:
         
         self.clk_mode = LxEuclidConfig.CLK_IN
         self.clk_polarity = LxEuclidConfig.CLK_RISING_EDGE
+        self.rst_polarity = LxEuclidConfig.RST_RISING_EDGE
         
         self.menu_navigation_map = get_menu_navigation_map()
         
@@ -167,6 +172,7 @@ class LxEuclidConfig:
         self.menu_navigation_map["Outputs"]["Out 2"]["data_pointer"] = self.euclidieanRythms[2]
         self.menu_navigation_map["Outputs"]["Out 3"]["data_pointer"] = self.euclidieanRythms[3]
         self.menu_navigation_map["Clock"]["data_pointer"] = self
+        self.menu_navigation_map["Reset"]["data_pointer"] = self
         
         self.current_menu_len = len(self.menu_navigation_map)
         self.current_menu_selected = 0

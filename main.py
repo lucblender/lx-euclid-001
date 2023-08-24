@@ -56,18 +56,23 @@ def rotary_changed(change):
         
 def lxhardware_changed(change):
     if change == lxHardware.CLK_RISE:
-        print("CLK_RISE")
         if lxEuclidConfig.clk_mode == LxEuclidConfig.CLK_IN:
-            global_incr_steps()
+            if lxEuclidConfig.clk_polarity in [LxEuclidConfig.CLK_RISING_EDGE, LxEuclidConfig.CLK_BOTH_EDGES]:
+                global_incr_steps()
             
     elif change == lxHardware.CLK_FALL:
-        print("CLK_FALL")
+        if lxEuclidConfig.clk_mode == LxEuclidConfig.CLK_IN:        
+            if lxEuclidConfig.clk_polarity in [LxEuclidConfig.CLK_FALLING_EDGE, LxEuclidConfig.CLK_BOTH_EDGES]:
+                global_incr_steps()
+
     elif change == lxHardware.RST_RISE:
-        print("RST_RISE")
-        lxEuclidConfig.reset_steps()
-        LCD.set_need_display()
+        if lxEuclidConfig.rst_polarity in [LxEuclidConfig.RST_RISING_EDGE, LxEuclidConfig.RST_BOTH_EDGES]:
+            lxEuclidConfig.reset_steps()
+            LCD.set_need_display()
     elif change == lxHardware.RST_FALL:
-        print("RST_FALL")
+        if lxEuclidConfig.rst_polarity in [LxEuclidConfig.RST_FALLING_EDGE, LxEuclidConfig.RST_BOTH_EDGES]:
+            lxEuclidConfig.reset_steps()
+            LCD.set_need_display()
     elif change == lxHardware.BTN_TAP_RISE:
         print("BTN_TAP_RISE")
         global last_tap_ms, tap_delay_ms
