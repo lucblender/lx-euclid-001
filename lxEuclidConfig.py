@@ -1,7 +1,10 @@
 from Rp2040Lcd import *
 from machine import Timer
+import json
 
 from MenuNavigationMap import *
+
+JSON_CONFIG_FILE_NAME = "lx-euclide_config.json"
 
 T_CLK_LED_ON_MS = 10
 T_GATE_ON_MS = 1
@@ -179,6 +182,8 @@ class LxEuclidConfig:
         self.current_menu_value = 0
         self.menu_path = []
         
+        self.load_data()
+        
     def setLCD(self, LCD):
         self.LCD = LCD
         
@@ -292,7 +297,6 @@ class LxEuclidConfig:
             attribute_name = tmp_menu_selected["attribute_name"]
             attribute_value = setattr(self.get_current_data_pointer(), attribute_name,self.current_menu_selected)
             self.current_menu_value = self.current_menu_selected
-            print("self.get_current_data_pointer()", self.get_current_data_pointer(), "attribute_name", attribute_name, "self.current_menu_selected", self.current_menu_selected)
             self.save_data()
         else:
             self.menu_path.append(current_keys[self.current_menu_selected])
@@ -316,9 +320,53 @@ class LxEuclidConfig:
             self.current_menu_selected = self.current_menu_selected + 1
        
     def save_data(self):
-        print("save_data")
+        
+        dict_data = {}
+        euclidieanRythms_list = []
+        i = 0
+        
+        for euclidieanRythm in self.euclidieanRythms:        
+            dict_euclidieanRythm = {}
+            dict_euclidieanRythm["inverted_output"] = euclidieanRythm.inverted_output
+            euclidieanRythms_list.append(dict_euclidieanRythm)
+        
+        dict_data["euclidieanRythms"] = euclidieanRythms_list
+        clk_dict = {}
+        clk_dict["clk_mode"] = self.clk_mode
+        clk_dict["clk_polarity"] = self.clk_polarity
+        rst_dict = {} 
+        rst_dict["rst_polarity"] = self.rst_polarity
+        dict_data["clk"] = clk_dict
+        dict_data["rst"] = rst_dict
+        with open(JSON_CONFIG_FILE_NAME, "w") as config_file:
+            json.dump(dict_data, config_file)
+        
     def load_data(self):
-        print("load_data")
+        print("Start loading data")
+        config_file = None
+        try:
+            config_file = open(JSON_CONFIG_FILE_NAME, "r")
+            dict_data = json.load(config_file)
+            
+            euclidieanRythmsList = dict_data["euclidieanRythms"]            
+            
+            i = 0      
+            for dict_euclidieanRythm in euclidieanRythmsList:
+                self.euclidieanRythms[i].inverted_output = dict_euclidieanRythm["inverted_output"]            
+                i+=1
+            self.clk_mode = dict_data["clk"]["clk_mode"]
+            self.clk_polarity = dict_data["clk"]["clk_polarity"]
+            self.rst_polarity = dict_data["rst"]["rst_polarity"]     
+                   
+            print("Data Loaded!")
+        except OSError:
+            print("Couldn't load config because of OS ERROR")
+        except Exception as e:
+            print("Couldn't load config because unknown error")
+            print(e)
+
+        if config_file != None:
+            config_file.close()
         
     
     def get_current_data_pointer(self):
