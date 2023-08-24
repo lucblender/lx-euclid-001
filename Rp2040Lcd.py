@@ -529,17 +529,17 @@ class LCD_1inch28(framebuf.FrameBuffer):
             
             highlight_color = self.rythm_colors[self.lxEuclidConfig.sm_rythm_param_counter]
             if self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_BEAT:            
-                self.font_writer_font10.text(str(b),100,100,highlight_color)       
-                self.font_writer_font10.text(str(p),100,120,self.grey)       
-                self.font_writer_font10.text(str(o),140,110,self.grey)
+                self.font_writer_freesans20.text(str(b),100,95,highlight_color)       
+                self.font_writer_freesans20.text(str(p),100,125,self.grey)       
+                self.font_writer_freesans20.text(str(o),132,110,self.grey)
             elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_PULSE:           
-                self.font_writer_font10.text(str(b),100,100,self.grey)       
-                self.font_writer_font10.text(str(p),100,120,highlight_color)       
-                self.font_writer_font10.text(str(o),140,110,self.grey)
+                self.font_writer_freesans20.text(str(b),100,95,self.grey)       
+                self.font_writer_freesans20.text(str(p),100,125,highlight_color)       
+                self.font_writer_freesans20.text(str(o),132,110,self.grey)
             elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_OFFSET:           
-                self.font_writer_font10.text(str(b),100,100,self.grey)       
-                self.font_writer_font10.text(str(p),100,120,self.grey)       
-                self.font_writer_font10.text(str(o),140,110,highlight_color)           
+                self.font_writer_freesans20.text(str(b),100,95,self.grey)       
+                self.font_writer_freesans20.text(str(p),100,125,self.grey)       
+                self.font_writer_freesans20.text(str(o),132,110,highlight_color)           
             self.display_rythm_circles()
             
         self.show()
