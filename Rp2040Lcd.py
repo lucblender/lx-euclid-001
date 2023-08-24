@@ -4,10 +4,12 @@ import time
 from lxEuclidConfig import *
 import math
 
-import font.font10 as font10
-import font.font6 as font6
 import writer
-import zlib
+
+USING_ZIP = False
+if USING_ZIP:
+    import zlib
+    
 import gc
 
 I2C_SDA = 6
@@ -34,10 +36,11 @@ def pict_to_fbuff(path,x,y):
         data = bytearray(f.read())
     return framebuf.FrameBuffer(data, x, y, framebuf.RGB565)
 
-def zlib_pict_to_fbuff(path,x,y):   
-    with open(path, "rb") as filedata:
-        zdata = bytearray(zlib.DecompIO(filedata).read())
-    return framebuf.FrameBuffer(zdata, x, y, framebuf.RGB565)
+def zlib_pict_to_fbuff(path,x,y):
+    if USING_ZIP:
+        with open(path, "rb") as filedata:
+            zdata = bytearray(zlib.DecompIO(filedata).read())
+        return framebuf.FrameBuffer(zdata, x, y, framebuf.RGB565)
 
 
 def polar_to_cartesian(radius, theta):
@@ -87,12 +90,29 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.pwm = PWM(Pin(BL))
         self.pwm.freq(5000)
         
-        self.font_writer_font10 = writer.Writer(self, font10)
-        self.font_writer_font6 = writer.Writer(self, font6)
-        
+        self.font_writer_courier20 = None #writer.Writer(self, courier20)
+        self.font_writer_freesans20 = None #writer.Writer(self, freesans20)
+        self.font_writer_font10 = None #writer.Writer(self, font10)
+        self.font_writer_font6 = None #writer.Writer(self, font6)
+
         self.return_selected= None
         self.return_unselected= None
+        self.parameter_selected= None
+        self.parameter_unselected= None
         
+        self.__need_display = False
+        
+    def load_fonts(self):
+        import font.courier20 as courier20
+        import font.freesans20 as freesans20
+        import font.font10 as font10
+        import font.font6 as font6
+        self.font_writer_courier20 = writer.Writer(self, courier20)
+        self.font_writer_freesans20 = writer.Writer(self, freesans20)
+        self.font_writer_font10 = writer.Writer(self, font10)
+        self.font_writer_font6 = writer.Writer(self, font6)
+
+
         
     def write_cmd(self, cmd):
         self.cs(1)
@@ -388,29 +408,119 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.text("Programming mode",30,60,self.black)
         self.show()
         
-    def display_lxb_logo(self):
+    def display_lxb_logo(self, version = None):
         #lxb_fbuf = zlib_pict_to_fbuff("helixbyte.z",89,120)
-        lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin",89,120)
+        gc.collect()
+        width = 100
+        heigth = 74
+        lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin",heigth,width)
 
-        self.blit(lxb_fbuf, 75, 60)
+  
+        self.blit(lxb_fbuf, 120-int(heigth/2), 120-int(width/2))
         self.show()
+        time.sleep(1.5)
+        if version!= None:
+            txt_len = 85 # can't use stinglen since we use default font to not use memory cause we loaded lxb logo          
+            self.text(version,120-int(txt_len/2),200,self.grey)
+            self.show()
+            time.sleep(0.5)
+            
+            
         del lxb_fbuf
         gc.collect()
         
+    def set_need_display(self):
+        self.__need_display = True
+        
+    def get_need_display(self):
+        return self.__need_display
+        
     def display_rythms(self):
         self.fill(self.black)
-        radius = 110
-        rythm_index = 0
-        
-        if self.lxEuclidConfig.state == STATE_RYTHM_PARAM_SELECT:        
-            if self.lxEuclidConfig.sm_rythm_param_counter == 4:
+        if self.lxEuclidConfig.state == STATE_LIVE:
+                self.display_rythm_circles()
+        elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_SELECT:  
+            
+            if self.lxEuclidConfig.sm_rythm_param_counter == 5:
                 if self.return_selected == None:
-                    self.return_selected= pict_to_fbuff("return_selected.bin",40,40)        
-                self.blit(self.return_selected, 100, 100)
+                    self.return_selected = pict_to_fbuff("return_selected.bin",40,40)        
+                self.blit(self.return_selected, 100, 115)
             else:
                 if self.return_unselected == None:
                     self.return_unselected= pict_to_fbuff("return_unselected.bin",40,40)
-                self.blit(self.return_unselected, 100, 100)
+                self.blit(self.return_unselected, 100, 115)
+                
+            if self.lxEuclidConfig.sm_rythm_param_counter == 4:               
+                if self.parameter_selected == None:
+                    self.parameter_selected = pict_to_fbuff("parameter_selected.bin",40,40)        
+                self.blit(self.parameter_selected, 100, 85)
+            else:                
+                if self.parameter_unselected == None:
+                    self.parameter_unselected = pict_to_fbuff("parameter_unselected.bin",40,40)
+                self.blit(self.parameter_unselected, 100, 85)
+                
+            self.display_rythm_circles()
+        elif self.lxEuclidConfig.state == STATE_PARAMETERS:
+            self.display_rythm_circles()
+            
+            self.blit(self.parameter_unselected, 100, 5)
+            origin_x = 50
+            origin_y = 50
+            path = "/"
+            for sub_path in self.lxEuclidConfig.menu_path:
+                path = path + sub_path + "/"
+            path_len = self.font_writer_font6.stringlen(path)
+            self.font_writer_font6.text(path,120-int(path_len/2),130+origin_y,self.rythm_colors[0])
+            
+            self.font_writer_font6.text("tap return",40,150+origin_y,self.rythm_colors[2])
+            self.font_writer_font6.text("enc enter",135,150+origin_y,self.rythm_colors[2])
+            
+            current_keys, in_last_sub_menu = self.lxEuclidConfig.get_current_menu_keys()
+    
+            offset_menu_text = 25
+            
+            range_low = self.lxEuclidConfig.current_menu_selected - 2
+            range_high = self.lxEuclidConfig.current_menu_selected + 2
+            
+            general_index = 0
+            for menu_index in range(range_low,range_high):
+                if menu_index >= 0 and menu_index < self.lxEuclidConfig.current_menu_len:                        
+                    if menu_index == self.lxEuclidConfig.current_menu_selected:
+                        to_add = ""
+                        color = self.white
+                        if in_last_sub_menu and self.lxEuclidConfig.current_menu_value == menu_index:
+                            color = self.rythm_colors[2]
+                        txt = "> "+to_add+current_keys[menu_index]+" <"
+                        txt_len = self.font_writer_freesans20.stringlen(txt)
+                        self.font_writer_freesans20.text(txt,120-int(txt_len/2),origin_y+9+offset_menu_text*general_index, color)  
+                    else:
+                        to_add = ""
+                        color = self.rythm_colors[3]
+                        if in_last_sub_menu and self.lxEuclidConfig.current_menu_value == menu_index:
+                            color = self.rythm_colors[2]
+                        txt = to_add+current_keys[menu_index]
+                        txt_len = self.font_writer_freesans20.stringlen(txt)
+                        self.font_writer_freesans20.text(txt,120-int(txt_len/2),origin_y+9+offset_menu_text*general_index,color)
+                    
+                general_index = general_index+1
+            
+            #delimitation line between menu and top path
+            
+            #side scrollbar
+            scrollbar_x = 220
+            scrollbar_y = 75
+            scrollbar_height = 90
+            scrollbar_width = 6
+            
+            self.rect(scrollbar_x,scrollbar_y, scrollbar_width, scrollbar_height, self.white)
+            
+            max_scrollbar_size_float = scrollbar_height / self.lxEuclidConfig.current_menu_len
+            max_scrollbar_size = int(max_scrollbar_size_float)
+            if max_scrollbar_size == 0:
+                max_scrollbar_size = 1
+            print("max_scrollbar_size", max_scrollbar_size)
+            self.fill_rect(scrollbar_x,scrollbar_y+int(max_scrollbar_size_float*self.lxEuclidConfig.current_menu_selected ), scrollbar_width, max_scrollbar_size, self.white)
+            
         elif self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_INNER_BEAT,STATE_RYTHM_PARAM_INNER_PULSE,STATE_RYTHM_PARAM_INNER_OFFSET]:
             
             b = "{0:0=2d}".format(self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter].beats)
@@ -429,13 +539,20 @@ class LCD_1inch28(framebuf.FrameBuffer):
             elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_OFFSET:           
                 self.font_writer_font10.text(str(b),100,100,self.grey)       
                 self.font_writer_font10.text(str(p),100,120,self.grey)       
-                self.font_writer_font10.text(str(o),140,110,highlight_color)
+                self.font_writer_font10.text(str(o),140,110,highlight_color)           
+            self.display_rythm_circles()
+            
+        self.show()
+        self.__need_display = False
         
+    def display_rythm_circles(self):
+        radius = 110
+        rythm_index = 0
         for euclidieanRythm in self.lxEuclidConfig.euclidieanRythms:
             
             color = self.rythm_colors[rythm_index]
             highlight_color = self.white
-            if self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_SELECT, STATE_RYTHM_PARAM_INNER_BEAT, STATE_RYTHM_PARAM_INNER_PULSE, STATE_RYTHM_PARAM_INNER_OFFSET]:
+            if self.lxEuclidConfig.state in [STATE_PARAMETERS, STATE_RYTHM_PARAM_SELECT, STATE_RYTHM_PARAM_INNER_BEAT, STATE_RYTHM_PARAM_INNER_PULSE, STATE_RYTHM_PARAM_INNER_OFFSET]:
                 if rythm_index != self.lxEuclidConfig.sm_rythm_param_counter:
                     color = self.grey
                     highlight_color = self.grey
@@ -446,18 +563,19 @@ class LCD_1inch28(framebuf.FrameBuffer):
             index = 0
             len_euclidiean_rythm = len(euclidieanRythm.rythm)
             for index in range(0,len_euclidiean_rythm):
-                coord = polar_to_cartesian(radius, index*degree_step-90)
-                
-                if index == euclidieanRythm.current_step:
-                     self.circle(coord[0]+120,coord[1]+120,10,highlight_color,True)
-                filled = euclidieanRythm.rythm[(index-euclidieanRythm.offset)%len_euclidiean_rythm]         
-                self.circle(coord[0]+120,coord[1]+120,8,color,filled)
-                if filled == 0:                         
-                    self.circle(coord[0]+120,coord[1]+120,7,self.black,True)
+                try:
+                    coord = polar_to_cartesian(radius, index*degree_step-90)
+                    
+                    if index == euclidieanRythm.current_step:
+                         self.circle(coord[0]+120,coord[1]+120,10,highlight_color,True)
+                    filled = euclidieanRythm.rythm[(index-euclidieanRythm.offset)%len_euclidiean_rythm]         
+                    self.circle(coord[0]+120,coord[1]+120,8,color,filled)
+                    if filled == 0:                         
+                        self.circle(coord[0]+120,coord[1]+120,7,self.black,True)
+                except: #add this try except in the case we do a modification of rythm while trying to display it 
+                    pass
             radius = radius - 20
             rythm_index = rythm_index + 1
-            
-        self.show()
 
 
 class QMI8658(object):

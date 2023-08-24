@@ -18,6 +18,8 @@ def print_ram(code = ""):
 
 print_ram("14")
 
+VERSION = "v0.0.1_dev"
+
 MIN_TAP_DELAY_MS = 20
 MAX_TAP_DELAY_MS = 3000
 stop_thread = False
@@ -120,31 +122,41 @@ def global_incr_steps(timer=None):
         timer_incr_steps_tap_mode = Timer(period=tap_delay_ms, mode=Timer.ONE_SHOT, callback=global_incr_steps)
     elif lxEuclidConfig.clk_mode == LxEuclidConfig.CLK_IN:
         pass
+    
+def append_error(error):
+    print("*-"*20)
+    print("Error caught")
+    print(error)
+    print("*-"*20)
+    error_file = open("error.txt", "a")
+    error_file.write(str(error))
+    error_file.write("\n")
+    error_file.close()
 
 if __name__=='__main__':
-    print_ram("61")
-    LCD.set_bl_pwm(65535)    
-    print_ram("63")
-    collect() 
-    print_ram("63")
-    LCD.display_lxb_logo()
-    print_ram("65")
-    time.sleep(2)
-    LCD.load_fonts()
+    try:
+        print_ram("61")
+        LCD.set_bl_pwm(65535)    
+        print_ram("63")
+        collect() 
+        print_ram("63")
+        LCD.display_lxb_logo(VERSION)
+        print_ram("65")
+        LCD.load_fonts()
+        
+        print_ram("68")
+        
+        if is_usb_connected() and lxHardware.get_btn_tap_pin_value() == 0:
+            LCD.display_programming_mode()
+        else:
+            if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
+                global_incr_steps()
+            LCD.set_need_display()
+            display_thread()
+        
+        print("quit")
+    except Exception as e:
+        append_error(e)
     
-    print_ram("68")
-    
-    if is_usb_connected() and lxHardware.get_btn_tap_pin_value() == 0:
-        LCD.display_programming_mode()
-    else:
-        if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
-            global_incr_steps()
-        LCD.set_need_display()
-        display_thread()
-        #_thread.start_new_thread(display_thread, ())
-        #LCD.set_need_display()
-        #while True:
-           # time.sleep(1)
-    
-    print("quit")
+
     
