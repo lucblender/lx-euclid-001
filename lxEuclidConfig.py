@@ -150,15 +150,15 @@ class LxEuclidConfig:
     RST_FALLING_EDGE = 1
     RST_BOTH_EDGES = 2
     
-    def __init__(self, lxHardware):
-        self.lxHardware = lxHardware
-        self.LCD = None
+    def __init__(self, lxHardware, LCD):
+        self.lxHardware = lxHardware    
+        self.LCD = LCD
+        self.LCD.set_config(self)
         self.euclidieanRythms = []
         self.euclidieanRythms.append(EuclidieanRythm(8, 4, 0))
         self.euclidieanRythms.append(EuclidieanRythm(8, 2, 0))
         self.euclidieanRythms.append(EuclidieanRythm(4, 3, 0))
         self.euclidieanRythms.append(EuclidieanRythm(4, 2, 0))
-        self.lcd = None
         self.state = STATE_INIT
         self.on_event(EVENT_INIT)
         
@@ -176,6 +176,7 @@ class LxEuclidConfig:
         self.menu_navigation_map["Outputs"]["Out 3"]["data_pointer"] = self.euclidieanRythms[3]
         self.menu_navigation_map["Clock"]["data_pointer"] = self
         self.menu_navigation_map["Reset"]["data_pointer"] = self
+        self.menu_navigation_map["Display"]["data_pointer"] = self.LCD
         
         self.current_menu_len = len(self.menu_navigation_map)
         self.current_menu_selected = 0
@@ -183,9 +184,6 @@ class LxEuclidConfig:
         self.menu_path = []
         
         self.load_data()
-        
-    def setLCD(self, LCD):
-        self.LCD = LCD
         
     def on_event(self, event):
         if self.state == STATE_INIT:
@@ -272,9 +270,6 @@ class LxEuclidConfig:
     def reset_steps(self):
         for euclidieanRythm in self.euclidieanRythms:
             euclidieanRythm.reset_step()
-        
-    def set_lcd(self, lcd):
-        self.lcd = lcd
     
     
     def menu_back_pressed(self):
@@ -336,8 +331,11 @@ class LxEuclidConfig:
         clk_dict["clk_polarity"] = self.clk_polarity
         rst_dict = {} 
         rst_dict["rst_polarity"] = self.rst_polarity
+        display_dict = {}
+        display_dict["display_circle_lines"] = self.LCD.display_circle_lines
         dict_data["clk"] = clk_dict
         dict_data["rst"] = rst_dict
+        dict_data["display"] = display_dict
         with open(JSON_CONFIG_FILE_NAME, "w") as config_file:
             json.dump(dict_data, config_file)
         
@@ -356,7 +354,9 @@ class LxEuclidConfig:
                 i+=1
             self.clk_mode = dict_data["clk"]["clk_mode"]
             self.clk_polarity = dict_data["clk"]["clk_polarity"]
-            self.rst_polarity = dict_data["rst"]["rst_polarity"]     
+            self.rst_polarity = dict_data["rst"]["rst_polarity"]
+            
+            self.LCD.display_circle_lines = dict_data["display"]["display_circle_lines"]
                    
             print("Data Loaded!")
         except OSError:
@@ -386,7 +386,6 @@ class LxEuclidConfig:
             tmp_menu_selected = self.menu_navigation_map
             for key_path in self.menu_path:
                 tmp_menu_selected = tmp_menu_selected[key_path]
-                
             current_keys = list(tmp_menu_selected.keys())
         if "values" in current_keys:
             tmp_menu_selected = self.menu_navigation_map

@@ -29,9 +29,8 @@ print_ram("23")
 lxHardware = LxHardware()
 print_ram("25")
 print_ram("27")
-lxEuclidConfig = LxEuclidConfig(lxHardware)
-LCD = LCD_1inch28(lxEuclidConfig)
-lxEuclidConfig.setLCD(LCD)
+LCD = LCD_1inch28()
+lxEuclidConfig = LxEuclidConfig(lxHardware, LCD)
 print_ram("29")
 
 last_tap_ms = 0
@@ -134,7 +133,7 @@ def append_error(error):
     error_file.close()
 
 if __name__=='__main__':
-    try:
+    #try:
         print_ram("61")
         LCD.set_bl_pwm(65535)    
         print_ram("63")
@@ -155,8 +154,8 @@ if __name__=='__main__':
             display_thread()
         
         print("quit")
-    except Exception as e:
-        append_error(e)
+    #except Exception as e:
+     #   append_error(e)
     
 
     

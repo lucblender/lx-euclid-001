@@ -49,6 +49,13 @@ def get_menu_navigation_map():
                 "values": ["Rising edge","Falling edge", "Both edges"],
                 "attribute_name": "rst_polarity"
             }
+         }),
+        "Display":OrderedDict(
+        {"data_pointer": None,
+            "Rythm link": {
+                "values": ["Circle", "Lines"],
+                "attribute_name": "display_circle_lines"
+            }
          })
     })
     return my_dict

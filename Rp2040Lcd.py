@@ -50,10 +50,13 @@ def polar_to_cartesian(radius, theta):
     return int(x),int(y)
 
 class LCD_1inch28(framebuf.FrameBuffer):
-    def __init__(self, lxEuclidConfig):
+    
+    DISPLAY_CIRCLE = 0
+    DISPLAY_LINES = 1
+    
+    def __init__(self):
         print_ram("48")
-        self.lxEuclidConfig = lxEuclidConfig
-        self.lxEuclidConfig.set_lcd(self)
+        self.lxEuclidConfig = None
         self.width = 240
         self.height = 240
         
@@ -101,6 +104,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.parameter_unselected= None
         
         self.__need_display = False
+        self.display_circle_lines = LCD_1inch28.DISPLAY_CIRCLE
+        
+    def set_config(self, lxEuclidConfig):
+        self.lxEuclidConfig = lxEuclidConfig
         
     def load_fonts(self):
         import font.courier20 as courier20
@@ -548,6 +555,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def display_rythm_circles(self):
         radius = 110
         rythm_index = 0
+        
+        
+        
         for euclidieanRythm in self.lxEuclidConfig.euclidieanRythms:
             
             color = self.rythm_colors[rythm_index]
@@ -558,25 +568,50 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     highlight_color = self.grey
                     
             
-            self.circle(120,120,radius,color,False)
+            if self.display_circle_lines == LCD_1inch28.DISPLAY_CIRCLE:
+                self.circle(120,120,radius,color,False)
+                
             degree_step = 360/euclidieanRythm.beats
             index = 0
             len_euclidiean_rythm = len(euclidieanRythm.rythm)
+            
+            last_coord = None
+            coord = None            
+            coords = []
+            
             for index in range(0,len_euclidiean_rythm):
                 try:
                     coord = polar_to_cartesian(radius, index*degree_step-90)
-                    
+                    coords.append(coord)
+                    if self.display_circle_lines == LCD_1inch28.DISPLAY_LINES:
+                        if last_coord != None:
+                            self.line(last_coord[0]+120, last_coord[1]+120,coord[0]+120, coord[1]+120, color)
+                    last_coord = coord    
+                except: #add this try except in the case we do a modification of rythm while trying to display it 
+                    pass
+            if self.display_circle_lines == LCD_1inch28.DISPLAY_LINES:    
+                if len(coords) > 1: 
+                    self.line(coords[0][0]+120, coords[0][1]+120,coords[-1][0]+120, coords[-1][1]+120, color)
+            
+            for index in range(0,len_euclidiean_rythm):
+                try:
+                    coord = coords[index]
+                      
                     if index == euclidieanRythm.current_step:
                          self.circle(coord[0]+120,coord[1]+120,10,highlight_color,True)
                     filled = euclidieanRythm.rythm[(index-euclidieanRythm.offset)%len_euclidiean_rythm]         
                     self.circle(coord[0]+120,coord[1]+120,8,color,filled)
                     if filled == 0:                         
                         self.circle(coord[0]+120,coord[1]+120,7,self.black,True)
-                except: #add this try except in the case we do a modification of rythm while trying to display it 
+                        
+                    
+                    last_coord = coord
+                except Exception as e: #add this try except in the case we do a modification of rythm while trying to display it 
+                    print(e)
                     pass
+
             radius = radius - 20
             rythm_index = rythm_index + 1
-
 
 class QMI8658(object):
     def __init__(self,address=0X6B):
