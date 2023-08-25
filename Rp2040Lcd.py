@@ -87,6 +87,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
         
         self.rythm_colors = [rgb888_to_rgb565(255,176,31),rgb888_to_rgb565(255,130,218),rgb888_to_rgb565(122,155,255),rgb888_to_rgb565(156, 255, 237)]
         self.rythm_colors_turing = [rgb888_to_rgb565(237,69,86),rgb888_to_rgb565(209, 52, 68),rgb888_to_rgb565(176, 33, 48),rgb888_to_rgb565(122, 13, 24)]
+                
+        self.rythm_colors_highlight = [rgb888_to_rgb565(250, 203, 115),rgb888_to_rgb565(250, 180, 229),rgb888_to_rgb565(176, 196, 255),rgb888_to_rgb565(195, 250, 240)]
+        self.rythm_colors_turing_highlight = [rgb888_to_rgb565(250, 135, 147),rgb888_to_rgb565(237,69,86),rgb888_to_rgb565(209, 52, 68),rgb888_to_rgb565(176, 33, 48),rgb888_to_rgb565(122, 13, 24)]
         
         self.fill(self.white)
         self.show()
@@ -120,8 +123,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.font_writer_font10 = writer.Writer(self, font10)
         self.font_writer_font6 = writer.Writer(self, font6)
 
-
-        
     def write_cmd(self, cmd):
         self.cs(1)
         self.dc(0)
@@ -571,19 +572,22 @@ class LCD_1inch28(framebuf.FrameBuffer):
         for euclidieanRythm in self.lxEuclidConfig.euclidieanRythms:
             
             if euclidieanRythm.is_turing_machine:
-                color = self.rythm_colors_turing[rythm_index]
+                beat_color = self.rythm_colors_turing[rythm_index]
+                beat_color_hightlight = self.rythm_colors_turing_highlight[rythm_index]
             else:
-                color = self.rythm_colors[rythm_index]
+                beat_color = self.rythm_colors[rythm_index]
+                beat_color_hightlight = self.rythm_colors_highlight[rythm_index]
                 
             highlight_color = self.white
             if self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_PROBABILITY, STATE_PARAMETERS, STATE_RYTHM_PARAM_SELECT, STATE_RYTHM_PARAM_INNER_BEAT, STATE_RYTHM_PARAM_INNER_PULSE, STATE_RYTHM_PARAM_INNER_OFFSET]:
                 if rythm_index != self.lxEuclidConfig.sm_rythm_param_counter:
-                    color = self.grey
+                    beat_color = self.grey
+                    beat_color_hightlight = self.grey
                     highlight_color = self.grey
                     
             
             if self.display_circle_lines == LCD_1inch28.DISPLAY_CIRCLE:
-                self.circle(120,120,radius,color,False)
+                self.circle(120,120,radius,beat_color,False)
                 
             index = 0
             len_euclidiean_rythm = len(euclidieanRythm.rythm)
@@ -599,22 +603,27 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     coords.append(coord)
                     if self.display_circle_lines == LCD_1inch28.DISPLAY_LINES:
                         if last_coord != None:
-                            self.line(last_coord[0]+120, last_coord[1]+120,coord[0]+120, coord[1]+120, color)
+                            self.line(last_coord[0]+120, last_coord[1]+120,coord[0]+120, coord[1]+120, beat_color)
                     last_coord = coord    
                 except: #add this try except in the case we do a modification of rythm while trying to display it 
                     pass
             if self.display_circle_lines == LCD_1inch28.DISPLAY_LINES:    
                 if len(coords) > 1: 
-                    self.line(coords[0][0]+120, coords[0][1]+120,coords[-1][0]+120, coords[-1][1]+120, color)
+                    self.line(coords[0][0]+120, coords[0][1]+120,coords[-1][0]+120, coords[-1][1]+120, beat_color)
             
             for index in range(0,len_euclidiean_rythm):
                 try:
                     coord = coords[index]
+                    
+                    final_beat_color = beat_color
                       
                     if index == euclidieanRythm.current_step:
                          self.circle(coord[0]+120,coord[1]+120,10,highlight_color,True)
-                    filled = euclidieanRythm.rythm[(index-euclidieanRythm.offset)%len_euclidiean_rythm]         
-                    self.circle(coord[0]+120,coord[1]+120,8,color,filled)
+                         final_beat_color = beat_color_hightlight
+                         
+                    filled = euclidieanRythm.rythm[(index-euclidieanRythm.offset)%len_euclidiean_rythm]
+                    
+                    self.circle(coord[0]+120,coord[1]+120,8,final_beat_color,filled)
                     if filled == 0:                         
                         self.circle(coord[0]+120,coord[1]+120,7,self.black,True)
                         
