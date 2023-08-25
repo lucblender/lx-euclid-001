@@ -31,7 +31,6 @@ class EuclidieanRythm:
             
         self.rythm = []
         self.__set_rythm_bjorklund()
-        print(self.rythm)
         
         self.current_step = 0
         self.inverted_output = 0
@@ -200,7 +199,6 @@ class LxEuclidConfig:
                 if self.sm_rythm_param_counter == MAIN_MENU_RETURN_INDEX:                    
                     self.state = STATE_LIVE
                 elif self.sm_rythm_param_counter == MAIN_MENU_PARAMETER_INDEX:
-                    print("STATE_PARAMETERS")
                     self.state = STATE_PARAMETERS
                 else:                
                     self.state = STATE_RYTHM_PARAM_INNER_BEAT

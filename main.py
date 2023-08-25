@@ -43,17 +43,14 @@ def rotary_changed(change):
     if change == Rotary.ROT_CCW:
         lxEuclidConfig.on_event(EVENT_ENC_INCR)
         LCD.set_need_display()
-        print("+")
     elif change == Rotary.ROT_CW:
         lxEuclidConfig.on_event(EVENT_ENC_DECR)
         LCD.set_need_display()
-        print("-")
     elif change == Rotary.SW_PRESS:
         lxEuclidConfig.on_event(EVENT_ENC_BTN)
         LCD.set_need_display()
-        print('PRESS')
     elif change == Rotary.SW_RELEASE:
-        print('RELEASE')
+        pass
         
 def lxhardware_changed(change):
     if change == lxHardware.CLK_RISE:
@@ -75,7 +72,6 @@ def lxhardware_changed(change):
             lxEuclidConfig.reset_steps()
             LCD.set_need_display()
     elif change == lxHardware.BTN_TAP_RISE:
-        print("BTN_TAP_RISE")
         global last_tap_ms, tap_delay_ms
         if lxEuclidConfig.state == STATE_PARAMETERS:
             lxEuclidConfig.on_event(EVENT_TAP_BTN)
@@ -90,7 +86,7 @@ def lxhardware_changed(change):
                 global_incr_steps()
         LCD.set_need_display()
     elif change == lxHardware.BTN_TAP_FALL:
-        print("BTN_TAP_FALL")
+        pass
     
 
 rotary.add_handler(rotary_changed)

@@ -29,7 +29,7 @@ def rgb888_to_rgb565(R,G,B): # Convert RGB888 to RGB565
     return (((G&0b00011100)<<3) +((R&0b11111000)>>3)<<8) + (B&0b11111000)+((G&0b11100000)>>5)
 
 def print_ram(code = ""):
-    print(code, "in lcd ram: ", gc.mem_free())
+    code, "in lcd ram: ", gc.mem_free())
 
 def pict_to_fbuff(path,x,y):
     with open(path, 'rb') as f:
@@ -525,7 +525,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
             max_scrollbar_size = int(max_scrollbar_size_float)
             if max_scrollbar_size == 0:
                 max_scrollbar_size = 1
-            print("max_scrollbar_size", max_scrollbar_size)
             self.fill_rect(scrollbar_x,scrollbar_y+int(max_scrollbar_size_float*self.lxEuclidConfig.current_menu_selected ), scrollbar_width, max_scrollbar_size, self.white)
             
         elif self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_INNER_BEAT,STATE_RYTHM_PARAM_INNER_PULSE,STATE_RYTHM_PARAM_INNER_OFFSET]:
@@ -607,7 +606,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     
                     last_coord = coord
                 except Exception as e: #add this try except in the case we do a modification of rythm while trying to display it 
-                    print(e)
                     pass
 
             radius = radius - 20
