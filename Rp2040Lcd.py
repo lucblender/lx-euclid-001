@@ -26,7 +26,7 @@ BL = 25
 Vbat_Pin = 29
 
 def rgb888_to_rgb565(R,G,B): # Convert RGB888 to RGB565
-    return (((G&0b00011100)<<3) +((R&0b11111000)>>3)<<8) + (B&0b11111000)+((G&0b11100000)>>5)
+    return (((G&0b00011100)<<3) +((B&0b11111000)>>3)<<8) + (R&0b11111000)+((G&0b11100000)>>5)
 
 def print_ram(code = ""):
     print(code, "in lcd ram: ", gc.mem_free())
@@ -85,7 +85,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.grey =    rgb888_to_rgb565(54,54,54)
         
         
-        self.rythm_colors = [rgb888_to_rgb565(31,176,255),rgb888_to_rgb565(218,130,255),rgb888_to_rgb565(255,155,122),rgb888_to_rgb565(237, 255, 156)]
+        self.rythm_colors = [rgb888_to_rgb565(255,176,31),rgb888_to_rgb565(255,130,218),rgb888_to_rgb565(122,155,255),rgb888_to_rgb565(156, 255, 237)]
+        self.rythm_colors_turing = [rgb888_to_rgb565(237,69,86),rgb888_to_rgb565(209, 52, 68),rgb888_to_rgb565(176, 33, 48),rgb888_to_rgb565(122, 13, 24)]
         
         self.fill(self.white)
         self.show()
@@ -527,7 +528,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.fill_rect(scrollbar_x,scrollbar_y+int(max_scrollbar_size_float*self.lxEuclidConfig.current_menu_selected ), scrollbar_width, max_scrollbar_size, self.white)
         elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_PROBABILITY:
             current_euclidean_rythm = self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
-            highlight_color = self.rythm_colors[self.lxEuclidConfig.sm_rythm_param_counter]
+            highlight_color = self.rythm_colors_turing[self.lxEuclidConfig.sm_rythm_param_counter]
             
             if current_euclidean_rythm.is_turing_machine:                
                 txt = str(current_euclidean_rythm.turing_probability) + "%"
@@ -569,7 +570,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 
         for euclidieanRythm in self.lxEuclidConfig.euclidieanRythms:
             
-            color = self.rythm_colors[rythm_index]
+            if euclidieanRythm.is_turing_machine:
+                color = self.rythm_colors_turing[rythm_index]
+            else:
+                color = self.rythm_colors[rythm_index]
+                
             highlight_color = self.white
             if self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_PROBABILITY, STATE_PARAMETERS, STATE_RYTHM_PARAM_SELECT, STATE_RYTHM_PARAM_INNER_BEAT, STATE_RYTHM_PARAM_INNER_PULSE, STATE_RYTHM_PARAM_INNER_OFFSET]:
                 if rythm_index != self.lxEuclidConfig.sm_rythm_param_counter:

@@ -22,6 +22,9 @@ VERSION = "v0.0.1_dev"
 
 MIN_TAP_DELAY_MS = 20
 MAX_TAP_DELAY_MS = 3000
+LONG_PRESS_MS = 500
+
+enc_btn_press = time.ticks_ms()
 stop_thread = False
 
 rotary = Rotary(20, 21, 22)
@@ -39,7 +42,7 @@ timer_incr_steps_tap_mode = Timer()
 
 
 def rotary_changed(change):
-    global lxEuclidConfig
+    global lxEuclidConfig, enc_btn_press
     if change == Rotary.ROT_CCW:
         lxEuclidConfig.on_event(EVENT_ENC_INCR)
         LCD.set_need_display()
@@ -47,10 +50,15 @@ def rotary_changed(change):
         lxEuclidConfig.on_event(EVENT_ENC_DECR)
         LCD.set_need_display()
     elif change == Rotary.SW_PRESS:
-        lxEuclidConfig.on_event(EVENT_ENC_BTN)
-        LCD.set_need_display()
+        enc_btn_press = time.ticks_ms()
     elif change == Rotary.SW_RELEASE:
-        pass
+        print("diff", time.ticks_ms() - enc_btn_press)
+        if time.ticks_ms() - enc_btn_press > LONG_PRESS_MS:
+            lxEuclidConfig.on_event(EVENT_ENC_BTN_LONG)
+            LCD.set_need_display()
+        else:            
+            lxEuclidConfig.on_event(EVENT_ENC_BTN)
+            LCD.set_need_display()
         
 def lxhardware_changed(change):
     if change == lxHardware.CLK_RISE:

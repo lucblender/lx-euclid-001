@@ -30,6 +30,10 @@ def get_menu_navigation_map():
             "Inverted output": {
                 "values": ["False", "True"],
                 "attribute_name": "inverted_output"
+            },
+            "Is Turing Machine": {
+                "values": ["False", "True"],
+                "attribute_name": "is_turing_machine"
             }
         },
             "Out 3": {
@@ -37,6 +41,10 @@ def get_menu_navigation_map():
             "Inverted output": {
                 "values": ["False", "True"],
                 "attribute_name": "inverted_output"
+            },
+            "Is Turing Machine": {
+                "values": ["False", "True"],
+                "attribute_name": "is_turing_machine"
             }
         }
         }),

@@ -181,6 +181,7 @@ MAIN_MENU_RETURN_INDEX = 5
 
 EVENT_INIT = "init"
 EVENT_ENC_BTN = "btn"
+EVENT_ENC_BTN_LONG = "btn_long"
 EVENT_ENC_INCR = "enc_incr"
 EVENT_ENC_DECR = "enc_decr"
 EVENT_TAP_BTN = "tap_btn"
@@ -243,9 +244,11 @@ class LxEuclidConfig:
             if event == EVENT_ENC_BTN:
                 self.state = STATE_RYTHM_PARAM_SELECT
                 self.sm_rythm_param_counter  = 0
+            elif event == EVENT_ENC_BTN_LONG:
+                self.reset_steps()
                 
         elif self.state == STATE_RYTHM_PARAM_SELECT:
-            if event == EVENT_ENC_BTN:
+            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
                 if self.sm_rythm_param_counter == MAIN_MENU_RETURN_INDEX:                    
                     self.state = STATE_LIVE
                 elif self.sm_rythm_param_counter == MAIN_MENU_PARAMETER_INDEX:
@@ -261,7 +264,7 @@ class LxEuclidConfig:
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter-1)%6
             
         elif self.state == STATE_RYTHM_PARAM_INNER_BEAT:   
-            if event == EVENT_ENC_BTN:
+            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
                 self.state = STATE_RYTHM_PARAM_INNER_PULSE
             elif event == EVENT_ENC_INCR:
                 self.euclidieanRythms[self.sm_rythm_param_counter].incr_beats()
@@ -269,7 +272,7 @@ class LxEuclidConfig:
                 self.euclidieanRythms[self.sm_rythm_param_counter].decr_beats()
             
         elif self.state == STATE_RYTHM_PARAM_INNER_PULSE:   
-            if event == EVENT_ENC_BTN:
+            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
                 self.state = STATE_RYTHM_PARAM_INNER_OFFSET
             elif event == EVENT_ENC_INCR:
                 self.euclidieanRythms[self.sm_rythm_param_counter].incr_pulses()
@@ -277,7 +280,7 @@ class LxEuclidConfig:
                 self.euclidieanRythms[self.sm_rythm_param_counter].decr_pulses()
             
         elif self.state == STATE_RYTHM_PARAM_INNER_OFFSET:   
-            if event == EVENT_ENC_BTN:
+            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
                 self.state = STATE_RYTHM_PARAM_SELECT
             elif event == EVENT_ENC_INCR:
                 self.euclidieanRythms[self.sm_rythm_param_counter].incr_offset()
@@ -285,7 +288,7 @@ class LxEuclidConfig:
                 self.euclidieanRythms[self.sm_rythm_param_counter].decr_offset()
                 
         elif self.state == STATE_RYTHM_PARAM_PROBABILITY:
-            if event == EVENT_ENC_BTN:
+            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
                 self.state = STATE_RYTHM_PARAM_SELECT
             elif event == EVENT_ENC_INCR:
                 self.euclidieanRythms[self.sm_rythm_param_counter].incr_probability()
@@ -293,7 +296,7 @@ class LxEuclidConfig:
                 self.euclidieanRythms[self.sm_rythm_param_counter].decr_probability()
                 
         elif self.state == STATE_PARAMETERS:
-            if event == EVENT_ENC_BTN:
+            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
                 self.menu_enter_pressed()
             elif event == EVENT_ENC_INCR:
                 self.menu_down_action()
@@ -303,6 +306,7 @@ class LxEuclidConfig:
                 success = self.menu_back_pressed()
                 if success == False:
                     self.state = STATE_RYTHM_PARAM_SELECT
+                    self.sm_rythm_param_counter = MAIN_MENU_RETURN_INDEX # when leaving menu, directly select the return btn
                     
 
     def incr_steps(self):
