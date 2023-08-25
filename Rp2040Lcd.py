@@ -29,7 +29,7 @@ def rgb888_to_rgb565(R,G,B): # Convert RGB888 to RGB565
     return (((G&0b00011100)<<3) +((R&0b11111000)>>3)<<8) + (B&0b11111000)+((G&0b11100000)>>5)
 
 def print_ram(code = ""):
-    code, "in lcd ram: ", gc.mem_free())
+    print(code, "in lcd ram: ", gc.mem_free())
 
 def pict_to_fbuff(path,x,y):
     with open(path, 'rb') as f:
