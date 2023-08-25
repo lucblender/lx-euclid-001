@@ -493,21 +493,20 @@ class LCD_1inch28(framebuf.FrameBuffer):
             for menu_index in range(range_low,range_high):
                 if menu_index >= 0 and menu_index < self.lxEuclidConfig.current_menu_len:                        
                     if menu_index == self.lxEuclidConfig.current_menu_selected:
-                        to_add = ""
-                        color = self.white
+                        
+                        txt = current_keys[menu_index]
                         if in_last_sub_menu and self.lxEuclidConfig.current_menu_value == menu_index:
-                            color = self.rythm_colors[2]
-                        txt = "> "+to_add+current_keys[menu_index]+" <"
+                            txt = "-"+txt+"-"
+                        txt = "> "+txt+" <"
                         txt_len = self.font_writer_freesans20.stringlen(txt)
-                        self.font_writer_freesans20.text(txt,120-int(txt_len/2),origin_y+9+offset_menu_text*general_index, color)  
+                        self.font_writer_freesans20.text(txt,120-int(txt_len/2),origin_y+9+offset_menu_text*general_index, self.white)  
                     else:
-                        to_add = ""
-                        color = self.rythm_colors[3]
+                        
+                        txt = current_keys[menu_index]
                         if in_last_sub_menu and self.lxEuclidConfig.current_menu_value == menu_index:
-                            color = self.rythm_colors[2]
-                        txt = to_add+current_keys[menu_index]
+                            txt = "-"+txt+"-"
                         txt_len = self.font_writer_freesans20.stringlen(txt)
-                        self.font_writer_freesans20.text(txt,120-int(txt_len/2),origin_y+9+offset_menu_text*general_index,color)
+                        self.font_writer_freesans20.text(txt,120-int(txt_len/2),origin_y+9+offset_menu_text*general_index,self.rythm_colors[3])
                     
                 general_index = general_index+1
             
@@ -526,14 +525,27 @@ class LCD_1inch28(framebuf.FrameBuffer):
             if max_scrollbar_size == 0:
                 max_scrollbar_size = 1
             self.fill_rect(scrollbar_x,scrollbar_y+int(max_scrollbar_size_float*self.lxEuclidConfig.current_menu_selected ), scrollbar_width, max_scrollbar_size, self.white)
-            
-        elif self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_INNER_BEAT,STATE_RYTHM_PARAM_INNER_PULSE,STATE_RYTHM_PARAM_INNER_OFFSET]:
-            
-            b = "{0:0=2d}".format(self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter].beats)
-            p = "{0:0=2d}".format(self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter].pulses)
-            o = "{0:0=2d}".format(self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter].offset)
-            
+        elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_PROBABILITY:
+            current_euclidean_rythm = self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
             highlight_color = self.rythm_colors[self.lxEuclidConfig.sm_rythm_param_counter]
+            
+            if current_euclidean_rythm.is_turing_machine:                
+                txt = str(current_euclidean_rythm.turing_probability) + "%"
+                txt_len = self.font_writer_freesans20.stringlen(txt)                   
+                self.font_writer_freesans20.text(txt,120-int(txt_len/2),110,highlight_color)
+                
+            self.display_rythm_circles()
+        elif self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_INNER_BEAT,STATE_RYTHM_PARAM_INNER_PULSE,STATE_RYTHM_PARAM_INNER_OFFSET]:
+            current_euclidean_rythm = self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
+            highlight_color = self.rythm_colors[self.lxEuclidConfig.sm_rythm_param_counter]
+            
+
+        
+            b = "{0:0=2d}".format(current_euclidean_rythm.beats)
+            p = "{0:0=2d}".format(current_euclidean_rythm.pulses)
+            o = "{0:0=2d}".format(current_euclidean_rythm.offset)
+            
+
             if self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_BEAT:            
                 self.font_writer_freesans20.text(str(b),100,95,highlight_color)       
                 self.font_writer_freesans20.text(str(p),100,125,self.grey)       
@@ -554,14 +566,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def display_rythm_circles(self):
         radius = 110
         rythm_index = 0
-        
-        
-        
+                
         for euclidieanRythm in self.lxEuclidConfig.euclidieanRythms:
             
             color = self.rythm_colors[rythm_index]
             highlight_color = self.white
-            if self.lxEuclidConfig.state in [STATE_PARAMETERS, STATE_RYTHM_PARAM_SELECT, STATE_RYTHM_PARAM_INNER_BEAT, STATE_RYTHM_PARAM_INNER_PULSE, STATE_RYTHM_PARAM_INNER_OFFSET]:
+            if self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_PROBABILITY, STATE_PARAMETERS, STATE_RYTHM_PARAM_SELECT, STATE_RYTHM_PARAM_INNER_BEAT, STATE_RYTHM_PARAM_INNER_PULSE, STATE_RYTHM_PARAM_INNER_OFFSET]:
                 if rythm_index != self.lxEuclidConfig.sm_rythm_param_counter:
                     color = self.grey
                     highlight_color = self.grey
@@ -570,9 +580,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
             if self.display_circle_lines == LCD_1inch28.DISPLAY_CIRCLE:
                 self.circle(120,120,radius,color,False)
                 
-            degree_step = 360/euclidieanRythm.beats
             index = 0
             len_euclidiean_rythm = len(euclidieanRythm.rythm)
+            degree_step = 360/len_euclidiean_rythm
             
             last_coord = None
             coord = None            

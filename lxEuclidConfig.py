@@ -1,6 +1,7 @@
 from Rp2040Lcd import *
 from machine import Timer
 import json
+from random import randint
 
 from MenuNavigationMap import *
 
@@ -12,6 +13,11 @@ T_GATE_ON_MS = 1
 class EuclidieanRythm:
     def __init__(self, beats, pulses, offset):
         self.beats = beats
+        
+        self.current_step = 0
+        self.inverted_output = 0
+        self._is_turing_machine = 0
+        self.turing_probability = 50
             
         if pulses > beats:            
             self.pulses = beats
@@ -30,10 +36,16 @@ class EuclidieanRythm:
             self.pulses = 1
             
         self.rythm = []
-        self.__set_rythm_bjorklund()
+        self.__set_rythm()
         
-        self.current_step = 0
-        self.inverted_output = 0
+    @property
+    def is_turing_machine(self):
+        return self._is_turing_machine
+        
+    @is_turing_machine.setter
+    def is_turing_machine(self, is_turing_machine):
+        self._is_turing_machine = is_turing_machine
+        self.__set_rythm()
         
     def set_offset(self, offset):
         self.offset = offset%self.beats
@@ -46,7 +58,7 @@ class EuclidieanRythm:
 
     def incr_beats(self):  
         self.beats = (self.beats +1)  
-        self.__set_rythm_bjorklund()
+        self.__set_rythm()
         
     def decr_beats(self):
         self.beats = (self.beats - 1)
@@ -57,29 +69,65 @@ class EuclidieanRythm:
         if self.offset > self.beats:
             self.offset = self.beats
             
-        self.__set_rythm_bjorklund()
+        self.__set_rythm()
         
     def incr_pulses(self):
         self.pulses = (self.pulses +1)  
         if self.pulses > self.beats:
             self.pulses = self.beats
-        self.__set_rythm_bjorklund()
+        self.__set_rythm()
     def decr_pulses(self):
         self.pulses = (self.pulses -1)  
         if self.pulses < 1:
             self.pulses = 1
-        self.__set_rythm_bjorklund()
+        self.__set_rythm()
 
-    def incr_step(self):
+    def incr_step(self):        
         self.current_step = (self.current_step +1)
-        if self.current_step > self.beats-1:
-            self.current_step = 0
+        
+        if self.is_turing_machine:
+            beat_limit = 8 - 1
+        else:
+            beat_limit = self.beats-1
+        
+        if self.current_step > beat_limit:
+             self.current_step = 0
+             
+        if self.is_turing_machine:
+            if randint(0,100) < self.turing_probability:
+                self.rythm[self.current_step - 1]= 1
+            else:
+                self.rythm[self.current_step - 1]= 0
+                
+    def incr_probability(self):
+        if self.turing_probability != 100:
+            self.turing_probability = self.turing_probability + 10
+            
+    def decr_probability(self):
+        if self.turing_probability != 0:
+            self.turing_probability = self.turing_probability - 10
             
     def reset_step(self):
         self.current_step = 0
             
     def get_current_step(self):
         return self.rythm[(self.current_step-self.offset)%len(self.rythm)]
+    
+    def __set_rythm(self):
+        if self.is_turing_machine:
+            self.__set_turing_rythm()
+        else:
+            self.__set_rythm_bjorklund()
+            
+    def __set_turing_rythm(self):
+        pattern = []
+        for i in range(0, 8): #turing machine rythm stay on 8 beats
+            if randint(0,100) < self.turing_probability:
+                pattern.append(1)
+            else:
+                pattern.append(0)
+               
+        self.rythm  = pattern 
 
     # from https://github.com/brianhouse/bjorklund/tree/master
     def __set_rythm_bjorklund(self):
@@ -125,6 +173,7 @@ STATE_RYTHM_PARAM_SELECT = "Select Rythm"
 STATE_RYTHM_PARAM_INNER_BEAT = "Beat"
 STATE_RYTHM_PARAM_INNER_PULSE = "Pulse"
 STATE_RYTHM_PARAM_INNER_OFFSET = "Offset"
+STATE_RYTHM_PARAM_PROBABILITY = "Probability"
 
 MAIN_MENU_PARAMETER_INDEX = 4
 MAIN_MENU_RETURN_INDEX = 5
@@ -158,6 +207,7 @@ class LxEuclidConfig:
         self.euclidieanRythms.append(EuclidieanRythm(8, 2, 0))
         self.euclidieanRythms.append(EuclidieanRythm(4, 3, 0))
         self.euclidieanRythms.append(EuclidieanRythm(4, 2, 0))
+        
         self.state = STATE_INIT
         self.on_event(EVENT_INIT)
         
@@ -200,8 +250,11 @@ class LxEuclidConfig:
                     self.state = STATE_LIVE
                 elif self.sm_rythm_param_counter == MAIN_MENU_PARAMETER_INDEX:
                     self.state = STATE_PARAMETERS
-                else:                
-                    self.state = STATE_RYTHM_PARAM_INNER_BEAT
+                else:
+                    if self.euclidieanRythms[self.sm_rythm_param_counter].is_turing_machine:
+                        self.state = STATE_RYTHM_PARAM_PROBABILITY
+                    else:
+                        self.state = STATE_RYTHM_PARAM_INNER_BEAT
             elif event == EVENT_ENC_INCR:                
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter+1)%6
             elif event == EVENT_ENC_DECR:
@@ -230,6 +283,14 @@ class LxEuclidConfig:
                 self.euclidieanRythms[self.sm_rythm_param_counter].incr_offset()
             elif event == EVENT_ENC_DECR: 
                 self.euclidieanRythms[self.sm_rythm_param_counter].decr_offset()
+                
+        elif self.state == STATE_RYTHM_PARAM_PROBABILITY:
+            if event == EVENT_ENC_BTN:
+                self.state = STATE_RYTHM_PARAM_SELECT
+            elif event == EVENT_ENC_INCR:
+                self.euclidieanRythms[self.sm_rythm_param_counter].incr_probability()
+            elif event == EVENT_ENC_DECR: 
+                self.euclidieanRythms[self.sm_rythm_param_counter].decr_probability()
                 
         elif self.state == STATE_PARAMETERS:
             if event == EVENT_ENC_BTN:
@@ -321,6 +382,7 @@ class LxEuclidConfig:
         for euclidieanRythm in self.euclidieanRythms:        
             dict_euclidieanRythm = {}
             dict_euclidieanRythm["inverted_output"] = euclidieanRythm.inverted_output
+            dict_euclidieanRythm["is_turing_machine"] = euclidieanRythm.is_turing_machine
             euclidieanRythms_list.append(dict_euclidieanRythm)
         
         dict_data["euclidieanRythms"] = euclidieanRythms_list
@@ -348,7 +410,8 @@ class LxEuclidConfig:
             
             i = 0      
             for dict_euclidieanRythm in euclidieanRythmsList:
-                self.euclidieanRythms[i].inverted_output = dict_euclidieanRythm["inverted_output"]            
+                self.euclidieanRythms[i].inverted_output = dict_euclidieanRythm["inverted_output"]     
+                self.euclidieanRythms[i].is_turing_machine = dict_euclidieanRythm["is_turing_machine"]            
                 i+=1
             self.clk_mode = dict_data["clk"]["clk_mode"]
             self.clk_polarity = dict_data["clk"]["clk_polarity"]
