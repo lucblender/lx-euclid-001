@@ -71,8 +71,15 @@ def get_menu_navigation_map():
                 "Encoder":
                 {"data_pointer": None,
                  "Long Press": {
-                    "values": ["Reset", "Switch Preset"],
+                    "values": ["None", "Reset", "Switch Preset"],
                     "attribute_name": "encoder_long_press_action"
+                    },
+                },
+                "Tap Button":
+                {"data_pointer": None,
+                 "Long Press": {
+                    "values": ["None", "Reset", "Switch Preset"],
+                    "attribute_name": "tap_long_press_action"
                     },
                 }
             }

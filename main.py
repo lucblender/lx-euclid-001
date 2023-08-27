@@ -25,6 +25,7 @@ MAX_TAP_DELAY_MS = 3000
 LONG_PRESS_MS = 500
 
 enc_btn_press = time.ticks_ms()
+tap_btn_press = time.ticks_ms()
 stop_thread = False
 
 rotary = Rotary(20, 21, 22)
@@ -60,6 +61,7 @@ def rotary_changed(change):
             LCD.set_need_display()
         
 def lxhardware_changed(change):
+    global tap_btn_press
     if change == lxHardware.CLK_RISE:
         if lxEuclidConfig.clk_mode == LxEuclidConfig.CLK_IN:
             if lxEuclidConfig.clk_polarity in [LxEuclidConfig.CLK_RISING_EDGE, LxEuclidConfig.CLK_BOTH_EDGES]:
@@ -79,21 +81,25 @@ def lxhardware_changed(change):
             lxEuclidConfig.reset_steps()
             LCD.set_need_display()
     elif change == lxHardware.BTN_TAP_RISE:
-        global last_tap_ms, tap_delay_ms
-        if lxEuclidConfig.state == STATE_PARAMETERS:
-            lxEuclidConfig.on_event(EVENT_TAP_BTN)
-        else:
-            temp_last_tap_ms = time.ticks_ms()
-            temp_tap_delay = temp_last_tap_ms - last_tap_ms
-            if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
-                tap_delay_ms = temp_tap_delay
-            last_tap_ms = temp_last_tap_ms
-            if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
-                timer_incr_steps_tap_mode.deinit()
-                global_incr_steps()
-        LCD.set_need_display()
+        tap_btn_press = time.ticks_ms()
     elif change == lxHardware.BTN_TAP_FALL:
-        pass
+        if time.ticks_ms() - tap_btn_press > LONG_PRESS_MS:
+            lxEuclidConfig.on_event(EVENT_TAP_BTN_LONG)
+            LCD.set_need_display()
+        else:            
+            global last_tap_ms, tap_delay_ms
+            if lxEuclidConfig.state == STATE_PARAMETERS:
+                lxEuclidConfig.on_event(EVENT_TAP_BTN)
+            else:
+                temp_last_tap_ms = time.ticks_ms()
+                temp_tap_delay = temp_last_tap_ms - last_tap_ms
+                if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
+                    tap_delay_ms = temp_tap_delay
+                last_tap_ms = temp_last_tap_ms
+                if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
+                    timer_incr_steps_tap_mode.deinit()
+                    global_incr_steps()
+            LCD.set_need_display()
     
 
 rotary.add_handler(rotary_changed)

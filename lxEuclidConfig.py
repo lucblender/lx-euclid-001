@@ -205,6 +205,7 @@ EVENT_ENC_BTN_LONG = "btn_long"
 EVENT_ENC_INCR = "enc_incr"
 EVENT_ENC_DECR = "enc_decr"
 EVENT_TAP_BTN = "tap_btn"
+EVENT_TAP_BTN_LONG = "tap_btn_long"
 
 
 class LxEuclidConfig:
@@ -219,8 +220,9 @@ class LxEuclidConfig:
     RST_FALLING_EDGE = 1
     RST_BOTH_EDGES = 2
     
-    LONG_PRESS_ACTION_RESET = 0
-    LONG_PRESS_ACTION_SWITCH_PRESET = 1
+    LONG_PRESS_ACTION_NONE = 0
+    LONG_PRESS_ACTION_RESET = 1
+    LONG_PRESS_ACTION_SWITCH_PRESET = 2
     
     def __init__(self, lxHardware, LCD):
         self.lxHardware = lxHardware    
@@ -257,6 +259,7 @@ class LxEuclidConfig:
         self.menu_navigation_map["Display"]["data_pointer"] = self.LCD
         self.menu_navigation_map["Presets"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Encoder"]["data_pointer"] = self
+        self.menu_navigation_map["Interface"]["Tap Button"]["data_pointer"] = self
         
         self.current_menu_len = len(self.menu_navigation_map)
         self.current_menu_selected = 0
@@ -267,6 +270,7 @@ class LxEuclidConfig:
         self._load_preset_index = 0
         
         self.encoder_long_press_action = LxEuclidConfig.LONG_PRESS_ACTION_RESET
+        self.tap_long_press_action = LxEuclidConfig.LONG_PRESS_ACTION_NONE
         
         self.load_data()
         self.reload_rythms()
@@ -310,9 +314,18 @@ class LxEuclidConfig:
                 self.state = STATE_RYTHM_PARAM_SELECT
                 self.sm_rythm_param_counter  = 0
             elif event == EVENT_ENC_BTN_LONG:
-                if self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_RESET: 
+                if self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_NONE:
+                    pass
+                elif self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_RESET: 
                     self.reset_steps()
                 elif self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
+                    self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0
+            elif event == EVENT_TAP_BTN_LONG:
+                if self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_NONE:
+                    pass
+                elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_RESET: 
+                    self.reset_steps()
+                elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
                     self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0
                 
         elif self.state == STATE_RYTHM_PARAM_SELECT:
@@ -489,8 +502,11 @@ class LxEuclidConfig:
         
         interface_dict = {}
         encoder_dict = {}
+        tap_btn_dict = {}
         encoder_dict["encoder_long_press_action"] = self.encoder_long_press_action
+        tap_btn_dict["tap_long_press_action"] = self.tap_long_press_action
         interface_dict["encoder"] = encoder_dict
+        interface_dict["tap_btn"] = tap_btn_dict
         dict_data["interface"] = interface_dict
         
         
@@ -541,6 +557,8 @@ class LxEuclidConfig:
                
             interface_dict = dict_data["interface"]
             encoder_dict = interface_dict["encoder"]
+            tap_btn_dict = interface_dict["tap_btn"]
+            self.tap_long_press_action = tap_btn_dict["tap_long_press_action"]
             self.encoder_long_press_action = encoder_dict["encoder_long_press_action"]
                 
             self.clk_mode = dict_data["clk"]["clk_mode"]
