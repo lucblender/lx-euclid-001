@@ -66,6 +66,29 @@ def get_menu_navigation_map():
                 "attribute_name": "rst_polarity"
             }
          }),
+        "Interface":OrderedDict(
+            {
+                "Encoder":
+                {"data_pointer": None,
+                 "Long Press": {
+                    "values": ["Reset", "Switch Preset"],
+                    "attribute_name": "encoder_long_press_action"
+                    },
+                }
+            }
+        )
+        ,
+        "Presets":OrderedDict(            
+        {"data_pointer": None,
+        "Save Preset": {
+            "values": ["0", "1"],
+            "attribute_name": "save_preset_index"
+            },
+         "Load Preset": {
+            "values": ["0", "1"],
+            "attribute_name": "load_preset_index"
+            },
+         }),
         "Display":OrderedDict(
         {"data_pointer": None,
             "Rythm link": {

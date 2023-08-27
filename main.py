@@ -52,7 +52,6 @@ def rotary_changed(change):
     elif change == Rotary.SW_PRESS:
         enc_btn_press = time.ticks_ms()
     elif change == Rotary.SW_RELEASE:
-        print("diff", time.ticks_ms() - enc_btn_press)
         if time.ticks_ms() - enc_btn_press > LONG_PRESS_MS:
             lxEuclidConfig.on_event(EVENT_ENC_BTN_LONG)
             LCD.set_need_display()

@@ -10,15 +10,19 @@ JSON_CONFIG_FILE_NAME = "lx-euclide_config.json"
 T_CLK_LED_ON_MS = 10
 T_GATE_ON_MS = 1
 
-class EuclidieanRythm:
-    def __init__(self, beats, pulses, offset):
+class EuclideanRythmParameters:
+    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50):
+        self.set_parameters(beats, pulses, offset, is_turing_machine, turing_probability)
+        
+    def set_parameters_from_rythm(self, euclideanRythmParameters):
+        self.set_parameters(euclideanRythmParameters.beats, euclideanRythmParameters.pulses, euclideanRythmParameters.offset, euclideanRythmParameters.is_turing_machine, euclideanRythmParameters.turing_probability)
+        
+    def set_parameters(self, beats, pulses, offset, is_turing_machine, turing_probability):
+        self._is_turing_machine = is_turing_machine
+        self.turing_probability = turing_probability
+        
         self.beats = beats
         
-        self.current_step = 0
-        self.inverted_output = 0
-        self._is_turing_machine = 0
-        self.turing_probability = 50
-            
         if pulses > beats:            
             self.pulses = beats
         else:
@@ -35,8 +39,24 @@ class EuclidieanRythm:
         if self.pulses < 1:
             self.pulses = 1
             
+    @property
+    def is_turing_machine(self):
+        return self._is_turing_machine
+        
+    @is_turing_machine.setter
+    def is_turing_machine(self, is_turing_machine):
+        self._is_turing_machine = is_turing_machine
+
+class EuclideanRythm(EuclideanRythmParameters):
+    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50):
+        
+        EuclideanRythmParameters.__init__(self, beats, pulses, offset, is_turing_machine, turing_probability)
+        
+        self.current_step = 0
+        self.inverted_output = 0
+                    
         self.rythm = []
-        self.__set_rythm()
+        self.set_rythm()
         
     @property
     def is_turing_machine(self):
@@ -45,7 +65,7 @@ class EuclidieanRythm:
     @is_turing_machine.setter
     def is_turing_machine(self, is_turing_machine):
         self._is_turing_machine = is_turing_machine
-        self.__set_rythm()
+        self.set_rythm()
         
     def set_offset(self, offset):
         self.offset = offset%self.beats
@@ -58,7 +78,7 @@ class EuclidieanRythm:
 
     def incr_beats(self):  
         self.beats = (self.beats +1)  
-        self.__set_rythm()
+        self.set_rythm()
         
     def decr_beats(self):
         self.beats = (self.beats - 1)
@@ -69,18 +89,18 @@ class EuclidieanRythm:
         if self.offset > self.beats:
             self.offset = self.beats
             
-        self.__set_rythm()
+        self.set_rythm()
         
     def incr_pulses(self):
         self.pulses = (self.pulses +1)  
         if self.pulses > self.beats:
             self.pulses = self.beats
-        self.__set_rythm()
+        self.set_rythm()
     def decr_pulses(self):
         self.pulses = (self.pulses -1)  
         if self.pulses < 1:
             self.pulses = 1
-        self.__set_rythm()
+        self.set_rythm()
 
     def incr_step(self):        
         self.current_step = (self.current_step +1)
@@ -101,11 +121,11 @@ class EuclidieanRythm:
                 
     def incr_probability(self):
         if self.turing_probability != 100:
-            self.turing_probability = self.turing_probability + 10
+            self.turing_probability = self.turing_probability + 5
             
     def decr_probability(self):
         if self.turing_probability != 0:
-            self.turing_probability = self.turing_probability - 10
+            self.turing_probability = self.turing_probability - 5
             
     def reset_step(self):
         self.current_step = 0
@@ -113,7 +133,7 @@ class EuclidieanRythm:
     def get_current_step(self):
         return self.rythm[(self.current_step-self.offset)%len(self.rythm)]
     
-    def __set_rythm(self):
+    def set_rythm(self):
         if self.is_turing_machine:
             self.__set_turing_rythm()
         else:
@@ -199,15 +219,23 @@ class LxEuclidConfig:
     RST_FALLING_EDGE = 1
     RST_BOTH_EDGES = 2
     
+    LONG_PRESS_ACTION_RESET = 0
+    LONG_PRESS_ACTION_SWITCH_PRESET = 1
+    
     def __init__(self, lxHardware, LCD):
         self.lxHardware = lxHardware    
         self.LCD = LCD
         self.LCD.set_config(self)
-        self.euclidieanRythms = []
-        self.euclidieanRythms.append(EuclidieanRythm(8, 4, 0))
-        self.euclidieanRythms.append(EuclidieanRythm(8, 2, 0))
-        self.euclidieanRythms.append(EuclidieanRythm(4, 3, 0))
-        self.euclidieanRythms.append(EuclidieanRythm(4, 2, 0))
+        self.euclideanRythms = []
+        self.euclideanRythms.append(EuclideanRythm(8, 4, 0))
+        self.euclideanRythms.append(EuclideanRythm(8, 2, 0))
+        self.euclideanRythms.append(EuclideanRythm(4, 3, 0))
+        self.euclideanRythms.append(EuclideanRythm(4, 2, 0))
+        
+        self.presets = []
+        self.presets.append([EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0)])
+        self.presets.append([EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0)])
+        
         
         self.state = STATE_INIT
         self.on_event(EVENT_INIT)
@@ -220,20 +248,57 @@ class LxEuclidConfig:
         
         self.menu_navigation_map = get_menu_navigation_map()
         
-        self.menu_navigation_map["Outputs"]["Out 0"]["data_pointer"] = self.euclidieanRythms[0]
-        self.menu_navigation_map["Outputs"]["Out 1"]["data_pointer"] = self.euclidieanRythms[1]
-        self.menu_navigation_map["Outputs"]["Out 2"]["data_pointer"] = self.euclidieanRythms[2]
-        self.menu_navigation_map["Outputs"]["Out 3"]["data_pointer"] = self.euclidieanRythms[3]
+        self.menu_navigation_map["Outputs"]["Out 0"]["data_pointer"] = self.euclideanRythms[0]
+        self.menu_navigation_map["Outputs"]["Out 1"]["data_pointer"] = self.euclideanRythms[1]
+        self.menu_navigation_map["Outputs"]["Out 2"]["data_pointer"] = self.euclideanRythms[2]
+        self.menu_navigation_map["Outputs"]["Out 3"]["data_pointer"] = self.euclideanRythms[3]
         self.menu_navigation_map["Clock"]["data_pointer"] = self
         self.menu_navigation_map["Reset"]["data_pointer"] = self
         self.menu_navigation_map["Display"]["data_pointer"] = self.LCD
+        self.menu_navigation_map["Presets"]["data_pointer"] = self
+        self.menu_navigation_map["Interface"]["Encoder"]["data_pointer"] = self
         
         self.current_menu_len = len(self.menu_navigation_map)
         self.current_menu_selected = 0
         self.current_menu_value = 0
         self.menu_path = []
         
+        self._save_preset_index = 0
+        self._load_preset_index = 0
+        
+        self.encoder_long_press_action = LxEuclidConfig.LONG_PRESS_ACTION_RESET
+        
         self.load_data()
+        self.reload_rythms()
+        
+        
+    @property
+    def save_preset_index(self):
+        return self._save_preset_index
+        
+    @save_preset_index.setter
+    def save_preset_index(self, save_preset_index):
+        self._save_preset_index = save_preset_index
+        index = 0
+        for presetEuclideanRythm in self.presets[self._save_preset_index]:
+            presetEuclideanRythm.set_parameters_from_rythm(self.euclideanRythms[index])
+            index = index + 1
+        self.save_data()
+        
+    @property
+    def load_preset_index(self):
+        return self._load_preset_index
+        
+    @load_preset_index.setter
+    def load_preset_index(self, load_preset_index):
+        self._load_preset_index = load_preset_index
+        index = 0
+        for euclideanRythm in self.euclideanRythms:
+            euclideanRythm.set_parameters_from_rythm(self.presets[self._load_preset_index][index])
+            euclideanRythm.set_rythm()
+            index = index + 1 
+            
+        
         
     def on_event(self, event):
         if self.state == STATE_INIT:
@@ -245,7 +310,10 @@ class LxEuclidConfig:
                 self.state = STATE_RYTHM_PARAM_SELECT
                 self.sm_rythm_param_counter  = 0
             elif event == EVENT_ENC_BTN_LONG:
-                self.reset_steps()
+                if self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_RESET: 
+                    self.reset_steps()
+                elif self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
+                    self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0
                 
         elif self.state == STATE_RYTHM_PARAM_SELECT:
             if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
@@ -254,7 +322,7 @@ class LxEuclidConfig:
                 elif self.sm_rythm_param_counter == MAIN_MENU_PARAMETER_INDEX:
                     self.state = STATE_PARAMETERS
                 else:
-                    if self.euclidieanRythms[self.sm_rythm_param_counter].is_turing_machine:
+                    if self.euclideanRythms[self.sm_rythm_param_counter].is_turing_machine:
                         self.state = STATE_RYTHM_PARAM_PROBABILITY
                     else:
                         self.state = STATE_RYTHM_PARAM_INNER_BEAT
@@ -267,37 +335,44 @@ class LxEuclidConfig:
             if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
                 self.state = STATE_RYTHM_PARAM_INNER_PULSE
             elif event == EVENT_ENC_INCR:
-                self.euclidieanRythms[self.sm_rythm_param_counter].incr_beats()
+                self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
             elif event == EVENT_ENC_DECR: 
-                self.euclidieanRythms[self.sm_rythm_param_counter].decr_beats()
+                self.euclideanRythms[self.sm_rythm_param_counter].decr_beats()
             
         elif self.state == STATE_RYTHM_PARAM_INNER_PULSE:   
             if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
                 self.state = STATE_RYTHM_PARAM_INNER_OFFSET
             elif event == EVENT_ENC_INCR:
-                self.euclidieanRythms[self.sm_rythm_param_counter].incr_pulses()
+                self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
             elif event == EVENT_ENC_DECR: 
-                self.euclidieanRythms[self.sm_rythm_param_counter].decr_pulses()
+                self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
             
         elif self.state == STATE_RYTHM_PARAM_INNER_OFFSET:   
             if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
+                self.save_data()
                 self.state = STATE_RYTHM_PARAM_SELECT
             elif event == EVENT_ENC_INCR:
-                self.euclidieanRythms[self.sm_rythm_param_counter].incr_offset()
+                self.euclideanRythms[self.sm_rythm_param_counter].incr_offset()
             elif event == EVENT_ENC_DECR: 
-                self.euclidieanRythms[self.sm_rythm_param_counter].decr_offset()
+                self.euclideanRythms[self.sm_rythm_param_counter].decr_offset()
                 
         elif self.state == STATE_RYTHM_PARAM_PROBABILITY:
             if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
+                self.save_data()
                 self.state = STATE_RYTHM_PARAM_SELECT
             elif event == EVENT_ENC_INCR:
-                self.euclidieanRythms[self.sm_rythm_param_counter].incr_probability()
+                self.euclideanRythms[self.sm_rythm_param_counter].incr_probability()
             elif event == EVENT_ENC_DECR: 
-                self.euclidieanRythms[self.sm_rythm_param_counter].decr_probability()
+                self.euclideanRythms[self.sm_rythm_param_counter].decr_probability()
                 
         elif self.state == STATE_PARAMETERS:
             if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
-                self.menu_enter_pressed()
+                parameter_set = self.menu_enter_pressed()
+                if parameter_set:
+                    success = self.menu_back_pressed()
+                    if success == False:
+                        self.state = STATE_RYTHM_PARAM_SELECT
+                        self.sm_rythm_param_counter = MAIN_MENU_RETURN_INDEX # when leaving menu, directly select the return btn
             elif event == EVENT_ENC_INCR:
                 self.menu_down_action()
             elif event == EVENT_ENC_DECR: 
@@ -313,10 +388,10 @@ class LxEuclidConfig:
         index = 0
         callback_param_dict = {}
         self.lxHardware.set_clk_led()
-        for euclidieanRythm in self.euclidieanRythms:
-            euclidieanRythm.incr_step()
-            if euclidieanRythm.get_current_step():
-                self.lxHardware.set_gate(index, euclidieanRythm.inverted_output)
+        for euclideanRythm in self.euclideanRythms:
+            euclideanRythm.incr_step()
+            if euclideanRythm.get_current_step():
+                self.lxHardware.set_gate(index, euclideanRythm.inverted_output)
                 callback_param_dict[index] = index
             index = index + 1
         tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
@@ -325,14 +400,14 @@ class LxEuclidConfig:
             
     def callback_clear_gates(self, timer):
         for i in range(0,4):
-            self.lxHardware.clear_gate(i, self.euclidieanRythms[i].inverted_output)
+            self.lxHardware.clear_gate(i, self.euclideanRythms[i].inverted_output)
             
     def callback_clear_led(self, timer):
         self.lxHardware.clear_clk_led()
         
     def reset_steps(self):
-        for euclidieanRythm in self.euclidieanRythms:
-            euclidieanRythm.reset_step()
+        for euclideanRythm in self.euclideanRythms:
+            euclideanRythm.reset_step()
     
     
     def menu_back_pressed(self):
@@ -356,6 +431,7 @@ class LxEuclidConfig:
             attribute_value = setattr(self.get_current_data_pointer(), attribute_name,self.current_menu_selected)
             self.current_menu_value = self.current_menu_selected
             self.save_data()
+            return True
         else:
             self.menu_path.append(current_keys[self.current_menu_selected])
             self.current_menu_selected = 0            
@@ -369,6 +445,7 @@ class LxEuclidConfig:
                 attribute_value = getattr(self.get_current_data_pointer(), attribute_name)
                 self.current_menu_selected = attribute_value
                 self.current_menu_value = attribute_value
+                return False
     def menu_up_action(self):
         if self.current_menu_selected > 0:
             self.current_menu_selected = self.current_menu_selected - 1
@@ -380,16 +457,43 @@ class LxEuclidConfig:
     def save_data(self):
         
         dict_data = {}
-        euclidieanRythms_list = []
+        euclideanRythms_list = []
         i = 0
         
-        for euclidieanRythm in self.euclidieanRythms:        
-            dict_euclidieanRythm = {}
-            dict_euclidieanRythm["inverted_output"] = euclidieanRythm.inverted_output
-            dict_euclidieanRythm["is_turing_machine"] = euclidieanRythm.is_turing_machine
-            euclidieanRythms_list.append(dict_euclidieanRythm)
+        for euclideanRythm in self.euclideanRythms:        
+            dict_EuclideanRythm = {}
+            dict_EuclideanRythm["inverted_output"] = euclideanRythm.inverted_output
+            dict_EuclideanRythm["is_turing_machine"] = euclideanRythm.is_turing_machine
+            dict_EuclideanRythm["beats"] = euclideanRythm.beats
+            dict_EuclideanRythm["pulses"] = euclideanRythm.pulses
+            dict_EuclideanRythm["offset"] = euclideanRythm.offset
+            dict_EuclideanRythm["turing_probability"] = euclideanRythm.turing_probability
+            euclideanRythms_list.append(dict_EuclideanRythm)
+         
+        dict_data["euclideanRythms"] = euclideanRythms_list        
         
-        dict_data["euclidieanRythms"] = euclidieanRythms_list
+        presets_list = []
+        for preset in self.presets:    
+            presetsRythms_list = []
+            for preset_euclideanRythm in preset:        
+                dict_presetsRythms = {}
+                dict_presetsRythms["is_turing_machine"] = preset_euclideanRythm.is_turing_machine
+                dict_presetsRythms["beats"] = preset_euclideanRythm.beats
+                dict_presetsRythms["pulses"] = preset_euclideanRythm.pulses
+                dict_presetsRythms["offset"] = preset_euclideanRythm.offset
+                dict_presetsRythms["turing_probability"] = preset_euclideanRythm.turing_probability
+                presetsRythms_list.append(dict_presetsRythms)
+            presets_list.append(presetsRythms_list)       
+        
+        dict_data["presets"] = presets_list
+        
+        interface_dict = {}
+        encoder_dict = {}
+        encoder_dict["encoder_long_press_action"] = self.encoder_long_press_action
+        interface_dict["encoder"] = encoder_dict
+        dict_data["interface"] = interface_dict
+        
+        
         clk_dict = {}
         clk_dict["clk_mode"] = self.clk_mode
         clk_dict["clk_polarity"] = self.clk_polarity
@@ -410,13 +514,35 @@ class LxEuclidConfig:
             config_file = open(JSON_CONFIG_FILE_NAME, "r")
             dict_data = json.load(config_file)
             
-            euclidieanRythmsList = dict_data["euclidieanRythms"]            
+            euclideanRythmsList = dict_data["euclideanRythms"]            
             
             i = 0      
-            for dict_euclidieanRythm in euclidieanRythmsList:
-                self.euclidieanRythms[i].inverted_output = dict_euclidieanRythm["inverted_output"]     
-                self.euclidieanRythms[i].is_turing_machine = dict_euclidieanRythm["is_turing_machine"]            
+            for dict_EuclideanRythm in euclideanRythmsList:
+                self.euclideanRythms[i].inverted_output = dict_EuclideanRythm["inverted_output"]     
+                self.euclideanRythms[i].is_turing_machine = dict_EuclideanRythm["is_turing_machine"]  
+                self.euclideanRythms[i].beats = dict_EuclideanRythm["beats"]  
+                self.euclideanRythms[i].pulses = dict_EuclideanRythm["pulses"]  
+                self.euclideanRythms[i].offset = dict_EuclideanRythm["offset"]  
+                self.euclideanRythms[i].turing_probability = dict_EuclideanRythm["turing_probability"]    
                 i+=1
+                
+            presets_list = dict_data["presets"]
+            preset_index = 0
+            for preset in presets_list:            
+                i = 0
+                for dict_preset_euclideanRythm in preset:    
+                    self.presets[preset_index][i].is_turing_machine = dict_preset_euclideanRythm["is_turing_machine"]  
+                    self.presets[preset_index][i].beats = dict_preset_euclideanRythm["beats"]  
+                    self.presets[preset_index][i].pulses = dict_preset_euclideanRythm["pulses"]  
+                    self.presets[preset_index][i].offset = dict_preset_euclideanRythm["offset"]  
+                    self.presets[preset_index][i].turing_probability = dict_preset_euclideanRythm["turing_probability"]    
+                    i+=1
+                preset_index += 1
+               
+            interface_dict = dict_data["interface"]
+            encoder_dict = interface_dict["encoder"]
+            self.encoder_long_press_action = encoder_dict["encoder_long_press_action"]
+                
             self.clk_mode = dict_data["clk"]["clk_mode"]
             self.clk_polarity = dict_data["clk"]["clk_polarity"]
             self.rst_polarity = dict_data["rst"]["rst_polarity"]
@@ -433,7 +559,10 @@ class LxEuclidConfig:
         if config_file != None:
             config_file.close()
         
-    
+    def reload_rythms(self):
+        for euclideanRythm in self.euclideanRythms:
+            euclideanRythm.set_rythm()
+        
     def get_current_data_pointer(self):
         tmp_menu_selected = self.menu_navigation_map
         i = 0

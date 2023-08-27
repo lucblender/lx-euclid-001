@@ -528,7 +528,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 max_scrollbar_size = 1
             self.fill_rect(scrollbar_x,scrollbar_y+int(max_scrollbar_size_float*self.lxEuclidConfig.current_menu_selected ), scrollbar_width, max_scrollbar_size, self.white)
         elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_PROBABILITY:
-            current_euclidean_rythm = self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
+            current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
             highlight_color = self.rythm_colors_turing[self.lxEuclidConfig.sm_rythm_param_counter]
             
             if current_euclidean_rythm.is_turing_machine:                
@@ -538,7 +538,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 
             self.display_rythm_circles()
         elif self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_INNER_BEAT,STATE_RYTHM_PARAM_INNER_PULSE,STATE_RYTHM_PARAM_INNER_OFFSET]:
-            current_euclidean_rythm = self.lxEuclidConfig.euclidieanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
+            current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
             highlight_color = self.rythm_colors[self.lxEuclidConfig.sm_rythm_param_counter]
             
 
@@ -569,7 +569,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         radius = 110
         rythm_index = 0
                 
-        for euclidieanRythm in self.lxEuclidConfig.euclidieanRythms:
+        for euclidieanRythm in self.lxEuclidConfig.euclideanRythms:
             
             if euclidieanRythm.is_turing_machine:
                 beat_color = self.rythm_colors_turing[rythm_index]
