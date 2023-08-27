@@ -5,6 +5,7 @@ from rotary import Rotary
 import utime as time
 from machine import Pin
 
+
 from machine import Timer
 
 import machine
@@ -23,6 +24,8 @@ VERSION = "v0.0.1_dev"
 MIN_TAP_DELAY_MS = 20
 MAX_TAP_DELAY_MS = 3000
 LONG_PRESS_MS = 500
+
+last_timer_launch_ms = time.ticks_ms()
 
 enc_btn_press = time.ticks_ms()
 tap_btn_press = time.ticks_ms()
@@ -117,19 +120,30 @@ def is_usb_connected():
         return False
     
 def display_thread():    
-    global stop_thread
+    global stop_thread, last_timer_launch_ms
     while not stop_thread:
         if LCD.get_need_display() == True:
             LCD.display_rythms()
         time.sleep_ms(1)
+        if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
+            # due to some micropython bug  (https://forum.micropython.org/viewtopic.php?f=21&t=12639)
+            # sometimes timer can stop to work.... if the timer is not called after 1.2x its required time
+            # we force it to relaunch
+            # The bug only occure when the soft is on high demand (eg high interrupt number because of 
+            # hardware gpio + timer)
+            if time.ticks_ms() - last_timer_launch > (tap_delay_ms*1.2): 
+                print("ici")
+                global_incr_steps()
+
         
 def global_incr_steps(timer=None):
-    global timer_incr_steps_tap_mode
-    lxEuclidConfig.incr_steps()
+    global timer_incr_steps_tap_mode, last_timer_launch
     if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
         timer_incr_steps_tap_mode = Timer(period=tap_delay_ms, mode=Timer.ONE_SHOT, callback=global_incr_steps)
+        last_timer_launch = time.ticks_ms()
     elif lxEuclidConfig.clk_mode == LxEuclidConfig.CLK_IN:
         pass
+    lxEuclidConfig.incr_steps()
     
 def append_error(error):
     print("*-"*20)
