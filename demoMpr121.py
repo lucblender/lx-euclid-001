@@ -5,7 +5,7 @@ import time
 i2c = I2C(0, sda=Pin(0), scl=Pin(1))
 mpr = MPR121(i2c)
 
-list_concordance_sensor = [0,1,2,6,7,8,9,10,11,3,4,5]
+list_concordance_sensor = [ 5, 4, 3, 11 ,10, 9, 8, 7, 6, 2, 1, 0]
 
 # check all keys
 while True:
@@ -15,14 +15,15 @@ while True:
     outer_circle_len = 0
     for i in range(0,12):
         data = mpr.filtered_data(i)
-        if data<160:
+        if data<150: 
             if list_concordance_sensor[i]<6:
                 inner_circle_len += 1
             else:
                 outer_circle_len += 1
             datas.append((list_concordance_sensor[i],data))
-    datas = sorted(datas, key=lambda x: x[0])   
-#     print(datas)        
+    datas = sorted(datas, key=lambda x: x[0]) 
+
+    #print(datas)        
     if len(datas) > 1 and len(datas) < 4:
         if inner_circle_len>outer_circle_len:
             datas = [x for x in datas if x[0] < 6]
@@ -40,31 +41,42 @@ while True:
 
     if len(datas)>0:
         angle = 0
+        angle_1 = 0
         if inner_circle_len> 0:
-            if len(datas) == 1:
-                angle = datas[0][0]*60
-            else:
-                indexes = [x[0] for x in datas]
-                if 0 in indexes and 5 in indexes:
-                    factor = (datas[1][1]-30)/(110-30)
-                    angle = datas[1][0]*60 + factor*60
-                else:
-                    factor = (datas[0][1]-30)/(110-30)
-                    angle = datas[0][0]*60 + factor*60
-                    
-                if 0 in indexes and 1 in indexes:
-                    difference = datas[0][1] - datas[1][1]
-                    factor = (difference+90)/180
-                    angle = datas[0][0]*60 + factor*60
-                    #print(datas[0][1], datas[1][1])
-                    print("angle: ",angle)
-                
+            index_factor_offset = 0
         else:
-            if len(datas) == 1:
-                angle = (datas[0][0]-6)*60
-        #print("angle: ",angle)
-    
+            index_factor_offset = 6
             
+        if len(datas) == 1:
+            angle = (datas[0][0]-index_factor_offset)*60
+            angle_1 = angle
+        else:
+            
+            indexes = [x[0] for x in datas]
+            if (0 in indexes and 5 in indexes) or (6 in indexes and 11 in indexes):
+                
+                data_first_sensor = datas[1][1]
+                data_second_sensor = datas[0][1]
+                index_factor = datas[1][0] - index_factor_offset
+            else:
+                
+                data_first_sensor = datas[0][1]
+                data_second_sensor = datas[1][1]
+                index_factor = datas[0][0] - index_factor_offset
+                
+                
+            factor = (data_first_sensor-50)/(110-50)
+            angle = index_factor*60 + factor*60
+                
+            #if 0 in indexes and 1 in indexes:
+            difference = data_first_sensor - data_second_sensor
+            factor = (difference+90)/180
+            angle_1 = index_factor*60 + factor*60
+        if inner_circle_len> 0:
+            print("inner_angle ",angle, "angle_1", angle_1)
+        else:  
+            print("outer_angle ",angle, "angle_1", angle_1)
+
         
         
-    time.sleep_ms(10)
+    time.sleep_ms(50)
