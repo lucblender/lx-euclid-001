@@ -45,12 +45,9 @@ class CapacitivesCircles():
                                                 # not yet relevent
                 else:
                     self.calibration_array [i] = self.calibration_array [i] + self.mpr.filtered_data(i)
-                
-                
+                          
         for i in range(0,12):
             self.calibration_array [i] = self.calibration_array [i]/8
-            
-        print(self.calibration_array )
 
     def get_touch_circles_updates(self):
         datas = []
@@ -132,9 +129,6 @@ class CapacitivesCircles():
                 self.inner_circle_angle = angle
                 self.last_inner_circle_angle_timestamp_ms = time.ticks_ms()
                 
-                
-                #print("inner_angle ",angle, "angle_1", angle_1)
-                
                 inner_angle_updated = True
             else:  
                 
@@ -150,9 +144,6 @@ class CapacitivesCircles():
                     self.last_outer_circle_angle = angle # do this to prevent incr-decr when we touch the sensor after long time
                 self.outer_circle_angle = angle      
                 self.last_outer_circle_angle_timestamp_ms = time.ticks_ms()
-                
-                
-                #print("outer_angle ",angle, "angle_1", angle_1)
                 
                 outer_angle_updated = True
 
