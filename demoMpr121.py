@@ -12,6 +12,8 @@ class CapacitivesCircles():
     OUTER_CIRCLE_INCR_EVENT = 3
     OUTER_CIRCLE_DECR_EVENT = 4
     
+    CALIBRATION_THRESHOLD = 10
+    
     def __init__(self):
         self.i2c = I2C(0, sda=Pin(0), scl=Pin(1))
         self.mpr = MPR121(self.i2c)
@@ -28,8 +30,27 @@ class CapacitivesCircles():
 
         self.last_inner_circle_angle_timestamp_ms = time.ticks_ms()
         self.last_outer_circle_angle_timestamp_ms = time.ticks_ms()
+        
+        
+        self.calibration_array = [0,0,0,0,0,0,0,0,0,0,0,0]
+        
+        self.calibration_sensor()
 
-
+    # During calibration, do NOT touch the Capacitives Circles
+    def calibration_sensor(self):
+        for averaging_index in range(0,16):
+            for i in range(0,12):
+                if averaging_index < 8:
+                    self.mpr.filtered_data(i)   # read multiple the sensor and drop the data, at boot the filtered data are
+                                                # not yet relevent
+                else:
+                    self.calibration_array [i] = self.calibration_array [i] + self.mpr.filtered_data(i)
+                
+                
+        for i in range(0,12):
+            self.calibration_array [i] = self.calibration_array [i]/8
+            
+        print(self.calibration_array )
 
     def get_touch_circles_updates(self):
         datas = []
@@ -42,15 +63,14 @@ class CapacitivesCircles():
         outer_angle_updated = False
         for i in range(0,12):
             data = self.mpr.filtered_data(i)
-            if data<150: 
+            if data<(self.calibration_array[i]-CapacitivesCircles.CALIBRATION_THRESHOLD) : 
                 if self.list_concordance_sensor[i]<6:
                     inner_circle_len += 1
                 else:
                     outer_circle_len += 1
                 datas.append((self.list_concordance_sensor[i],data))
         datas = sorted(datas, key=lambda x: x[0]) 
-
-        #print(datas)        
+      
         if len(datas) > 1 and len(datas) < 4:
             if inner_circle_len>outer_circle_len:
                 datas = [x for x in datas if x[0] < 6]
