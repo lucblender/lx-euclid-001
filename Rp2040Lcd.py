@@ -3,6 +3,7 @@ import framebuf
 import time
 from lxEuclidConfig import *
 import math
+from array import array
 
 import writer
 
@@ -29,7 +30,7 @@ def rgb888_to_rgb565(R,G,B): # Convert RGB888 to RGB565
     return (((G&0b00011100)<<3) +((B&0b11111000)>>3)<<8) + (R&0b11111000)+((G&0b11100000)>>5)
 
 def print_ram(code = ""):
-    print(code, "in lcd ram: ", gc.mem_free())
+        print(code, "in lcd free ram: ", gc.mem_free(), ", alloc ram: ",gc.mem_alloc())
 
 def pict_to_fbuff(path,x,y):
     with open(path, 'rb') as f:
@@ -54,8 +55,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
     DISPLAY_CIRCLE = 0
     DISPLAY_LINES = 1
     
-    def __init__(self):
-        print_ram("48")
+    def __init__(self, version = None):
+        
         self.lxEuclidConfig = None
         self.width = 240
         self.height = 240
@@ -68,14 +69,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.dc = Pin(DC,Pin.OUT)
         self.dc(1)
         
-        print_ram("62")
         self.buffer = bytearray(self.height * self.width * 2)
         super().__init__(self.buffer, self.width, self.height, framebuf.RGB565)        
         gc.collect()
-        print_ram("65")
         self.init_display()
         gc.collect()
-        print_ram("67")
         
         self.blue  =   0x07E0
         self.green =   0x001f
@@ -97,30 +95,25 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.pwm = PWM(Pin(BL))
         self.pwm.freq(5000)
         
-        self.font_writer_courier20 = None #writer.Writer(self, courier20)
         self.font_writer_freesans20 = None #writer.Writer(self, freesans20)
-        self.font_writer_font10 = None #writer.Writer(self, font10)
         self.font_writer_font6 = None #writer.Writer(self, font6)
-
-        self.return_selected= None
-        self.return_unselected= None
-        self.parameter_selected= None
-        self.parameter_unselected= None
         
         self.__need_display = False
         self.display_circle_lines = LCD_1inch28.DISPLAY_CIRCLE
+        
+        self.set_bl_pwm(65535)  
+        self.display_lxb_logo(version)
+
+        self.parameter_selected = pict_to_fbuff("parameter_selected.bin",40,40)
+        self.parameter_unselected = pict_to_fbuff("parameter_unselected.bin",40,40)     
         
     def set_config(self, lxEuclidConfig):
         self.lxEuclidConfig = lxEuclidConfig
         
     def load_fonts(self):
-        import font.courier20 as courier20
         import font.freesans20 as freesans20
-        import font.font10 as font10
         import font.font6 as font6
-        self.font_writer_courier20 = writer.Writer(self, courier20)
         self.font_writer_freesans20 = writer.Writer(self, freesans20)
-        self.font_writer_font10 = writer.Writer(self, font10)
         self.font_writer_font6 = writer.Writer(self, font6)
 
     def write_cmd(self, cmd):
@@ -433,9 +426,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.text(version,120-int(txt_len/2),200,self.grey)
             self.show()
             time.sleep(0.5)
-            
-            
-        del lxb_fbuf
         gc.collect()
         
     def set_need_display(self):
@@ -446,29 +436,27 @@ class LCD_1inch28(framebuf.FrameBuffer):
         
     def display_rythms(self):
         self.fill(self.black)
+        angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitivesCircles.outer_circle_angle
+        self.draw_approx_pie_slice([120,120],110,120,angle_outer-10,angle_outer+10,self.grey)
+        angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitivesCircles.inner_circle_angle
+        self.draw_approx_pie_slice([120,120],90,100,angle_inner-10,angle_inner+10,self.grey)
         if self.lxEuclidConfig.state == STATE_LIVE:
                 self.display_rythm_circles()
         elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_SELECT:  
-            
-            if self.lxEuclidConfig.sm_rythm_param_counter == 5:
-                if self.return_selected == None:
-                    self.return_selected = pict_to_fbuff("return_selected.bin",40,40)        
-                self.blit(self.return_selected, 100, 115)
-            else:
-                if self.return_unselected == None:
-                    self.return_unselected= pict_to_fbuff("return_unselected.bin",40,40)
-                self.blit(self.return_unselected, 100, 115)
                 
             if self.lxEuclidConfig.sm_rythm_param_counter == 4:               
                 if self.parameter_selected == None:
-                    self.parameter_selected = pict_to_fbuff("parameter_selected.bin",40,40)        
-                self.blit(self.parameter_selected, 100, 85)
+                    self.parameter_selected = pict_to_fbuff("parameter_selected.bin",40,40)                    
+                self.blit(self.parameter_selected, 100, 100)
             else:                
                 if self.parameter_unselected == None:
                     self.parameter_unselected = pict_to_fbuff("parameter_unselected.bin",40,40)
-                self.blit(self.parameter_unselected, 100, 85)
+                self.blit(self.parameter_unselected, 100, 100)
                 
             self.display_rythm_circles()
+            self.font_writer_font6.text("tap return",40,200,self.rythm_colors[2])
+            self.font_writer_font6.text("enc enter",135,200,self.rythm_colors[2])
+            
         elif self.lxEuclidConfig.state == STATE_PARAMETERS:
             self.display_rythm_circles()
             
@@ -481,8 +469,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
             path_len = self.font_writer_font6.stringlen(path)
             self.font_writer_font6.text(path,120-int(path_len/2),130+origin_y,self.rythm_colors[0])
             
-            self.font_writer_font6.text("tap return",40,150+origin_y,self.rythm_colors[2])
-            self.font_writer_font6.text("enc enter",135,150+origin_y,self.rythm_colors[2])
+            self.font_writer_font6.text("tap return",40,200,self.rythm_colors[2])
+            self.font_writer_font6.text("enc enter",135,200,self.rythm_colors[2])
             
             current_keys, in_last_sub_menu = self.lxEuclidConfig.get_current_menu_keys()
     
@@ -540,13 +528,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
         elif self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_INNER_BEAT,STATE_RYTHM_PARAM_INNER_PULSE,STATE_RYTHM_PARAM_INNER_OFFSET]:
             current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
             highlight_color = self.rythm_colors[self.lxEuclidConfig.sm_rythm_param_counter]
-            
 
-        
             b = "{0:0=2d}".format(current_euclidean_rythm.beats)
             p = "{0:0=2d}".format(current_euclidean_rythm.pulses)
             o = "{0:0=2d}".format(current_euclidean_rythm.offset)
-            
 
             if self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_BEAT:            
                 self.font_writer_freesans20.text(str(b),100,95,highlight_color)       
@@ -634,79 +619,36 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             radius = radius - 20
             rythm_index = rythm_index + 1
+            
 
-class QMI8658(object):
-    def __init__(self,address=0X6B):
-        self._address = address
-        self._bus = I2C(id=1,scl=Pin(I2C_SDL),sda=Pin(I2C_SDA),freq=100_000)
-        bRet=self.WhoAmI()
-        if bRet :
-            self.Read_Revision()
-        else    :
-            return NULL
-        self.Config_apply()
+    # Draw the approximate pie slice
+    # Define a function to draw an approximate pie slice
+    def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
+        t_start = time.ticks_ms()
+        # Calculate the number of sides for the polygon (higher value for smoother pie slice)
+        num_sides = 5  # You can adjust this value for smoother or more jagged edges
 
-    def _read_byte(self,cmd):
-        rec=self._bus.readfrom_mem(int(self._address),int(cmd),1)
-        return rec[0]
-    def _read_block(self, reg, length=1):
-        rec=self._bus.readfrom_mem(int(self._address),int(reg),length)
-        return rec
-    def _read_u16(self,cmd):
-        LSB = self._bus.readfrom_mem(int(self._address),int(cmd),1)
-        MSB = self._bus.readfrom_mem(int(self._address),int(cmd)+1,1)
-        return (MSB[0] << 8) + LSB[0]
-    def _write_byte(self,cmd,val):
-        self._bus.writeto_mem(int(self._address),int(cmd),bytes([int(val)]))
-        
-    def WhoAmI(self):
-        bRet=False
-        if (0x05) == self._read_byte(0x00):
-            bRet = True
-        return bRet
-    def Read_Revision(self):
-        return self._read_byte(0x01)
-    def Config_apply(self):
-        # REG CTRL1
-        self._write_byte(0x02,0x60)
-        # REG CTRL2 : QMI8658AccRange_8g  and QMI8658AccOdr_1000Hz
-        self._write_byte(0x03,0x23)
-        # REG CTRL3 : QMI8658GyrRange_512dps and QMI8658GyrOdr_1000Hz
-        self._write_byte(0x04,0x53)
-        # REG CTRL4 : No
-        self._write_byte(0x05,0x00)
-        # REG CTRL5 : Enable Gyroscope And Accelerometer Low-Pass Filter 
-        self._write_byte(0x06,0x11)
-        # REG CTRL6 : Disables Motion on Demand.
-        self._write_byte(0x07,0x00)
-        # REG CTRL7 : Enable Gyroscope And Accelerometer
-        self._write_byte(0x08,0x03)
+        # Calculate the angle step size between each side of the polygon
+        angle_step = math.radians((end_angle - start_angle) / num_sides)
 
-    def Read_Raw_XYZ(self):
-        xyz=[0,0,0,0,0,0]
-        raw_timestamp = self._read_block(0x30,3)
-        raw_acc_xyz=self._read_block(0x35,6)
-        raw_gyro_xyz=self._read_block(0x3b,6)
-        raw_xyz=self._read_block(0x35,12)
-        timestamp = (raw_timestamp[2]<<16)|(raw_timestamp[1]<<8)|(raw_timestamp[0])
-        for i in range(6):
-            # xyz[i]=(raw_acc_xyz[(i*2)+1]<<8)|(raw_acc_xyz[i*2])
-            # xyz[i+3]=(raw_gyro_xyz[((i+3)*2)+1]<<8)|(raw_gyro_xyz[(i+3)*2])
-            xyz[i] = (raw_xyz[(i*2)+1]<<8)|(raw_xyz[i*2])
-            if xyz[i] >= 32767:
-                xyz[i] = xyz[i]-65535
-        return xyz
-    def Read_XYZ(self):
-        xyz=[0,0,0,0,0,0]
-        raw_xyz=self.Read_Raw_XYZ()  
-        #QMI8658AccRange_8g
-        acc_lsb_div=(1<<12)
-        #QMI8658GyrRange_512dps
-        gyro_lsb_div = 64
-        for i in range(3):
-            xyz[i]=raw_xyz[i]/acc_lsb_div#(acc_lsb_div/1000.0)
-            xyz[i+3]=raw_xyz[i+3]*1.0/gyro_lsb_div
-        return xyz
+        # Calculate trigonometric values for start angle
+        start_rad = math.radians(start_angle)
 
+        # Initialize the list of polygon points
+        points = []
+        # Calculate the polygon points
+        for i in range(num_sides + 1):
+            angle = start_rad + i * angle_step
+            x = int(center[0] + radius_start * math.cos(angle))
+            y = int(center[1] + radius_start * math.sin(angle))
+            points.extend((x, y))
+        for i in range(num_sides + 1):
+            angle = start_rad + (num_sides-i) * angle_step
+            x = int(center[0] + radius_stop * math.cos(angle))
+            y = int(center[1] + radius_stop * math.sin(angle))
+            points.extend((x, y))
 
+        # Draw the polygon
+        self.poly(0,0, array("h",points), color, True)
 
+        print("draw_approx_pie_slice", time.ticks_ms() - t_start)

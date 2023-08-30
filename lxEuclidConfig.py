@@ -11,15 +11,20 @@ T_CLK_LED_ON_MS = 10
 T_GATE_ON_MS = 1
 
 class EuclideanRythmParameters:
-    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50):
-        self.set_parameters(beats, pulses, offset, is_turing_machine, turing_probability)
+    
+    PRESCALER_LIST = [1,2,3,4,8,16]
+    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50, prescaler_index = 0):
+        self.set_parameters(beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index)
         
     def set_parameters_from_rythm(self, euclideanRythmParameters):
-        self.set_parameters(euclideanRythmParameters.beats, euclideanRythmParameters.pulses, euclideanRythmParameters.offset, euclideanRythmParameters.is_turing_machine, euclideanRythmParameters.turing_probability)
+        self.set_parameters(euclideanRythmParameters.beats, euclideanRythmParameters.pulses, euclideanRythmParameters.offset, euclideanRythmParameters.is_turing_machine, euclideanRythmParameters.turing_probability, euclideanRythmParameters.prescaler_index)
         
-    def set_parameters(self, beats, pulses, offset, is_turing_machine, turing_probability):
+    def set_parameters(self, beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index):
         self._is_turing_machine = is_turing_machine
         self.turing_probability = turing_probability
+        self._prescaler_index = prescaler_index
+        
+        self.prescaler = EuclideanRythmParameters.PRESCALER_LIST[prescaler_index]
         
         self.beats = beats
         
@@ -40,6 +45,14 @@ class EuclideanRythmParameters:
             self.pulses = 1
             
     @property
+    def prescaler_index(self):
+        return self._prescaler_index
+        
+    @prescaler_index.setter
+    def prescaler_index(self, prescaler_index):
+        self._prescaler_index = prescaler_index
+        
+    @property
     def is_turing_machine(self):
         return self._is_turing_machine
         
@@ -48,15 +61,26 @@ class EuclideanRythmParameters:
         self._is_turing_machine = is_turing_machine
 
 class EuclideanRythm(EuclideanRythmParameters):
-    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50):
+    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50, prescaler_index = 0):
         
-        EuclideanRythmParameters.__init__(self, beats, pulses, offset, is_turing_machine, turing_probability)
+        EuclideanRythmParameters.__init__(self, beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index)
         
         self.current_step = 0
         self.inverted_output = 0
+        self.prescaler = EuclideanRythmParameters.PRESCALER_LIST[prescaler_index]
+        self.prescaler_rythm_counter = 0
                     
         self.rythm = []
         self.set_rythm()
+        
+    @property
+    def prescaler_index(self):
+        return self._prescaler_index
+        
+    @prescaler_index.setter
+    def prescaler_index(self, prescaler_index):
+        self._prescaler_index = prescaler_index
+        self.prescaler = EuclideanRythmParameters.PRESCALER_LIST[self._prescaler_index]
         
     @property
     def is_turing_machine(self):
@@ -102,23 +126,31 @@ class EuclideanRythm(EuclideanRythmParameters):
             self.pulses = 1
         self.set_rythm()
 
-    def incr_step(self):        
-        self.current_step = (self.current_step +1)
+    def incr_step(self):
+        to_return = False
+        if self.prescaler_rythm_counter == 0:
+            self.current_step = (self.current_step +1)
         
-        if self.is_turing_machine:
-            beat_limit = 8 - 1
-        else:
-            beat_limit = self.beats-1
-        
-        if self.current_step > beat_limit:
-             self.current_step = 0
-             
-        if self.is_turing_machine:
-            if randint(0,100) < self.turing_probability:
-                self.rythm[self.current_step - 1]= 1
+            if self.is_turing_machine:
+                beat_limit = 8 - 1
             else:
-                self.rythm[self.current_step - 1]= 0
+                beat_limit = self.beats-1
+            
+            if self.current_step > beat_limit:
+                 self.current_step = 0
+                 
+            if self.is_turing_machine:
+                if randint(0,100) < self.turing_probability:
+                    self.rythm[self.current_step - 1]= 1
+                else:
+                    self.rythm[self.current_step - 1]= 0
+            to_return = True
                 
+        self.prescaler_rythm_counter = self.prescaler_rythm_counter+1
+        if self.prescaler_rythm_counter == self.prescaler:
+            self.prescaler_rythm_counter = 0
+        return to_return
+            
     def incr_probability(self):
         if self.turing_probability != 100:
             self.turing_probability = self.turing_probability + 5
@@ -129,6 +161,7 @@ class EuclideanRythm(EuclideanRythmParameters):
             
     def reset_step(self):
         self.current_step = 0
+        self.prescaler_rythm_counter = 0
             
     def get_current_step(self):
         return self.rythm[(self.current_step-self.offset)%len(self.rythm)]
@@ -186,26 +219,31 @@ class EuclideanRythm(EuclideanRythmParameters):
 
 
 
-STATE_INIT = "init"
-STATE_LIVE = "live"
-STATE_PARAMETERS = "parameters"
-STATE_RYTHM_PARAM_SELECT = "Select Rythm"
-STATE_RYTHM_PARAM_INNER_BEAT = "Beat"
-STATE_RYTHM_PARAM_INNER_PULSE = "Pulse"
-STATE_RYTHM_PARAM_INNER_OFFSET = "Offset"
-STATE_RYTHM_PARAM_PROBABILITY = "Probability"
+STATE_INIT = 0
+STATE_LIVE = 1
+STATE_PARAMETERS = 2
+STATE_RYTHM_PARAM_SELECT = 3
+STATE_RYTHM_PARAM_INNER_BEAT = 4
+STATE_RYTHM_PARAM_INNER_PULSE = 5
+STATE_RYTHM_PARAM_INNER_OFFSET = 6
+STATE_RYTHM_PARAM_PROBABILITY = 7
 
 MAIN_MENU_PARAMETER_INDEX = 4
-MAIN_MENU_RETURN_INDEX = 5
 
 
-EVENT_INIT = "init"
-EVENT_ENC_BTN = "btn"
-EVENT_ENC_BTN_LONG = "btn_long"
-EVENT_ENC_INCR = "enc_incr"
-EVENT_ENC_DECR = "enc_decr"
-EVENT_TAP_BTN = "tap_btn"
-EVENT_TAP_BTN_LONG = "tap_btn_long"
+EVENT_INIT = 0
+EVENT_ENC_BTN = 1
+EVENT_ENC_BTN_LONG = 2
+EVENT_ENC_INCR = 3
+EVENT_ENC_DECR = 4
+EVENT_TAP_BTN = 5
+EVENT_TAP_BTN_LONG = 6
+EVENT_INNER_CIRCLE_INCR = 7
+EVENT_INNER_CIRCLE_DECR = 8
+EVENT_OUTER_CIRCLE_INCR = 9
+EVENT_OUTER_CIRCLE_DECR = 10
+EVENT_INNER_CIRCLE_TOUCH = 11
+EVENT_OUTER_CIRCLE_TOUCH = 12
 
 
 class LxEuclidConfig:
@@ -304,7 +342,7 @@ class LxEuclidConfig:
             
         
         
-    def on_event(self, event):
+    def on_event(self, event, data = None):
         if self.state == STATE_INIT:
             if event == EVENT_INIT:
                 self.state = STATE_LIVE
@@ -329,10 +367,10 @@ class LxEuclidConfig:
                     self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0
                 
         elif self.state == STATE_RYTHM_PARAM_SELECT:
+            if event == EVENT_TAP_BTN:                                    
+                self.state = STATE_LIVE
             if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
-                if self.sm_rythm_param_counter == MAIN_MENU_RETURN_INDEX:                    
-                    self.state = STATE_LIVE
-                elif self.sm_rythm_param_counter == MAIN_MENU_PARAMETER_INDEX:
+                if self.sm_rythm_param_counter == MAIN_MENU_PARAMETER_INDEX:
                     self.state = STATE_PARAMETERS
                 else:
                     if self.euclideanRythms[self.sm_rythm_param_counter].is_turing_machine:
@@ -340,9 +378,9 @@ class LxEuclidConfig:
                     else:
                         self.state = STATE_RYTHM_PARAM_INNER_BEAT
             elif event == EVENT_ENC_INCR:                
-                self.sm_rythm_param_counter  = (self.sm_rythm_param_counter+1)%6
+                self.sm_rythm_param_counter  = (self.sm_rythm_param_counter+1)%5
             elif event == EVENT_ENC_DECR:
-                self.sm_rythm_param_counter  = (self.sm_rythm_param_counter-1)%6
+                self.sm_rythm_param_counter  = (self.sm_rythm_param_counter-1)%5
             
         elif self.state == STATE_RYTHM_PARAM_INNER_BEAT:   
             if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
@@ -385,7 +423,6 @@ class LxEuclidConfig:
                     success = self.menu_back_pressed()
                     if success == False:
                         self.state = STATE_RYTHM_PARAM_SELECT
-                        self.sm_rythm_param_counter = MAIN_MENU_RETURN_INDEX # when leaving menu, directly select the return btn
             elif event == EVENT_ENC_INCR:
                 self.menu_down_action()
             elif event == EVENT_ENC_DECR: 
@@ -394,7 +431,6 @@ class LxEuclidConfig:
                 success = self.menu_back_pressed()
                 if success == False:
                     self.state = STATE_RYTHM_PARAM_SELECT
-                    self.sm_rythm_param_counter = MAIN_MENU_RETURN_INDEX # when leaving menu, directly select the return btn
                     
 
     def incr_steps(self):
@@ -402,8 +438,8 @@ class LxEuclidConfig:
         callback_param_dict = {}
         self.lxHardware.set_clk_led()
         for euclideanRythm in self.euclideanRythms:
-            euclideanRythm.incr_step()
-            if euclideanRythm.get_current_step():
+            did_step = euclideanRythm.incr_step()
+            if euclideanRythm.get_current_step() and did_step:
                 self.lxHardware.set_gate(index, euclideanRythm.inverted_output)
                 callback_param_dict[index] = index
             index = index + 1
@@ -480,7 +516,8 @@ class LxEuclidConfig:
             dict_EuclideanRythm["beats"] = euclideanRythm.beats
             dict_EuclideanRythm["pulses"] = euclideanRythm.pulses
             dict_EuclideanRythm["offset"] = euclideanRythm.offset
-            dict_EuclideanRythm["turing_probability"] = euclideanRythm.turing_probability
+            dict_EuclideanRythm["turing_probability"] = euclideanRythm.turing_probability 
+            dict_EuclideanRythm["prescaler_index"] = euclideanRythm.prescaler_index
             euclideanRythms_list.append(dict_EuclideanRythm)
          
         dict_data["euclideanRythms"] = euclideanRythms_list        
@@ -495,6 +532,7 @@ class LxEuclidConfig:
                 dict_presetsRythms["pulses"] = preset_euclideanRythm.pulses
                 dict_presetsRythms["offset"] = preset_euclideanRythm.offset
                 dict_presetsRythms["turing_probability"] = preset_euclideanRythm.turing_probability
+                dict_presetsRythms["prescaler_index"] = euclideanRythm.prescaler_index
                 presetsRythms_list.append(dict_presetsRythms)
             presets_list.append(presetsRythms_list)       
         
@@ -539,7 +577,8 @@ class LxEuclidConfig:
                 self.euclideanRythms[i].beats = dict_EuclideanRythm["beats"]  
                 self.euclideanRythms[i].pulses = dict_EuclideanRythm["pulses"]  
                 self.euclideanRythms[i].offset = dict_EuclideanRythm["offset"]  
-                self.euclideanRythms[i].turing_probability = dict_EuclideanRythm["turing_probability"]    
+                self.euclideanRythms[i].turing_probability = dict_EuclideanRythm["turing_probability"]  
+                self.euclideanRythms[i].prescaler_index = dict_EuclideanRythm["prescaler_index"] 
                 i+=1
                 
             presets_list = dict_data["presets"]
@@ -551,7 +590,8 @@ class LxEuclidConfig:
                     self.presets[preset_index][i].beats = dict_preset_euclideanRythm["beats"]  
                     self.presets[preset_index][i].pulses = dict_preset_euclideanRythm["pulses"]  
                     self.presets[preset_index][i].offset = dict_preset_euclideanRythm["offset"]  
-                    self.presets[preset_index][i].turing_probability = dict_preset_euclideanRythm["turing_probability"]    
+                    self.presets[preset_index][i].turing_probability = dict_preset_euclideanRythm["turing_probability"]
+                    self.presets[preset_index][i].prescaler_index = dict_preset_euclideanRythm["prescaler_index"]
                     i+=1
                 preset_index += 1
                

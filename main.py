@@ -3,21 +3,17 @@ from lxEuclidConfig import *
 from lxHardware import *
 from rotary import Rotary
 import utime as time
-from machine import Pin
-
+from machine import Pin, mem32
+from sys import print_exception
+import io
 
 from machine import Timer
 
-import machine
-from gc import mem_free, collect
-
-import _thread
+import gc
 
 
 def print_ram(code = ""):
-    print(code, "ram: ", mem_free())
-
-print_ram("14")
+    print(code, "free ram: ", gc.mem_free(), ", alloc ram: ",gc.mem_alloc())
 
 VERSION = "v0.0.1_dev"
 
@@ -25,25 +21,24 @@ MIN_TAP_DELAY_MS = 20
 MAX_TAP_DELAY_MS = 3000
 LONG_PRESS_MS = 500
 
+CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
+
 last_timer_launch_ms = time.ticks_ms()
+last_capacitive_circles_read_ms = time.ticks_ms()
 
 enc_btn_press = time.ticks_ms()
 tap_btn_press = time.ticks_ms()
 stop_thread = False
 
+LCD = LCD_1inch28(VERSION)
+
 rotary = Rotary(20, 21, 22)
-print_ram("23")
 lxHardware = LxHardware()
-print_ram("25")
-print_ram("27")
-LCD = LCD_1inch28()
 lxEuclidConfig = LxEuclidConfig(lxHardware, LCD)
-print_ram("29")
 
 last_tap_ms = 0
 tap_delay_ms = 500
 timer_incr_steps_tap_mode = Timer()
-
 
 def rotary_changed(change):
     global lxEuclidConfig, enc_btn_press
@@ -63,46 +58,66 @@ def rotary_changed(change):
             lxEuclidConfig.on_event(EVENT_ENC_BTN)
             LCD.set_need_display()
         
-def lxhardware_changed(change):
+def lxhardware_changed(handlerEventData):
     global tap_btn_press
-    if change == lxHardware.CLK_RISE:
+    event = handlerEventData.event
+    if event == lxHardware.CLK_RISE:
         if lxEuclidConfig.clk_mode == LxEuclidConfig.CLK_IN:
             if lxEuclidConfig.clk_polarity in [LxEuclidConfig.CLK_RISING_EDGE, LxEuclidConfig.CLK_BOTH_EDGES]:
                 global_incr_steps()
             
-    elif change == lxHardware.CLK_FALL:
+    elif event == lxHardware.CLK_FALL:
         if lxEuclidConfig.clk_mode == LxEuclidConfig.CLK_IN:        
             if lxEuclidConfig.clk_polarity in [LxEuclidConfig.CLK_FALLING_EDGE, LxEuclidConfig.CLK_BOTH_EDGES]:
                 global_incr_steps()
 
-    elif change == lxHardware.RST_RISE:
+    elif event == lxHardware.RST_RISE:
         if lxEuclidConfig.rst_polarity in [LxEuclidConfig.RST_RISING_EDGE, LxEuclidConfig.RST_BOTH_EDGES]:
             lxEuclidConfig.reset_steps()
             LCD.set_need_display()
-    elif change == lxHardware.RST_FALL:
+    elif event == lxHardware.RST_FALL:
         if lxEuclidConfig.rst_polarity in [LxEuclidConfig.RST_FALLING_EDGE, LxEuclidConfig.RST_BOTH_EDGES]:
             lxEuclidConfig.reset_steps()
             LCD.set_need_display()
-    elif change == lxHardware.BTN_TAP_RISE:
+    elif event == lxHardware.BTN_TAP_RISE:
         tap_btn_press = time.ticks_ms()
-    elif change == lxHardware.BTN_TAP_FALL:
+    elif event == lxHardware.BTN_TAP_FALL:
         if time.ticks_ms() - tap_btn_press > LONG_PRESS_MS:
             lxEuclidConfig.on_event(EVENT_TAP_BTN_LONG)
             LCD.set_need_display()
         else:            
             global last_tap_ms, tap_delay_ms
-            if lxEuclidConfig.state == STATE_PARAMETERS:
+            if lxEuclidConfig.state == STATE_PARAMETERS or lxEuclidConfig.state == STATE_RYTHM_PARAM_SELECT:
                 lxEuclidConfig.on_event(EVENT_TAP_BTN)
             else:
                 temp_last_tap_ms = time.ticks_ms()
                 temp_tap_delay = temp_last_tap_ms - last_tap_ms
                 if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
                     tap_delay_ms = temp_tap_delay
+                    if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
+                        timer_incr_steps_tap_mode.deinit()
+                        global_incr_steps()
                 last_tap_ms = temp_last_tap_ms
-                if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
-                    timer_incr_steps_tap_mode.deinit()
-                    global_incr_steps()
+                
             LCD.set_need_display()
+    elif event == lxHardware.INNER_CIRCLE_INCR:
+        lxEuclidConfig.on_event(EVENT_INNER_CIRCLE_INCR, handlerEventData.data)
+        LCD.set_need_display()
+    elif event == lxHardware.INNER_CIRCLE_DECR:
+        lxEuclidConfig.on_event(EVENT_INNER_CIRCLE_DECR, handlerEventData.data)
+        LCD.set_need_display()
+    elif event == lxHardware.OUTER_CIRCLE_INCR:
+        lxEuclidConfig.on_event(EVENT_OUTER_CIRCLE_INCR, handlerEventData.data)
+        LCD.set_need_display()
+    elif event == lxHardware.OUTER_CIRCLE_DECR:
+        lxEuclidConfig.on_event(EVENT_OUTER_CIRCLE_DECR, handlerEventData.data)
+        LCD.set_need_display()
+    elif event == lxHardware.INNER_CIRCLE_TOUCH:
+        lxEuclidConfig.on_event(EVENT_INNER_CIRCLE_TOUCH, handlerEventData.data)
+        LCD.set_need_display()
+    elif event == lxHardware.OUTER_CIRCLE_TOUCH:
+        lxEuclidConfig.on_event(EVENT_OUTER_CIRCLE_TOUCH, handlerEventData.data)
+        LCD.set_need_display()
     
 
 rotary.add_handler(rotary_changed)
@@ -114,59 +129,63 @@ def is_usb_connected():
     CONNECTED=const(1<<16)
     SUSPENDED=const(1<<4)
         
-    if (machine.mem32[SIE_STATUS] & (CONNECTED | SUSPENDED))==CONNECTED:
+    if (mem32[SIE_STATUS] & (CONNECTED | SUSPENDED))==CONNECTED:
         return True
     else:
         return False
     
 def display_thread():    
-    global stop_thread, last_timer_launch_ms
+    global stop_thread, last_timer_launch_ms, last_capacitive_circles_read_ms
     while not stop_thread:
         if LCD.get_need_display() == True:
             LCD.display_rythms()
         time.sleep_ms(1)
-        if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
+        
+        if time.ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
+            lxHardware.get_touch_circles_updates()
+            last_capacitive_circles_read_ms = time.ticks_ms()
+        
+        if lxEuclidConfig.clk_mode ==  LxEuclidConfig.TAP_MODE:
             # due to some micropython bug  (https://forum.micropython.org/viewtopic.php?f=21&t=12639)
             # sometimes timer can stop to work.... if the timer is not called after 1.2x its required time
             # we force it to relaunch
             # The bug only occure when the soft is on high demand (eg high interrupt number because of 
             # hardware gpio + timer)
-            if time.ticks_ms() - last_timer_launch > (tap_delay_ms*1.2): 
-                print("ici")
+            if time.ticks_ms() - last_timer_launch_ms > (tap_delay_ms*1.2): 
                 global_incr_steps()
 
         
 def global_incr_steps(timer=None):
-    global timer_incr_steps_tap_mode, last_timer_launch
+    global timer_incr_steps_tap_mode, last_timer_launch_ms
     if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
-        timer_incr_steps_tap_mode = Timer(period=tap_delay_ms, mode=Timer.ONE_SHOT, callback=global_incr_steps)
-        last_timer_launch = time.ticks_ms()
+        timer_incr_steps_tap_mode = Timer(period=tap_delay_ms, mode=Timer.ONE_SHOT, callback=global_incr_steps)        
+        last_timer_launch_ms = time.ticks_ms()
     elif lxEuclidConfig.clk_mode == LxEuclidConfig.CLK_IN:
         pass
     lxEuclidConfig.incr_steps()
     
+def get_exception(err) -> str:
+    buf = io.StringIO()
+    print_exception(err, buf)
+    return buf.getvalue()    
+    
 def append_error(error):
+    error_txt = get_exception(error)
     print("*-"*20)
     print("Error caught")
-    print(error)
+    print(error_txt)
     print("*-"*20)
     error_file = open("error.txt", "a")
-    error_file.write(str(error))
+    error_file.write(error_txt)
     error_file.write("\n")
     error_file.close()
 
 if __name__=='__main__':
-    try:
-        print_ram("61")
-        LCD.set_bl_pwm(65535)    
-        print_ram("63")
-        collect() 
-        print_ram("63")
-        LCD.display_lxb_logo(VERSION)
-        print_ram("65")
+    try: 
+        gc.collect() 
         LCD.load_fonts()
-        
-        print_ram("68")
+        gc.collect()
+        print_ram("188")
         
         if is_usb_connected() and lxHardware.get_btn_tap_pin_value() == 0:
             LCD.display_programming_mode()

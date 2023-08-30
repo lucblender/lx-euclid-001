@@ -118,11 +118,16 @@ class CapacitivesCircles():
             if inner_circle_len> 0:
                 
                 if time.ticks_ms() - self.last_inner_circle_angle_timestamp_ms < CapacitivesCircles.MAX_DELAY_INCR_DECR_MS:
-                    if self.last_inner_circle_angle-angle > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE:               
-                        incr_decr_event = CapacitivesCircles.INNER_CIRCLE_DECR_EVENT
-                        self.last_inner_circle_angle = angle
-                    elif self.last_inner_circle_angle-angle < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE:
+                    delta = self.last_inner_circle_angle-angle
+                    # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
+                    # and vice versa
+                    if  (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE and delta < 340) or delta < -340:               
                         incr_decr_event = CapacitivesCircles.INNER_CIRCLE_INCR_EVENT
+                        print("iincr", delta)
+                        self.last_inner_circle_angle = angle
+                    elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE or delta > 340:
+                        incr_decr_event = CapacitivesCircles.INNER_CIRCLE_DECR_EVENT
+                        print("idecr", delta)
                         self.last_inner_circle_angle = angle
                 else:
                     self.last_inner_circle_angle = angle # do this to prevent incr-decr when we touch the sensor after long time
@@ -134,11 +139,16 @@ class CapacitivesCircles():
                 
                  
                 if time.ticks_ms() - self.last_outer_circle_angle_timestamp_ms < CapacitivesCircles.MAX_DELAY_INCR_DECR_MS:
-                    if self.last_outer_circle_angle-angle > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE:
-                        incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT
-                        self.last_outer_circle_angle = angle
-                    elif self.last_outer_circle_angle-angle < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE:
+                    delta = self.last_outer_circle_angle-angle
+                    # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
+                    # and vice versa
+                    if  (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE and delta < 340) or delta < -340:
                         incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT
+                        print("oincr", delta)
+                        self.last_outer_circle_angle = angle
+                    elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE or delta > 340:
+                        incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT
+                        print("odecr", delta)
                         self.last_outer_circle_angle = angle
                 else:
                     self.last_outer_circle_angle = angle # do this to prevent incr-decr when we touch the sensor after long time
@@ -148,10 +158,12 @@ class CapacitivesCircles():
                 outer_angle_updated = True
 
         return inner_angle_updated, outer_angle_updated, incr_decr_event, angle
+    
+    
+if __name__=='__main__':   
+    capacitivesCircles = CapacitivesCircles()
 
-capacitivesCircles = CapacitivesCircles()
-# check all keys
-while True:
-    print(capacitivesCircles.get_touch_circles_updates())   
-        
-    time.sleep_ms(50)
+    while(True):
+        time.sleep(0.05)
+        data = capacitivesCircles.get_touch_circles_updates()
+        #print(data)
