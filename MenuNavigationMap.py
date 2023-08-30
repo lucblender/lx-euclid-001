@@ -123,7 +123,7 @@ def get_menu_navigation_map():
             }
         )
         ,
-        "Presets":OrderedDict(            
+        "Presets":OrderedDict(
         {"data_pointer": None,
         "Save Preset": {
             "values": ["0", "1"],
@@ -143,4 +143,5 @@ def get_menu_navigation_map():
          })
     })
     return my_dict
+
 

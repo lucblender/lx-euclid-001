@@ -188,7 +188,7 @@ class MPR121:
             raise ValueError('Electrode must be in range 0-11.')
         t = self.touched()
         return (t & (1 << electrode)) != 0
-    
+
     def get_all_states(self):
         value = self.touched()
         value = "{:012b}".format(value)
