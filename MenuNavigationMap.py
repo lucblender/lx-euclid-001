@@ -12,6 +12,10 @@ def get_menu_navigation_map():
             "Is Turing Machine": {
                 "values": ["False", "True"],
                 "attribute_name": "is_turing_machine"
+            },
+            "Prescaler": {
+                "values": ["1", "2","3","4","8","16"],
+                "attribute_name": "prescaler_index"
             }
         },
             "Out 1": {
@@ -23,6 +27,10 @@ def get_menu_navigation_map():
             "Is Turing Machine": {
                 "values": ["False", "True"],
                 "attribute_name": "is_turing_machine"
+            },
+            "Prescaler": {
+                "values": ["1", "2","3","4","8","16"],
+                "attribute_name": "prescaler_index"
             }
         },
             "Out 2": {
@@ -34,6 +42,10 @@ def get_menu_navigation_map():
             "Is Turing Machine": {
                 "values": ["False", "True"],
                 "attribute_name": "is_turing_machine"
+            },
+            "Prescaler": {
+                "values": ["1", "2","3","4","8","16"],
+                "attribute_name": "prescaler_index"
             }
         },
             "Out 3": {
@@ -45,6 +57,10 @@ def get_menu_navigation_map():
             "Is Turing Machine": {
                 "values": ["False", "True"],
                 "attribute_name": "is_turing_machine"
+            },
+            "Prescaler": {
+                "values": ["1", "2","3","4","8","16"],
+                "attribute_name": "prescaler_index"
             }
         }
         }),
