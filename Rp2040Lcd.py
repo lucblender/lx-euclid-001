@@ -624,7 +624,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
     # Draw the approximate pie slice
     # Define a function to draw an approximate pie slice
     def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
-        t_start = time.ticks_ms()
         # Calculate the number of sides for the polygon (higher value for smoother pie slice)
         num_sides = 5  # You can adjust this value for smoother or more jagged edges
 
@@ -650,5 +649,3 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         # Draw the polygon
         self.poly(0,0, array("h",points), color, True)
-
-        print("draw_approx_pie_slice", time.ticks_ms() - t_start)

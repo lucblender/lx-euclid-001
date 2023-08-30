@@ -16,7 +16,7 @@ class Writer():
         cls.row_clip = row_clip
         cls.col_clip = col_clip
 
-    def __init__(self, device, font, verbose=True):
+    def __init__(self, device, font, verbose=False):
         self.device = device
         self.font = font
         # Allow to work with any font mapping

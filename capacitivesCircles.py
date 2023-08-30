@@ -123,11 +123,9 @@ class CapacitivesCircles():
                     # and vice versa
                     if  (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE and delta < 340) or delta < -340:               
                         incr_decr_event = CapacitivesCircles.INNER_CIRCLE_INCR_EVENT
-                        print("iincr", delta)
                         self.last_inner_circle_angle = angle
                     elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE or delta > 340:
                         incr_decr_event = CapacitivesCircles.INNER_CIRCLE_DECR_EVENT
-                        print("idecr", delta)
                         self.last_inner_circle_angle = angle
                 else:
                     self.last_inner_circle_angle = angle # do this to prevent incr-decr when we touch the sensor after long time
@@ -144,11 +142,9 @@ class CapacitivesCircles():
                     # and vice versa
                     if  (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE and delta < 340) or delta < -340:
                         incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT
-                        print("oincr", delta)
                         self.last_outer_circle_angle = angle
                     elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE or delta > 340:
                         incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT
-                        print("odecr", delta)
                         self.last_outer_circle_angle = angle
                 else:
                     self.last_outer_circle_angle = angle # do this to prevent incr-decr when we touch the sensor after long time
