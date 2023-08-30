@@ -1,4 +1,9 @@
 from Rp2040Lcd import *
+
+VERSION = "v0.0.1_dev"
+LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
+                            # once used, the lxb pic buffer is thrown away
+
 from lxEuclidConfig import *
 from lxHardware import *
 from rotary import Rotary
@@ -15,7 +20,7 @@ import gc
 def print_ram(code = ""):
     print(code, "free ram: ", gc.mem_free(), ", alloc ram: ",gc.mem_alloc())
 
-VERSION = "v0.0.1_dev"
+
 
 MIN_TAP_DELAY_MS = 20
 MAX_TAP_DELAY_MS = 3000
@@ -30,7 +35,6 @@ enc_btn_press = time.ticks_ms()
 tap_btn_press = time.ticks_ms()
 stop_thread = False
 
-LCD = LCD_1inch28(VERSION)
 
 rotary = Rotary(20, 21, 22)
 lxHardware = LxHardware()

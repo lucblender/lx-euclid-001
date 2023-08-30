@@ -97,6 +97,28 @@ def get_menu_navigation_map():
                     "values": ["None", "Reset", "Switch Preset"],
                     "attribute_name": "tap_long_press_action"
                     },
+                },
+                "Inner Circle":
+                {"data_pointer": None,
+                 "Live action": {
+                    "values": ["None", "Rotate"],
+                    "attribute_name": "inner_rotate_action"
+                    },
+                 "Action Rythm": {
+                    "values": ["1", "2", "3", "4", "all"],
+                    "attribute_name": "inner_action_rythm"
+                    },
+                },
+                "Outer Circle":
+                {"data_pointer": None,
+                 "Live action": {
+                    "values": ["None", "Rotate"],
+                    "attribute_name": "outer_rotate_action"
+                    },
+                 "Action Rythm": {
+                    "values": ["1", "2", "3", "4", "all"],
+                    "attribute_name": "outer_action_rythm"
+                    },
                 }
             }
         )
