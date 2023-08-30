@@ -105,7 +105,7 @@ def get_menu_navigation_map():
                     "attribute_name": "inner_rotate_action"
                     },
                  "Action Rythm": {
-                    "values": ["1", "2", "3", "4", "all"],
+                    "values": ["1", "2", "3", "4"],
                     "attribute_name": "inner_action_rythm"
                     },
                 },
@@ -116,7 +116,7 @@ def get_menu_navigation_map():
                     "attribute_name": "outer_rotate_action"
                     },
                  "Action Rythm": {
-                    "values": ["1", "2", "3", "4", "all"],
+                    "values": ["1", "2", "3", "4"],
                     "attribute_name": "outer_action_rythm"
                     },
                 }

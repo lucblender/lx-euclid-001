@@ -101,8 +101,9 @@ class EuclideanRythm(EuclideanRythmParameters):
         self.offset = (self.offset - 1)%self.beats
 
     def incr_beats(self):
-        self.beats = (self.beats +1)
-        self.set_rythm()
+        if self.beats != 64:
+            self.beats = (self.beats +1)
+            self.set_rythm()
 
     def decr_beats(self):
         self.beats = (self.beats - 1)
@@ -217,34 +218,7 @@ class EuclideanRythm(EuclideanRythmParameters):
         pattern = pattern[i:] + pattern[0:i]
         self.rythm  = pattern
 
-
-
-STATE_INIT = 0
-STATE_LIVE = 1
-STATE_PARAMETERS = 2
-STATE_RYTHM_PARAM_SELECT = 3
-STATE_RYTHM_PARAM_INNER_BEAT = 4
-STATE_RYTHM_PARAM_INNER_PULSE = 5
-STATE_RYTHM_PARAM_INNER_OFFSET = 6
-STATE_RYTHM_PARAM_PROBABILITY = 7
-
 MAIN_MENU_PARAMETER_INDEX = 4
-
-
-EVENT_INIT = 0
-EVENT_ENC_BTN = 1
-EVENT_ENC_BTN_LONG = 2
-EVENT_ENC_INCR = 3
-EVENT_ENC_DECR = 4
-EVENT_TAP_BTN = 5
-EVENT_TAP_BTN_LONG = 6
-EVENT_INNER_CIRCLE_INCR = 7
-EVENT_INNER_CIRCLE_DECR = 8
-EVENT_OUTER_CIRCLE_INCR = 9
-EVENT_OUTER_CIRCLE_DECR = 10
-EVENT_INNER_CIRCLE_TOUCH = 11
-EVENT_OUTER_CIRCLE_TOUCH = 12
-
 
 class LxEuclidConfig:
     TAP_MODE = 0
@@ -269,7 +243,29 @@ class LxEuclidConfig:
     CIRCLE_RYTHM_2 = 1
     CIRCLE_RYTHM_3 = 2
     CIRCLE_RYTHM_4 = 3
-    CIRCLE_RYTHM_ALL = 4
+    
+    STATE_INIT = 0
+    STATE_LIVE = 1
+    STATE_PARAMETERS = 2
+    STATE_RYTHM_PARAM_SELECT = 3
+    STATE_RYTHM_PARAM_INNER_BEAT = 4
+    STATE_RYTHM_PARAM_INNER_PULSE = 5
+    STATE_RYTHM_PARAM_INNER_OFFSET = 6
+    STATE_RYTHM_PARAM_PROBABILITY = 7
+    
+    EVENT_INIT = 0
+    EVENT_ENC_BTN = 1
+    EVENT_ENC_BTN_LONG = 2
+    EVENT_ENC_INCR = 3
+    EVENT_ENC_DECR = 4
+    EVENT_TAP_BTN = 5
+    EVENT_TAP_BTN_LONG = 6
+    EVENT_INNER_CIRCLE_INCR = 7
+    EVENT_INNER_CIRCLE_DECR = 8
+    EVENT_OUTER_CIRCLE_INCR = 9
+    EVENT_OUTER_CIRCLE_DECR = 10
+    EVENT_INNER_CIRCLE_TOUCH = 11
+    EVENT_OUTER_CIRCLE_TOUCH = 12
 
     def __init__(self, lxHardware, LCD):
         self.lxHardware = lxHardware
@@ -286,8 +282,8 @@ class LxEuclidConfig:
         self.presets.append([EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0)])
 
 
-        self.state = STATE_INIT
-        self.on_event(EVENT_INIT)
+        self.state = LxEuclidConfig.STATE_INIT
+        self.on_event(LxEuclidConfig.EVENT_INIT)
 
         self.sm_rythm_param_counter = 0
 
@@ -325,6 +321,7 @@ class LxEuclidConfig:
         self.inner_action_rythm = LxEuclidConfig.CIRCLE_RYTHM_1
         self.outer_rotate_action = LxEuclidConfig.CIRCLE_ACTION_NONE
         self.outer_action_rythm = LxEuclidConfig.CIRCLE_RYTHM_1
+        
 
         self.load_data()
         self.reload_rythms()
@@ -359,98 +356,108 @@ class LxEuclidConfig:
 
 
     def on_event(self, event, data = None):
-        if self.state == STATE_INIT:
-            if event == EVENT_INIT:
-                self.state = STATE_LIVE
+        if self.state == LxEuclidConfig.STATE_INIT:
+            if event == LxEuclidConfig.EVENT_INIT:
+                self.state = LxEuclidConfig.STATE_LIVE
 
-        elif self.state == STATE_LIVE:
-            if event == EVENT_ENC_BTN:
-                self.state = STATE_RYTHM_PARAM_SELECT
+        elif self.state == LxEuclidConfig.STATE_LIVE:
+            if event == LxEuclidConfig.EVENT_ENC_BTN:
+                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
                 self.sm_rythm_param_counter  = 0
-            elif event == EVENT_ENC_BTN_LONG:
+            elif event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 if self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_NONE:
                     pass
                 elif self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_RESET:
                     self.reset_steps()
                 elif self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
                     self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0
-            elif event == EVENT_TAP_BTN_LONG:
+            elif event == LxEuclidConfig.EVENT_TAP_BTN_LONG:
                 if self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_NONE:
                     pass
                 elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_RESET:
                     self.reset_steps()
                 elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
                     self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0
+            elif  self.inner_rotate_action != LxEuclidConfig.CIRCLE_ACTION_NONE and (event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR):
+                if self.inner_rotate_action == LxEuclidConfig.CIRCLE_ACTION_ROTATE: 
+                    angle_inner = 180-self.lxHardware.capacitivesCircles.inner_circle_angle
+                    degree_steps = 360 / self.euclideanRythms[self.inner_action_rythm].beats
+                    self.euclideanRythms[self.inner_action_rythm].set_offset(int(angle_inner/degree_steps))
+            elif  self.outer_rotate_action != LxEuclidConfig.CIRCLE_ACTION_NONE and (event == LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR):
+                if self.outer_rotate_action == LxEuclidConfig.CIRCLE_ACTION_ROTATE: 
+                    angle_outer = 180-self.lxHardware.capacitivesCircles.outer_circle_angle
+                    degree_steps = 360 / self.euclideanRythms[self.outer_action_rythm].beats
+                    self.euclideanRythms[self.outer_action_rythm].set_offset(int(angle_outer/degree_steps))
 
-        elif self.state == STATE_RYTHM_PARAM_SELECT:
-            if event == EVENT_TAP_BTN:
-                self.state = STATE_LIVE
-            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
+        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
+            if event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.state = LxEuclidConfig.STATE_LIVE
+            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 if self.sm_rythm_param_counter == MAIN_MENU_PARAMETER_INDEX:
-                    self.state = STATE_PARAMETERS
+                    self.state = LxEuclidConfig.STATE_PARAMETERS
                 else:
                     if self.euclideanRythms[self.sm_rythm_param_counter].is_turing_machine:
-                        self.state = STATE_RYTHM_PARAM_PROBABILITY
+                        self.state = LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY
                     else:
-                        self.state = STATE_RYTHM_PARAM_INNER_BEAT
-            elif event == EVENT_ENC_INCR or event == EVENT_INNER_CIRCLE_INCR:
+                        self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT
+            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter+1)%5
-            elif event == EVENT_ENC_DECR or event == EVENT_INNER_CIRCLE_DECR:
+            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter-1)%5
 
-        elif self.state == STATE_RYTHM_PARAM_INNER_BEAT:
-            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
-                self.state = STATE_RYTHM_PARAM_INNER_PULSE
-            elif event == EVENT_ENC_INCR or event == EVENT_INNER_CIRCLE_INCR:
+        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT:
+            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE
+            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
-            elif event == EVENT_ENC_DECR or event == EVENT_INNER_CIRCLE_DECR:
+            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_beats()
 
-        elif self.state == STATE_RYTHM_PARAM_INNER_PULSE:
-            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
-                self.state = STATE_RYTHM_PARAM_INNER_OFFSET
-            elif event == EVENT_ENC_INCR or event == EVENT_INNER_CIRCLE_INCR:
+        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE:
+            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET
+            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
-            elif event == EVENT_ENC_DECR or event == EVENT_INNER_CIRCLE_DECR:
+            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
 
-        elif self.state == STATE_RYTHM_PARAM_INNER_OFFSET:
-            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
+        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET:
+            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 self.save_data()
-                self.state = STATE_RYTHM_PARAM_SELECT
-            elif event == EVENT_ENC_INCR:
+                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+            elif event == LxEuclidConfig.EVENT_ENC_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_offset()
-            elif event == EVENT_ENC_DECR:
+            elif event == LxEuclidConfig.EVENT_ENC_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_offset()
-            elif event == EVENT_INNER_CIRCLE_TOUCH or event == EVENT_INNER_CIRCLE_DECR or event == EVENT_INNER_CIRCLE_INCR:
+            elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 angle_inner = 180-self.lxHardware.capacitivesCircles.inner_circle_angle
                 degree_steps = 360 / self.euclideanRythms[self.sm_rythm_param_counter].beats
                 self.euclideanRythms[self.sm_rythm_param_counter].set_offset(int(angle_inner/degree_steps))
 
-        elif self.state == STATE_RYTHM_PARAM_PROBABILITY:
-            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
+        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
+            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 self.save_data()
-                self.state = STATE_RYTHM_PARAM_SELECT
-            elif event == EVENT_ENC_INCR or event == EVENT_INNER_CIRCLE_INCR:
+                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_probability()
-            elif event == EVENT_ENC_DECR or event == EVENT_INNER_CIRCLE_DECR:
+            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_probability()
 
-        elif self.state == STATE_PARAMETERS:
-            if event == EVENT_ENC_BTN or event == EVENT_ENC_BTN_LONG:
+        elif self.state == LxEuclidConfig.STATE_PARAMETERS:
+            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 parameter_set = self.menu_enter_pressed()
                 if parameter_set:
                     success = self.menu_back_pressed()
                     if success == False:
-                        self.state = STATE_RYTHM_PARAM_SELECT
-            elif event == EVENT_ENC_INCR or event == EVENT_INNER_CIRCLE_INCR:
+                        self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.menu_down_action()
-            elif event == EVENT_ENC_DECR or event == EVENT_INNER_CIRCLE_DECR:
+            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.menu_up_action()
-            elif event == EVENT_TAP_BTN:
+            elif event == LxEuclidConfig.EVENT_TAP_BTN:
                 success = self.menu_back_pressed()
                 if success == False:
-                    self.state = STATE_RYTHM_PARAM_SELECT
+                    self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
 
 
     def incr_steps(self):
@@ -565,9 +572,21 @@ class LxEuclidConfig:
         tap_btn_dict["tap_long_press_action"] = self.tap_long_press_action
         interface_dict["encoder"] = encoder_dict
         interface_dict["tap_btn"] = tap_btn_dict
+        
+        inner_circle_dict = {}
+        inner_circle_dict["inner_rotate_action"] = self.inner_rotate_action
+        inner_circle_dict["inner_action_rythm"] = self.inner_action_rythm
+        
+        interface_dict["inner_circle"] = inner_circle_dict
+        
+        outer_circle_dict = {}
+        outer_circle_dict["outer_rotate_action"] = self.outer_rotate_action
+        outer_circle_dict["outer_action_rythm"] = self.outer_action_rythm
+        
+        interface_dict["outer_circle"] = outer_circle_dict
+        
         dict_data["interface"] = interface_dict
-
-
+        
         clk_dict = {}
         clk_dict["clk_mode"] = self.clk_mode
         clk_dict["clk_polarity"] = self.clk_polarity
@@ -620,6 +639,14 @@ class LxEuclidConfig:
             tap_btn_dict = interface_dict["tap_btn"]
             self.tap_long_press_action = tap_btn_dict["tap_long_press_action"]
             self.encoder_long_press_action = encoder_dict["encoder_long_press_action"]
+            
+            inner_circle_dict = interface_dict["inner_circle"]
+            self.inner_rotate_action = inner_circle_dict["inner_rotate_action"]
+            self.inner_action_rythm = inner_circle_dict["inner_action_rythm"] 
+
+            outer_circle_dict = interface_dict["outer_circle"]
+            self.outer_rotate_action = outer_circle_dict["outer_rotate_action"] 
+            self.outer_action_rythm = outer_circle_dict["outer_action_rythm"]
 
             self.clk_mode = dict_data["clk"]["clk_mode"]
             self.clk_polarity = dict_data["clk"]["clk_polarity"]

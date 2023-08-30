@@ -3,6 +3,8 @@ from Rp2040Lcd import *
 VERSION = "v0.0.1_dev"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
                             # once used, the lxb pic buffer is thrown away
+import gc
+gc.collect()
 
 from lxEuclidConfig import *
 from lxHardware import *
@@ -14,13 +16,9 @@ import io
 
 from machine import Timer
 
-import gc
-
 
 def print_ram(code = ""):
     print(code, "free ram: ", gc.mem_free(), ", alloc ram: ",gc.mem_alloc())
-
-
 
 MIN_TAP_DELAY_MS = 20
 MAX_TAP_DELAY_MS = 3000
@@ -35,7 +33,6 @@ enc_btn_press = time.ticks_ms()
 tap_btn_press = time.ticks_ms()
 stop_thread = False
 
-
 rotary = Rotary(20, 21, 22)
 lxHardware = LxHardware()
 lxEuclidConfig = LxEuclidConfig(lxHardware, LCD)
@@ -47,19 +44,19 @@ timer_incr_steps_tap_mode = Timer()
 def rotary_changed(change):
     global lxEuclidConfig, enc_btn_press
     if change == Rotary.ROT_CCW:
-        lxEuclidConfig.on_event(EVENT_ENC_INCR)
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_INCR)
         LCD.set_need_display()
     elif change == Rotary.ROT_CW:
-        lxEuclidConfig.on_event(EVENT_ENC_DECR)
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_DECR)
         LCD.set_need_display()
     elif change == Rotary.SW_PRESS:
         enc_btn_press = time.ticks_ms()
     elif change == Rotary.SW_RELEASE:
         if time.ticks_ms() - enc_btn_press > LONG_PRESS_MS:
-            lxEuclidConfig.on_event(EVENT_ENC_BTN_LONG)
+            lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_BTN_LONG)
             LCD.set_need_display()
         else:
-            lxEuclidConfig.on_event(EVENT_ENC_BTN)
+            lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_BTN)
             LCD.set_need_display()
 
 def lxhardware_changed(handlerEventData):
@@ -87,12 +84,12 @@ def lxhardware_changed(handlerEventData):
         tap_btn_press = time.ticks_ms()
     elif event == lxHardware.BTN_TAP_FALL:
         if time.ticks_ms() - tap_btn_press > LONG_PRESS_MS:
-            lxEuclidConfig.on_event(EVENT_TAP_BTN_LONG)
+            lxEuclidConfig.on_event(LxEuclidConfig.EVENT_TAP_BTN_LONG)
             LCD.set_need_display()
         else:
             global last_tap_ms, tap_delay_ms
-            if lxEuclidConfig.state == STATE_PARAMETERS or lxEuclidConfig.state == STATE_RYTHM_PARAM_SELECT:
-                lxEuclidConfig.on_event(EVENT_TAP_BTN)
+            if lxEuclidConfig.state == LxEuclidConfig.STATE_PARAMETERS or lxEuclidConfig.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
+                lxEuclidConfig.on_event(LxEuclidConfig.EVENT_TAP_BTN)
             else:
                 temp_last_tap_ms = time.ticks_ms()
                 temp_tap_delay = temp_last_tap_ms - last_tap_ms
@@ -105,22 +102,22 @@ def lxhardware_changed(handlerEventData):
 
             LCD.set_need_display()
     elif event == lxHardware.INNER_CIRCLE_INCR:
-        lxEuclidConfig.on_event(EVENT_INNER_CIRCLE_INCR, handlerEventData.data)
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_INNER_CIRCLE_INCR, handlerEventData.data)
         LCD.set_need_display()
     elif event == lxHardware.INNER_CIRCLE_DECR:
-        lxEuclidConfig.on_event(EVENT_INNER_CIRCLE_DECR, handlerEventData.data)
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_INNER_CIRCLE_DECR, handlerEventData.data)
         LCD.set_need_display()
     elif event == lxHardware.OUTER_CIRCLE_INCR:
-        lxEuclidConfig.on_event(EVENT_OUTER_CIRCLE_INCR, handlerEventData.data)
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR, handlerEventData.data)
         LCD.set_need_display()
     elif event == lxHardware.OUTER_CIRCLE_DECR:
-        lxEuclidConfig.on_event(EVENT_OUTER_CIRCLE_DECR, handlerEventData.data)
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR, handlerEventData.data)
         LCD.set_need_display()
     elif event == lxHardware.INNER_CIRCLE_TOUCH:
-        lxEuclidConfig.on_event(EVENT_INNER_CIRCLE_TOUCH, handlerEventData.data)
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH, handlerEventData.data)
         LCD.set_need_display()
     elif event == lxHardware.OUTER_CIRCLE_TOUCH:
-        lxEuclidConfig.on_event(EVENT_OUTER_CIRCLE_TOUCH, handlerEventData.data)
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH, handlerEventData.data)
         LCD.set_need_display()
 
 
@@ -186,8 +183,6 @@ def append_error(error):
 
 if __name__=='__main__':
     try:
-        gc.collect()
-        LCD.load_fonts()
         gc.collect()
         print_ram("188")
 

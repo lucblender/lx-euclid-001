@@ -1,7 +1,6 @@
 from machine import Pin,I2C,SPI,PWM,ADC
 import framebuf
 import time
-from lxEuclidConfig import *
 import math
 from array import array
 
@@ -103,10 +102,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.set_bl_pwm(65535)
         self.display_lxb_logo(version)
+        gc.collect()
 
         self.parameter_selected = pict_to_fbuff("parameter_selected.bin",40,40)
         self.parameter_unselected = pict_to_fbuff("parameter_unselected.bin",40,40)
-
+        gc.collect()
+        self.load_fonts()
+        gc.collect()
+        
     def set_config(self, lxEuclidConfig):
         self.lxEuclidConfig = lxEuclidConfig
 
@@ -440,9 +443,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.draw_approx_pie_slice([120,120],110,120,angle_outer-10,angle_outer+10,self.grey)
         angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitivesCircles.inner_circle_angle
         self.draw_approx_pie_slice([120,120],90,100,angle_inner-10,angle_inner+10,self.grey)
-        if self.lxEuclidConfig.state == STATE_LIVE:
+        if self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_LIVE:
                 self.display_rythm_circles()
-        elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_SELECT:
+        elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
 
             if self.lxEuclidConfig.sm_rythm_param_counter == 4:
                 if self.parameter_selected == None:
@@ -457,7 +460,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_font6.text("tap return",40,200,self.rythm_colors[2])
             self.font_writer_font6.text("enc enter",135,200,self.rythm_colors[2])
 
-        elif self.lxEuclidConfig.state == STATE_PARAMETERS:
+        elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_PARAMETERS:
             self.display_rythm_circles()
 
             self.blit(self.parameter_unselected, 100, 5)
@@ -515,7 +518,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             if max_scrollbar_size == 0:
                 max_scrollbar_size = 1
             self.fill_rect(scrollbar_x,scrollbar_y+int(max_scrollbar_size_float*self.lxEuclidConfig.current_menu_selected ), scrollbar_width, max_scrollbar_size, self.white)
-        elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_PROBABILITY:
+        elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
             current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
             highlight_color = self.rythm_colors_turing[self.lxEuclidConfig.sm_rythm_param_counter]
 
@@ -525,7 +528,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(txt,120-int(txt_len/2),110,highlight_color)
 
             self.display_rythm_circles()
-        elif self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_INNER_BEAT,STATE_RYTHM_PARAM_INNER_PULSE,STATE_RYTHM_PARAM_INNER_OFFSET]:
+        elif self.lxEuclidConfig.state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT,self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE,self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET]:
             current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
             highlight_color = self.rythm_colors[self.lxEuclidConfig.sm_rythm_param_counter]
 
@@ -533,15 +536,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
             p = "{0:0=2d}".format(current_euclidean_rythm.pulses)
             o = "{0:0=2d}".format(current_euclidean_rythm.offset)
 
-            if self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_BEAT:
+            if self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT:
                 self.font_writer_freesans20.text(str(b),100,95,highlight_color)
                 self.font_writer_freesans20.text(str(p),100,125,self.grey)
                 self.font_writer_freesans20.text(str(o),132,110,self.grey)
-            elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_PULSE:
+            elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE:
                 self.font_writer_freesans20.text(str(b),100,95,self.grey)
                 self.font_writer_freesans20.text(str(p),100,125,highlight_color)
                 self.font_writer_freesans20.text(str(o),132,110,self.grey)
-            elif self.lxEuclidConfig.state == STATE_RYTHM_PARAM_INNER_OFFSET:
+            elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET:
                 self.font_writer_freesans20.text(str(b),100,95,self.grey)
                 self.font_writer_freesans20.text(str(p),100,125,self.grey)
                 self.font_writer_freesans20.text(str(o),132,110,highlight_color)
@@ -564,7 +567,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 beat_color_hightlight = self.rythm_colors_highlight[rythm_index]
 
             highlight_color = self.white
-            if self.lxEuclidConfig.state in [STATE_RYTHM_PARAM_PROBABILITY, STATE_PARAMETERS, STATE_RYTHM_PARAM_SELECT, STATE_RYTHM_PARAM_INNER_BEAT, STATE_RYTHM_PARAM_INNER_PULSE, STATE_RYTHM_PARAM_INNER_OFFSET]:
+            if self.lxEuclidConfig.state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY, self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET]:
                 if rythm_index != self.lxEuclidConfig.sm_rythm_param_counter:
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
