@@ -238,11 +238,14 @@ class LxEuclidConfig:
 
     CIRCLE_ACTION_NONE = 0
     CIRCLE_ACTION_ROTATE = 1
+    CIRCLE_ACTION_PULSES = 2
+    CIRCLE_ACTION_PROBABILITY = 3
 
     CIRCLE_RYTHM_1 = 0
     CIRCLE_RYTHM_2 = 1
     CIRCLE_RYTHM_3 = 2
     CIRCLE_RYTHM_4 = 3
+    CIRCLE_RYTHM_ALL = 4
     
     STATE_INIT = 0
     STATE_LIVE = 1
@@ -377,17 +380,86 @@ class LxEuclidConfig:
                 elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_RESET:
                     self.reset_steps()
                 elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
-                    self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0
-            elif  self.inner_rotate_action != LxEuclidConfig.CIRCLE_ACTION_NONE and (event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR):
-                if self.inner_rotate_action == LxEuclidConfig.CIRCLE_ACTION_ROTATE: 
-                    angle_inner = 180-self.lxHardware.capacitivesCircles.inner_circle_angle
-                    degree_steps = 360 / self.euclideanRythms[self.inner_action_rythm].beats
-                    self.euclideanRythms[self.inner_action_rythm].set_offset(int(angle_inner/degree_steps))
-            elif  self.outer_rotate_action != LxEuclidConfig.CIRCLE_ACTION_NONE and (event == LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR):
+                    self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0            
+            elif event in [LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH,LxEuclidConfig.EVENT_INNER_CIRCLE_DECR,LxEuclidConfig.EVENT_INNER_CIRCLE_INCR]:
+                if self.inner_rotate_action == LxEuclidConfig.CIRCLE_ACTION_ROTATE:
+                    if self.inner_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                        if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.incr_offset()
+                        elif  event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.decr_offset()
+                    else:
+                        angle_inner = 180-self.lxHardware.capacitivesCircles.inner_circle_angle
+                        degree_steps = 360 / self.euclideanRythms[self.inner_action_rythm].beats
+                        self.euclideanRythms[self.inner_action_rythm].set_offset(int(angle_inner/degree_steps))
+                elif self.inner_rotate_action == LxEuclidConfig.CIRCLE_ACTION_PULSES:
+                    if self.inner_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                        if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.incr_pulses()
+                        elif  event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.decr_pulses()
+                    else:
+                        if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+                            self.euclideanRythms[self.inner_action_rythm].incr_pulses()
+                        elif  event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                            self.euclideanRythms[self.inner_action_rythm].decr_pulses()
+                elif self.inner_rotate_action == LxEuclidConfig.CIRCLE_ACTION_PROBABILITY:
+                    if self.inner_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                        if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.incr_probability()
+                        elif  event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.decr_probability()
+                    else:
+                        if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+                            self.euclideanRythms[self.inner_action_rythm].incr_probability()
+                        elif  event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                            self.euclideanRythms[self.inner_action_rythm].decr_probability()
+
+            elif  event in [LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH, LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR, LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR]:
                 if self.outer_rotate_action == LxEuclidConfig.CIRCLE_ACTION_ROTATE: 
-                    angle_outer = 180-self.lxHardware.capacitivesCircles.outer_circle_angle
-                    degree_steps = 360 / self.euclideanRythms[self.outer_action_rythm].beats
-                    self.euclideanRythms[self.outer_action_rythm].set_offset(int(angle_outer/degree_steps))
+                     if self.outer_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                        if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.incr_offset()
+                        elif  event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.decr_offset()
+                     else:
+                        angle_outer = 180-self.lxHardware.capacitivesCircles.outer_circle_angle
+                        degree_steps = 360 / self.euclideanRythms[self.outer_action_rythm].beats
+                        self.euclideanRythms[self.outer_action_rythm].set_offset(int(angle_outer/degree_steps))
+                elif self.outer_rotate_action == LxEuclidConfig.CIRCLE_ACTION_PULSES:
+                    if self.outer_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                        if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.incr_pulses()
+                        elif  event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.decr_pulses()
+                    else:
+                        if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
+                            self.euclideanRythms[self.outer_action_rythm].incr_pulses()
+                        elif  event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
+                            self.euclideanRythms[self.outer_action_rythm].decr_pulses()
+                elif self.outer_rotate_action == LxEuclidConfig.CIRCLE_ACTION_PROBABILITY:
+                    if self.outer_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                        if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.incr_probability()
+                        elif  event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.decr_probability()
+                    else:
+                        if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
+                            self.euclideanRythms[self.outer_action_rythm].incr_probability()
+                        elif  event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
+                            self.euclideanRythms[self.outer_action_rythm].decr_probability()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
             if event == LxEuclidConfig.EVENT_TAP_BTN:

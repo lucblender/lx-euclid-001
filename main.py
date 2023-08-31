@@ -140,7 +140,6 @@ def display_thread():
     while not stop_thread:
         if LCD.get_need_display() == True:
             LCD.display_rythms()
-        time.sleep_ms(1)
 
         if time.ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
             lxHardware.get_touch_circles_updates()
@@ -197,7 +196,3 @@ if __name__=='__main__':
         print("quit")
     except Exception as e:
         append_error(e)
-
-
-
-

@@ -101,22 +101,22 @@ def get_menu_navigation_map():
                 "Inner Circle":
                 {"data_pointer": None,
                  "Live action": {
-                    "values": ["None", "Rotate"],
+                    "values": ["None", "Rotate Rythm", "Incr/Decr Pulses", "Incr/Decr Probability"],
                     "attribute_name": "inner_rotate_action"
                     },
                  "Action Rythm": {
-                    "values": ["1", "2", "3", "4"],
+                    "values": ["1", "2", "3", "4", "all"],
                     "attribute_name": "inner_action_rythm"
                     },
                 },
                 "Outer Circle":
                 {"data_pointer": None,
                  "Live action": {
-                    "values": ["None", "Rotate"],
+                    "values": ["None", "Rotate Rythm", "Incr/Decr Pulses", "Incr/Decr Probability"],
                     "attribute_name": "outer_rotate_action"
                     },
                  "Action Rythm": {
-                    "values": ["1", "2", "3", "4"],
+                    "values": ["1", "2", "3", "4", "all"],
                     "attribute_name": "outer_action_rythm"
                     },
                 }

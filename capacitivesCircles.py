@@ -4,7 +4,7 @@ import utime as time
 
 class CapacitivesCircles():
     MAX_DELAY_INCR_DECR_MS = 1000
-    STEP_TRIGGER_INCR_DEGREE = 5
+    STEP_TRIGGER_INCR_DEGREE = 10
 
     NO_INCR_DECR_EVENT = 0
     INNER_CIRCLE_INCR_EVENT = 1
@@ -162,5 +162,5 @@ if __name__=='__main__':
     while(True):
         time.sleep(0.05)
         data = capacitivesCircles.get_touch_circles_updates()
-        #print(data)
+        print(data)
 
