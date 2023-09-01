@@ -1,2 +1,10 @@
 
 tmp/
+
+.vscode/
+
+.micropico
+
+error.txt
+
+lx-euclide_config.json

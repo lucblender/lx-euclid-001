@@ -1,19 +1,11 @@
-from machine import Pin,I2C,SPI,PWM,ADC
+from machine import Pin,SPI,PWM
 import framebuf
 import time
 import math
 from array import array
 
 import writer
-
-USING_ZIP = False
-if USING_ZIP:
-    import zlib
-
 import gc
-
-I2C_SDA = 6
-I2C_SDL = 7
 
 DC = 8
 CS = 9
@@ -35,13 +27,6 @@ def pict_to_fbuff(path,x,y):
     with open(path, 'rb') as f:
         data = bytearray(f.read())
     return framebuf.FrameBuffer(data, x, y, framebuf.RGB565)
-
-def zlib_pict_to_fbuff(path,x,y):
-    if USING_ZIP:
-        with open(path, "rb") as filedata:
-            zdata = bytearray(zlib.DecompIO(filedata).read())
-        return framebuf.FrameBuffer(zdata, x, y, framebuf.RGB565)
-
 
 def polar_to_cartesian(radius, theta):
     rad_theta = math.radians(theta)
@@ -81,12 +66,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.black =   0x0000
         self.grey =    rgb888_to_rgb565(54,54,54)
 
+        # each array has 5 colors, 4 for the circles, the 5th used when the infos concerns all the circles
+        self.rythm_colors = [rgb888_to_rgb565(255,176,31),rgb888_to_rgb565(255,130,218),rgb888_to_rgb565(122,155,255),rgb888_to_rgb565(156, 255, 237), self.white]
+        self.rythm_colors_turing = [rgb888_to_rgb565(237,69,86),rgb888_to_rgb565(209, 52, 68),rgb888_to_rgb565(176, 33, 48),rgb888_to_rgb565(122, 13, 24), self.white]
 
-        self.rythm_colors = [rgb888_to_rgb565(255,176,31),rgb888_to_rgb565(255,130,218),rgb888_to_rgb565(122,155,255),rgb888_to_rgb565(156, 255, 237)]
-        self.rythm_colors_turing = [rgb888_to_rgb565(237,69,86),rgb888_to_rgb565(209, 52, 68),rgb888_to_rgb565(176, 33, 48),rgb888_to_rgb565(122, 13, 24)]
-
-        self.rythm_colors_highlight = [rgb888_to_rgb565(250, 203, 115),rgb888_to_rgb565(250, 180, 229),rgb888_to_rgb565(176, 196, 255),rgb888_to_rgb565(195, 250, 240)]
-        self.rythm_colors_turing_highlight = [rgb888_to_rgb565(250, 135, 147),rgb888_to_rgb565(237,69,86),rgb888_to_rgb565(209, 52, 68),rgb888_to_rgb565(176, 33, 48),rgb888_to_rgb565(122, 13, 24)]
+        self.rythm_colors_highlight = [rgb888_to_rgb565(250, 203, 115),rgb888_to_rgb565(250, 180, 229),rgb888_to_rgb565(176, 196, 255),rgb888_to_rgb565(195, 250, 240), self.white]
+        self.rythm_colors_turing_highlight = [rgb888_to_rgb565(250, 135, 147),rgb888_to_rgb565(237,69,86),rgb888_to_rgb565(209, 52, 68),rgb888_to_rgb565(176, 33, 48),rgb888_to_rgb565(122, 13, 24), self.white]
 
         self.fill(self.white)
         self.show()
@@ -109,7 +94,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         gc.collect()
         self.load_fonts()
         gc.collect()
-        
+
     def set_config(self, lxEuclidConfig):
         self.lxEuclidConfig = lxEuclidConfig
 
@@ -445,6 +430,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.draw_approx_pie_slice([120,120],90,100,angle_inner-10,angle_inner+10,self.grey)
         if self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_LIVE:
                 self.display_rythm_circles()
+                if self.lxEuclidConfig.need_circle_action_display == True:
+                    txt = self.lxEuclidConfig.action_display_info 
+                    txt_len = self.font_writer_freesans20.stringlen(txt)
+                    if self.lxEuclidConfig.highlight_color_euclid:
+                        color = self.rythm_colors[self.lxEuclidConfig.action_display_index]
+                    else:
+                        color = self.rythm_colors_turing[self.lxEuclidConfig.action_display_index]
+                    self.font_writer_freesans20.text(txt,120-int(txt_len/2),110, color)
         elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
 
             if self.lxEuclidConfig.sm_rythm_param_counter == 4:
@@ -462,15 +455,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
         elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_PARAMETERS:
             self.display_rythm_circles()
             self.display_enter_return_txt()
-            
+
             #get all data from lxEuclidConfig in local variables
             current_keys, in_last_sub_menu = self.lxEuclidConfig.get_current_menu_keys()
             current_menu_len = len(current_keys)
             current_menu_selected = self.lxEuclidConfig.current_menu_selected
             current_menu_value = self.lxEuclidConfig.current_menu_value
             menu_path = self.lxEuclidConfig.menu_path
-            current_menu_selected = self.lxEuclidConfig.current_menu_selected 
-        
+            current_menu_selected = self.lxEuclidConfig.current_menu_selected
+
             self.blit(self.parameter_unselected, 100, 5)
             origin_x = 50
             origin_y = 50
@@ -557,7 +550,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.__need_display = False
 
     def display_rythm_circles(self):
-        start_time = time.ticks_ms()
         radius = 110
         rythm_index = 0
 
@@ -587,7 +579,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             coord = None
             coords = []
             points = []
-
+            
             for index in range(0,len_euclidiean_rythm):
                 try:
                     coord = polar_to_cartesian(radius, index*degree_step-90)
@@ -615,15 +607,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     if filled == 0:
                         self.circle(coord[0]+120,coord[1]+120,7,self.black,True)
 
-
                     last_coord = coord
                 except Exception as e: #add this try except in the case we do a modification of rythm while trying to display it
                     pass
 
             radius = radius - 20
             rythm_index = rythm_index + 1
-            
-        print("draw rythm time = ",time.ticks_ms() -start_time)
 
     def display_enter_return_txt(self):
         self.font_writer_font6.text("tap return",40,200,self.rythm_colors[2])
