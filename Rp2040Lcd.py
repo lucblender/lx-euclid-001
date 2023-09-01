@@ -20,9 +20,6 @@ Vbat_Pin = 29
 def rgb888_to_rgb565(R,G,B): # Convert RGB888 to RGB565
     return (((G&0b00011100)<<3) +((B&0b11111000)>>3)<<8) + (R&0b11111000)+((G&0b11100000)>>5)
 
-def print_ram(code = ""):
-        print(code, "in lcd free ram: ", gc.mem_free(), ", alloc ram: ",gc.mem_alloc())
-
 def pict_to_fbuff(path,x,y):
     with open(path, 'rb') as f:
         data = bytearray(f.read())
@@ -410,7 +407,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.show()
         time.sleep(1.5)
         if version!= None:
-            txt_len = 85 # can't use stinglen since we use default font to not use memory cause we loaded lxb logo
+            txt_len = 54 # can't use stinglen since we use default font to not use memory cause we loaded lxb logo
             self.text(version,120-int(txt_len/2),200,self.grey)
             self.show()
             time.sleep(0.5)
