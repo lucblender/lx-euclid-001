@@ -16,7 +16,6 @@ import io
 
 from machine import Timer
 
-
 def print_ram(code = ""):
     print(code, "free ram: ", gc.mem_free(), ", alloc ram: ",gc.mem_alloc())
 
@@ -88,7 +87,7 @@ def lxhardware_changed(handlerEventData):
             LCD.set_need_display()
         else:
             global last_tap_ms, tap_delay_ms
-            if lxEuclidConfig.state == LxEuclidConfig.STATE_PARAMETERS or lxEuclidConfig.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
+            if lxEuclidConfig.state != LxEuclidConfig.STATE_LIVE:
                 lxEuclidConfig.on_event(LxEuclidConfig.EVENT_TAP_BTN)
             else:
                 temp_last_tap_ms = time.ticks_ms()
