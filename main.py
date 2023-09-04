@@ -1,16 +1,16 @@
-from Rp2040Lcd import *
+from Rp2040Lcd import LCD_1inch28
 
-VERSION = "v0.0.1"
+VERSION = "v0.0.2_dev"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
                             # once used, the lxb pic buffer is thrown away
 import gc
 gc.collect()
 
-from lxEuclidConfig import *
-from lxHardware import *
+from lxEuclidConfig import LxEuclidConfig
+from lxHardware import LxHardware
 from rotary import Rotary
 import utime as time
-from machine import Pin, mem32
+from machine import mem32
 from sys import print_exception
 import io
 
