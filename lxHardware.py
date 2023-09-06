@@ -69,18 +69,18 @@ class LxHardware:
             return
         self.clk_pin_status = self.clk_pin.value()
         if self.clk_pin.value():
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_RISE))
-        else:
             micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_FALL))
+        else:
+            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_RISE))
 
     def rst_pin_change(self, pin):
         if self.rst_pin_status == self.rst_pin.value():
             return
         self.rst_pin_status = self.rst_pin.value()
         if self.rst_pin.value():
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_RISE))
-        else:
             micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_FALL))
+        else:
+            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_RISE))
 
 
     def btn_tap_pin_change(self, pin):
