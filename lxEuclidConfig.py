@@ -1,11 +1,10 @@
-from Rp2040Lcd import *
 from machine import Timer
 import json
 from random import randint
 
 from utime import ticks_ms
 
-from MenuNavigationMap import *
+from MenuNavigationMap import get_menu_navigation_map
 
 JSON_CONFIG_FILE_NAME = "lx-euclide_config.json"
 

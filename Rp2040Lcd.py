@@ -6,6 +6,7 @@ from array import array
 
 import writer
 import gc
+from micropython import const
 
 DC = 8
 CS = 9
@@ -168,189 +169,68 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.write_cmd(0x8E)
         self.write_data(0xFF)
 
-        self.write_cmd(0x8F)
-        self.write_data(0xFF)
+        self.write_cmd_data(0x8F,[0xFF])
 
 
-        self.write_cmd(0xB6)
-        self.write_data(0x00)
-        self.write_data(0x20)
+        self.write_cmd_data(0xB6, [0x00,0x20])
 
-        self.write_cmd(0x36)
-        self.write_data(0x58)
+        self.write_cmd_data(0x36, [0x58])
 
-        self.write_cmd(0x3A)
-        self.write_data(0x05)
+        self.write_cmd_data(0x3A,[0x05])
 
+        self.write_cmd_data(0x90,[0x08,0x08,0x08,0x08])
 
-        self.write_cmd(0x90)
-        self.write_data(0x08)
-        self.write_data(0x08)
-        self.write_data(0x08)
-        self.write_data(0x08)
+        self.write_cmd_data(0xBD, [0x06])
 
-        self.write_cmd(0xBD)
-        self.write_data(0x06)
+        self.write_cmd_data(0xBC,[0x00])
 
-        self.write_cmd(0xBC)
-        self.write_data(0x00)
+        self.write_cmd_data(0xFF, [0x60,0x01,0x04])
 
-        self.write_cmd(0xFF)
-        self.write_data(0x60)
-        self.write_data(0x01)
-        self.write_data(0x04)
+        self.write_cmd_data(0xC3,[0x13])
+        
+        self.write_cmd_data(0xC4,[0x13])
 
-        self.write_cmd(0xC3)
-        self.write_data(0x13)
-        self.write_cmd(0xC4)
-        self.write_data(0x13)
+        self.write_cmd_data(0xC9,[0x22])
 
-        self.write_cmd(0xC9)
-        self.write_data(0x22)
+        self.write_cmd_data(0xBE,[0x11])
 
-        self.write_cmd(0xBE)
-        self.write_data(0x11)
+        self.write_cmd_data(0xE1,[0x10,0x0E])
 
-        self.write_cmd(0xE1)
-        self.write_data(0x10)
-        self.write_data(0x0E)
+        self.write_cmd_data(0xDF,[0x21,0x0c,0x02])
 
-        self.write_cmd(0xDF)
-        self.write_data(0x21)
-        self.write_data(0x0c)
-        self.write_data(0x02)
+        self.write_cmd_data(0xF0,[0x45,0x09,0x08,0x08,0x26,0x2A])
 
-        self.write_cmd(0xF0)
-        self.write_data(0x45)
-        self.write_data(0x09)
-        self.write_data(0x08)
-        self.write_data(0x08)
-        self.write_data(0x26)
-        self.write_data(0x2A)
-
-        self.write_cmd(0xF1)
-        self.write_data(0x43)
-        self.write_data(0x70)
-        self.write_data(0x72)
-        self.write_data(0x36)
-        self.write_data(0x37)
-        self.write_data(0x6F)
+        self.write_cmd_data(0xF1,[0x43,0x70,0x72,0x36,0x37,0x6F])
 
 
-        self.write_cmd(0xF2)
-        self.write_data(0x45)
-        self.write_data(0x09)
-        self.write_data(0x08)
-        self.write_data(0x08)
-        self.write_data(0x26)
-        self.write_data(0x2A)
+        self.write_cmd_data(0xF2,[0x45,0x09,0x08,0x08,0x26,0x2A])
 
-        self.write_cmd(0xF3)
-        self.write_data(0x43)
-        self.write_data(0x70)
-        self.write_data(0x72)
-        self.write_data(0x36)
-        self.write_data(0x37)
-        self.write_data(0x6F)
+        self.write_cmd_data(0xF3,[0x43,0x70,0x72,0x36,0x37,0x6F])
 
-        self.write_cmd(0xED)
-        self.write_data(0x1B)
-        self.write_data(0x0B)
+        self.write_cmd_data(0xED,[0x1B,0x0B])
 
-        self.write_cmd(0xAE)
-        self.write_data(0x77)
+        self.write_cmd_data(0xAE,[0x77])
 
-        self.write_cmd(0xCD)
-        self.write_data(0x63)
+        self.write_cmd_data(0xCD,[0x63])
 
 
-        self.write_cmd(0x70)
-        self.write_data(0x07)
-        self.write_data(0x07)
-        self.write_data(0x04)
-        self.write_data(0x0E)
-        self.write_data(0x0F)
-        self.write_data(0x09)
-        self.write_data(0x07)
-        self.write_data(0x08)
-        self.write_data(0x03)
+        self.write_cmd_data(0x70,[0x07,0x07,0x04,0x0E,0x0F,0x09,0x07,0x08,0x03])
 
-        self.write_cmd(0xE8)
-        self.write_data(0x34)
+        self.write_cmd_data(0xE8,[0x34])
 
-        self.write_cmd(0x62)
-        self.write_data(0x18)
-        self.write_data(0x0D)
-        self.write_data(0x71)
-        self.write_data(0xED)
-        self.write_data(0x70)
-        self.write_data(0x70)
-        self.write_data(0x18)
-        self.write_data(0x0F)
-        self.write_data(0x71)
-        self.write_data(0xEF)
-        self.write_data(0x70)
-        self.write_data(0x70)
+        self.write_cmd_data(0x62,[0x18,0x0D,0x71,0xED,0x70,0x70,0x18,0x0F,0x71,0xEF,0x70,0x70])
 
-        self.write_cmd(0x63)
-        self.write_data(0x18)
-        self.write_data(0x11)
-        self.write_data(0x71)
-        self.write_data(0xF1)
-        self.write_data(0x70)
-        self.write_data(0x70)
-        self.write_data(0x18)
-        self.write_data(0x13)
-        self.write_data(0x71)
-        self.write_data(0xF3)
-        self.write_data(0x70)
-        self.write_data(0x70)
+        self.write_cmd_data(0x63,[0x18,0x11,0x71,0xF1,0x70,0x70,0x18,0x13,0x71,0xF3,0x70,0x70])
 
-        self.write_cmd(0x64)
-        self.write_data(0x28)
-        self.write_data(0x29)
-        self.write_data(0xF1)
-        self.write_data(0x01)
-        self.write_data(0xF1)
-        self.write_data(0x00)
-        self.write_data(0x07)
+        self.write_cmd_data(0x64,[0x28,0x29,0xF1,0x01,0xF1,0x00,0x07])
 
-        self.write_cmd(0x66)
-        self.write_data(0x3C)
-        self.write_data(0x00)
-        self.write_data(0xCD)
-        self.write_data(0x67)
-        self.write_data(0x45)
-        self.write_data(0x45)
-        self.write_data(0x10)
-        self.write_data(0x00)
-        self.write_data(0x00)
-        self.write_data(0x00)
+        self.write_cmd_data(0x66,[0x3C,0x00,0xCD,0x67,0x45,0x45,0x10,0x00,0x00,0x00])
 
-        self.write_cmd(0x67)
-        self.write_data(0x00)
-        self.write_data(0x3C)
-        self.write_data(0x00)
-        self.write_data(0x00)
-        self.write_data(0x00)
-        self.write_data(0x01)
-        self.write_data(0x54)
-        self.write_data(0x10)
-        self.write_data(0x32)
-        self.write_data(0x98)
+        self.write_cmd_data(0x67,[0x00,0x3C,0x00,0x00,0x00,0x01,0x54,0x10,0x32,0x98])
 
-        self.write_cmd(0x74)
-        self.write_data(0x10)
-        self.write_data(0x85)
-        self.write_data(0x80)
-        self.write_data(0x00)
-        self.write_data(0x00)
-        self.write_data(0x4E)
-        self.write_data(0x00)
+        self.write_cmd_data(0x74,[0x10,0x85,0x80,0x00,0x00,0x4E,0x00])
 
-        self.write_cmd(0x98)
-        self.write_data(0x3e)
-        self.write_data(0x07)
+        self.write_cmd_data(0x98,[0x3e,0x07])
 
         self.write_cmd(0x35)
         self.write_cmd(0x21)
@@ -367,17 +247,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.write_cmd(0x29)
 
     def show(self):
-        self.write_cmd(0x2A)
-        self.write_data(0x00)
-        self.write_data(0x00)
-        self.write_data(0x00)
-        self.write_data(0xef)
+        self.write_cmd_data(0x2A,[0x00,0x00,0x00,0xef])
 
-        self.write_cmd(0x2B)
-        self.write_data(0x00)
-        self.write_data(0x00)
-        self.write_data(0x00)
-        self.write_data(0xEF)
+        self.write_cmd_data(0x2B,[0x00,0x00,0x00,0xEF])
 
         self.write_cmd(0x2C)
 
@@ -386,6 +258,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.cs(0)
         self.spi.write(self.buffer)
         self.cs(1)
+        
+    def write_cmd_data(self, cmd, datas):
+        self.write_cmd(cmd)
+        for data in datas:
+            self.write_data(data)
+        
 
     def circle(self,x,y,radius,color,filled):
         self.ellipse(x,y,radius,radius,color,filled)
@@ -643,3 +521,4 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         # Draw the polygon
         self.poly(0,0, array("h",points), color, True)
+
