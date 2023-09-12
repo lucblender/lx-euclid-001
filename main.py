@@ -1,6 +1,6 @@
 from Rp2040Lcd import LCD_1inch28
 
-VERSION = "v0.0.2"
+VERSION = "v0.0.3_dev"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
                             # once used, the lxb pic buffer is thrown away
 import gc
@@ -187,6 +187,10 @@ if __name__=='__main__':
         if is_usb_connected() and lxHardware.get_btn_tap_pin_value() == 0:
             LCD.display_programming_mode()
         else:
+            
+            if lxHardware.capacitivesCircles.is_mpr_detected == False:
+                LCD.display_error("No touch sensor\ndetected")
+            
             if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
                 global_incr_steps()
             LCD.set_need_display()

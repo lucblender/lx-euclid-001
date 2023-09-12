@@ -84,11 +84,39 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.display_circle_lines = LCD_1inch28.DISPLAY_CIRCLE
 
         self.set_bl_pwm(65535)
-        self.display_lxb_logo(version)
+        
+        missing_files = ""
+        
+        try:
+            open("helixbyte_r5g6b5.bin","r")
+        except:
+            missing_files += "helixbyte_r5g6b5.bin\n"
+        
+        try:
+            open("parameter_selected.bin","r")
+        except:
+            missing_files += "parameter_selected.bin\n"
+        
+        try:
+            open("parameter_unselected.bin","r")
+        except:
+            missing_files += "parameter_unselected.bin\n"
+        
+        self.display_lxb_logo(version, missing_files)
         gc.collect()
+        
+        try:
+            self.parameter_selected = pict_to_fbuff("parameter_selected.bin",40,40)
+        except:
+            self.parameter_selected = None
+        
+        try:
+            self.parameter_unselected = pict_to_fbuff("parameter_unselected.bin",40,40)
+        except:
+            self.parameter_unselected = None
 
-        self.parameter_selected = pict_to_fbuff("parameter_selected.bin",40,40)
-        self.parameter_unselected = pict_to_fbuff("parameter_unselected.bin",40,40)
+        
+        
         gc.collect()
         self.load_fonts()
         gc.collect()
@@ -272,16 +300,35 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.fill(self.white)
         self.text("Programming mode",30,60,self.black)
         self.show()
+        
+    def display_error(self, error_message):
+        self.fill(self.white)
+        error_message = error_message.split("\n")
+        i = 0
+        for error_line in error_message:
+            self.text(error_line,50,120+i*10,self.grey)
+            i+=1
+        self.show()
+        time.sleep(1.5)
 
-    def display_lxb_logo(self, version = None):
+    def display_lxb_logo(self, version = None, missing_files = ""):
         #lxb_fbuf = zlib_pict_to_fbuff("helixbyte.z",89,120)
         gc.collect()
-        width = 100
-        heigth = 74
-        lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin",heigth,width)
+        
+        if missing_files != "":
+            missing_files = "missing files:\n"+missing_files
+            missing_files = missing_files.split("\n")
+            i = 0
+            for missing_file in missing_files:
+                self.text(missing_file,50,120+i*10,self.grey)
+                i+=1
+        else:
+            width = 100
+            heigth = 74
+            lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin",heigth,width)
 
 
-        self.blit(lxb_fbuf, 120-int(heigth/2), 120-int(width/2))
+            self.blit(lxb_fbuf, 120-int(heigth/2), 120-int(width/2))
         self.show()
         time.sleep(1.5)
         if version!= None:
@@ -316,13 +363,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
         elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
 
             if self.lxEuclidConfig.sm_rythm_param_counter == 4:
-                if self.parameter_selected == None:
-                    self.parameter_selected = pict_to_fbuff("parameter_selected.bin",40,40)
-                self.blit(self.parameter_selected, 100, 100)
+                if self.parameter_selected != None:
+                    self.blit(self.parameter_selected, 100, 100)
             else:
-                if self.parameter_unselected == None:
-                    self.parameter_unselected = pict_to_fbuff("parameter_unselected.bin",40,40)
-                self.blit(self.parameter_unselected, 100, 100)
+                if self.parameter_unselected != None:
+                    self.blit(self.parameter_unselected, 100, 100)
 
             self.display_rythm_circles()
             self.display_enter_return_txt()
@@ -339,7 +384,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
             menu_path = self.lxEuclidConfig.menu_path
             current_menu_selected = self.lxEuclidConfig.current_menu_selected
 
-            self.blit(self.parameter_unselected, 100, 5)
+            if self.parameter_unselected != None:
+                self.blit(self.parameter_unselected, 100, 5)
             origin_x = 50
             origin_y = 50
             path = "/"

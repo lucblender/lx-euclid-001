@@ -334,6 +334,10 @@ class LxEuclidConfig:
         self.action_display_info = ""
         self.highlight_color_euclid = True
         
+        try:
+            config_file = open(JSON_CONFIG_FILE_NAME, "r")
+        except:
+            self.save_data()
 
         self.load_data()
         self.reload_rythms()
@@ -790,6 +794,7 @@ class LxEuclidConfig:
 
     def load_data(self):
         print("Start loading data")
+        
         config_file = None
         try:
             config_file = open(JSON_CONFIG_FILE_NAME, "r")
