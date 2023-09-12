@@ -13,6 +13,7 @@ import utime as time
 from machine import mem32
 from sys import print_exception
 import io
+import _thread
 
 from machine import Timer
 
@@ -31,6 +32,7 @@ last_capacitive_circles_read_ms = time.ticks_ms()
 enc_btn_press = time.ticks_ms()
 tap_btn_press = time.ticks_ms()
 stop_thread = False
+wait_display_thread = True
 
 rotary = Rotary(20, 21, 22)
 lxHardware = LxHardware()
@@ -41,6 +43,7 @@ tap_delay_ms = 500
 timer_incr_steps_tap_mode = Timer()
 
 def rotary_changed(change):
+    print("46")
     global lxEuclidConfig, enc_btn_press
     if change == Rotary.ROT_CCW:
         lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_INCR)
@@ -57,8 +60,10 @@ def rotary_changed(change):
         else:
             lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_BTN)
             LCD.set_need_display()
+    print("63")
 
 def lxhardware_changed(handlerEventData):
+    print("66")
     global tap_btn_press
     event = handlerEventData.event
     if event == lxHardware.CLK_RISE:
@@ -118,7 +123,7 @@ def lxhardware_changed(handlerEventData):
     elif event == lxHardware.OUTER_CIRCLE_TOUCH:
         lxEuclidConfig.on_event(LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH, handlerEventData.data)
         LCD.set_need_display()
-
+    print("126")
 
 rotary.add_handler(rotary_changed)
 lxHardware.add_handler(lxhardware_changed)
@@ -135,23 +140,20 @@ def is_usb_connected():
         return False
 
 def display_thread():
-    global stop_thread, last_timer_launch_ms, last_capacitive_circles_read_ms
+    global wait_display_thread, stop_thread
+    
+    while wait_display_thread:
+        time.sleep(0.1)
+        
     while not stop_thread:
+        print("149")
+        time.sleep(0.1)
+        print("152")
         if LCD.get_need_display() == True:
+            print("153")
             LCD.display_rythms()
-
-        if time.ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
-            lxHardware.get_touch_circles_updates()
-            last_capacitive_circles_read_ms = time.ticks_ms()
-
-        if lxEuclidConfig.clk_mode ==  LxEuclidConfig.TAP_MODE:
-            # due to some micropython bug  (https://forum.micropython.org/viewtopic.php?f=21&t=12639)
-            # sometimes timer can stop to work.... if the timer is not called after 1.2x its required time
-            # we force it to relaunch
-            # The bug only occure when the soft is on high demand (eg high interrupt number because of
-            # hardware gpio + timer)
-            if time.ticks_ms() - last_timer_launch_ms > (tap_delay_ms*1.2):
-                global_incr_steps()
+            print("155")
+        print("156")
 
 
 def global_incr_steps(timer=None):
@@ -179,22 +181,45 @@ def append_error(error):
     error_file.write("\n")
     error_file.close()
 
+
+_thread.start_new_thread(display_thread, ())
 if __name__=='__main__':
     try:
         gc.collect()
         print_ram("188")
 
         if is_usb_connected() and lxHardware.get_btn_tap_pin_value() == 0:
+            stop_thread = True
+            wait_display_thread = False
             LCD.display_programming_mode()
-        else:
-            
+        else:            
+            wait_display_thread = False
             if lxHardware.capacitivesCircles.is_mpr_detected == False:
                 LCD.display_error("No touch sensor\ndetected")
             
             if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
                 global_incr_steps()
-            LCD.set_need_display()
-            display_thread()
+            
+            while True:
+                print("198")
+                time.sleep(0.1)
+                if(len(lxHardware.lxHardwareEventFifo)>0):
+                    lxhardware_changed(lxHardware.lxHardwareEventFifo.popleft())
+                    #lxhardware_changed
+                if time.ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
+                    lxHardware.get_touch_circles_updates()
+                    last_capacitive_circles_read_ms = time.ticks_ms()
+
+                if lxEuclidConfig.clk_mode ==  LxEuclidConfig.TAP_MODE:
+                    # due to some micropython bug  (https://forum.micropython.org/viewtopic.php?f=21&t=12639)
+                    # sometimes timer can stop to work.... if the timer is not called after 1.2x its required time
+                    # we force it to relaunch
+                    # The bug only occure when the soft is on high demand (eg high interrupt number because of
+                    # hardware gpio + timer)
+                    if time.ticks_ms() - last_timer_launch_ms > (tap_delay_ms*1.2):
+                        global_incr_steps()
+
+                print("214")
 
         print("quit")
     except Exception as e:

@@ -3,6 +3,7 @@ import json
 from random import randint
 
 from utime import ticks_ms
+import _thread
 
 from MenuNavigationMap import get_menu_navigation_map
 
@@ -287,6 +288,9 @@ class LxEuclidConfig:
         self.presets.append([EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0)])
         self.presets.append([EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0)])
 
+        self.rythm_lock = _thread.allocate_lock()
+        self.menu_lock = _thread.allocate_lock()
+        self.state_lock = _thread.allocate_lock()
 
         self.state = LxEuclidConfig.STATE_INIT
         self.on_event(LxEuclidConfig.EVENT_INIT)
@@ -383,14 +387,24 @@ class LxEuclidConfig:
 
 
 
-    def on_event(self, event, data = None):  
+    def on_event(self, event, data = None):
+        print("lx391")
+        self.state_lock.acquire()
+        local_state = self.state
+        self.state_lock.release()
+        print("lx395")
+        
         if self.state == LxEuclidConfig.STATE_INIT:
             if event == LxEuclidConfig.EVENT_INIT:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
+                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_LIVE:
             if event == LxEuclidConfig.EVENT_ENC_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
                 self.sm_rythm_param_counter  = 0
             elif event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 if self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_NONE:
@@ -576,44 +590,70 @@ class LxEuclidConfig:
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
             if event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
+                self.state_lock.release()
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 if self.sm_rythm_param_counter == MAIN_MENU_PARAMETER_INDEX:
+                    self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_PARAMETERS
+                    self.state_lock.release()
                 else:
                     if self.euclideanRythms[self.sm_rythm_param_counter].is_turing_machine:
+                        self.state_lock.acquire()
                         self.state = LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY
+                        self.state_lock.release()
                     else:
+                        self.state_lock.acquire()
                         self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT
+                        self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+                print("592")
+                self.menu_lock.acquire()
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter+1)%5
+                self.menu_lock.release()
+                print("596")
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                print("598")
+                self.menu_lock.acquire()
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter-1)%5
+                self.menu_lock.release()
+                print("602")
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE
+                self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_beats()
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET
+                self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 self.save_data()
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_offset()
             elif event == LxEuclidConfig.EVENT_ENC_DECR:
@@ -623,34 +663,52 @@ class LxEuclidConfig:
                 degree_steps = 360 / self.euclideanRythms[self.sm_rythm_param_counter].beats
                 self.euclideanRythms[self.sm_rythm_param_counter].set_offset(int(angle_inner/degree_steps))
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 self.save_data()
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_probability()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_probability()
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_PARAMETERS:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+                self.menu_lock.acquire()
                 parameter_set = self.menu_enter_pressed()
                 if parameter_set:
                     success = self.menu_back_pressed()
                     if success == False:
+                        self.state_lock.acquire()
                         self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                        self.state_lock.release()
+                self.menu_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+                self.menu_lock.acquire()
                 self.menu_down_action()
+                self.menu_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                self.menu_lock.acquire()
                 self.menu_up_action()
+                self.menu_lock.release()
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.menu_lock.acquire()
                 success = self.menu_back_pressed()
                 if success == False:
+                    self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                    self.state_lock.release()
+                self.menu_lock.release()
 
     def incr_steps(self):
         index = 0
