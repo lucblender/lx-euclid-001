@@ -205,6 +205,8 @@ if __name__=='__main__':
                 time.sleep(0.1)
                 if(len(lxHardware.lxHardwareEventFifo)>0):
                     lxhardware_changed(lxHardware.lxHardwareEventFifo.popleft())
+                if(len(rotary.rotaryEventFifo)>0):
+                    rotary_changed(rotary.rotaryEventFifo.popleft())
                     #lxhardware_changed
                 if time.ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
                     lxHardware.get_touch_circles_updates()

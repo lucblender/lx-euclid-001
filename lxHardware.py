@@ -37,8 +37,14 @@ class LxHardware:
     INNER_CIRCLE_TOUCH = 10
     OUTER_CIRCLE_TOUCH = 11
     
-    fall_event = HandlerEventData(BTN_TAP_FALL)
-    rise_event = HandlerEventData(BTN_TAP_RISE)
+    btn_fall_event = HandlerEventData(BTN_TAP_FALL)
+    btn_rise_event = HandlerEventData(BTN_TAP_RISE)
+    
+    rst_fall_event = HandlerEventData(RST_FALL)
+    rst_rise_event = HandlerEventData(RST_RISE)
+    
+    clk_fall_event = HandlerEventData(CLK_FALL)
+    clk_rise_event = HandlerEventData(CLK_RISE)
 
     def __init__(self):
 
@@ -49,8 +55,8 @@ class LxHardware:
         self.rst_pin_status = self.rst_pin.value()
         self.btn_tap_pin_status = self.btn_tap_pin.value()
 
-        self.clk_pin.irq(handler=self.clk_pin_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING )
-        self.rst_pin.irq(handler=self.rst_pin_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING )
+        self.clk_pin.irq(handler=self.clk_pin_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+        self.rst_pin.irq(handler=self.rst_pin_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
         self.btn_tap_pin.irq(handler=self.btn_tap_pin_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
 
         self.clk_out_led = Pin(CLK_OUT,Pin.OUT)
@@ -81,18 +87,22 @@ class LxHardware:
             return
         self.clk_pin_status = self.clk_pin.value()
         if self.clk_pin.value():
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_FALL))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_FALL))
+            self.lxHardwareEventFifo.append(LxHardware.clk_fall_event)
         else:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_RISE))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_RISE))
+            self.lxHardwareEventFifo.append(LxHardware.clk_rise_event)
 
     def rst_pin_change(self, pin):
         if self.rst_pin_status == self.rst_pin.value():
             return
         self.rst_pin_status = self.rst_pin.value()
         if self.rst_pin.value():
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_FALL))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_FALL))
+            self.lxHardwareEventFifo.append(LxHardware.rst_fall_event)
         else:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_RISE))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_RISE))
+            self.lxHardwareEventFifo.append(LxHardware.rst_rise_event)
 
 
     def btn_tap_pin_change(self, pin):
@@ -100,14 +110,12 @@ class LxHardware:
             return
         self.btn_tap_pin_status = self.btn_tap_pin.value()
         if self.btn_tap_pin.value():
-            #self.call_handlers(HandlerEventData(LxHardware.BTN_TAP_FALL))
             # can't f*cking use schedule because of this sh*t https://github.com/micropython/micropython/issues/10690
             #micropython.schedule(self.callback, LxHardware.fall_event)
-            self.lxHardwareEventFifo.append(LxHardware.fall_event)
+            self.lxHardwareEventFifo.append(LxHardware.btn_fall_event)
         else:
-            #self.call_handlers(self.call_handlers)
             #micropython.schedule(self.callback, LxHardware.rise_event)
-            self.lxHardwareEventFifo.append(LxHardware.rise_event)
+            self.lxHardwareEventFifo.append(LxHardware.btn_rise_event)
 
     def get_btn_tap_pin_value(self):
         return self.btn_tap_pin.value()
