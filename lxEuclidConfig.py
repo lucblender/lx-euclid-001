@@ -12,6 +12,14 @@ JSON_CONFIG_FILE_NAME = "lx-euclide_config.json"
 T_CLK_LED_ON_MS = 10
 T_GATE_ON_MS = 1
 
+def set_value_dict_if_exists(full_config_loaded, var, local_dict, key):
+    if key in local_dict:
+        var = local_dict[key]
+        return full_config_loaded, var
+    else:
+        return False, var
+
+
 class EuclideanRythmParameters:
 
     PRESCALER_LIST = [1,2,3,4,8,16]
@@ -888,64 +896,110 @@ class LxEuclidConfig:
     def load_data(self):
         print("Start loading data")
         
+        full_config_loaded = True
+        
         config_file = None
         try:
             config_file = open(JSON_CONFIG_FILE_NAME, "r")
             dict_data = json.load(config_file)
 
-            euclideanRythmsList = dict_data["euclideanRythms"]
-
-            i = 0
-            for dict_EuclideanRythm in euclideanRythmsList:
-                self.euclideanRythms[i].inverted_output = dict_EuclideanRythm["inverted_output"]
-                self.euclideanRythms[i].is_turing_machine = dict_EuclideanRythm["is_turing_machine"]
-                self.euclideanRythms[i].beats = dict_EuclideanRythm["beats"]
-                self.euclideanRythms[i].pulses = dict_EuclideanRythm["pulses"]
-                self.euclideanRythms[i].offset = dict_EuclideanRythm["offset"]
-                self.euclideanRythms[i].turing_probability = dict_EuclideanRythm["turing_probability"]
-                self.euclideanRythms[i].prescaler_index = dict_EuclideanRythm["prescaler_index"]
-                i+=1
-
-            presets_list = dict_data["presets"]
-            preset_index = 0
-            for preset in presets_list:
+            euclideanRythmsList = dict_data.get("euclideanRythms",None)
+             
+            if euclideanRythmsList != None:
                 i = 0
-                for dict_preset_euclideanRythm in preset:
-                    self.presets[preset_index][i].is_turing_machine = dict_preset_euclideanRythm["is_turing_machine"]
-                    self.presets[preset_index][i].beats = dict_preset_euclideanRythm["beats"]
-                    self.presets[preset_index][i].pulses = dict_preset_euclideanRythm["pulses"]
-                    self.presets[preset_index][i].offset = dict_preset_euclideanRythm["offset"]
-                    self.presets[preset_index][i].turing_probability = dict_preset_euclideanRythm["turing_probability"]
-                    self.presets[preset_index][i].prescaler_index = dict_preset_euclideanRythm["prescaler_index"]
+                for dict_EuclideanRythm in euclideanRythmsList:
+                    full_config_loaded, self.euclideanRythms[i].inverted_output = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].inverted_output, dict_EuclideanRythm,"inverted_output")
+                    full_config_loaded, self.euclideanRythms[i].is_turing_machine = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].is_turing_machine, dict_EuclideanRythm,"is_turing_machine")
+                    full_config_loaded, self.euclideanRythms[i].beats = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].beats, dict_EuclideanRythm,"beats")
+                    full_config_loaded, self.euclideanRythms[i].pulses = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].pulses, dict_EuclideanRythm,"pulses")
+                    full_config_loaded, self.euclideanRythms[i].offset = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].offset, dict_EuclideanRythm,"offset")
+                    full_config_loaded, self.euclideanRythms[i].turing_probability = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].turing_probability, dict_EuclideanRythm,"turing_probability")
+                    full_config_loaded, self.euclideanRythms[i].prescaler_index = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].prescaler_index, dict_EuclideanRythm,"prescaler_index")
                     i+=1
-                preset_index += 1
+            else:                
+                full_config_loaded = False
 
-            interface_dict = dict_data["interface"]
-            encoder_dict = interface_dict["encoder"]
-            tap_btn_dict = interface_dict["tap_btn"]
-            self.tap_long_press_action = tap_btn_dict["tap_long_press_action"]
-            self.encoder_long_press_action = encoder_dict["encoder_long_press_action"]
+            presets_list = dict_data.get("presets",None)
             
-            inner_circle_dict = interface_dict["inner_circle"]
-            self.inner_rotate_action = inner_circle_dict["inner_rotate_action"]
-            self.inner_action_rythm = inner_circle_dict["inner_action_rythm"] 
+            if presets_list != None:
+                preset_index = 0
+                for preset in presets_list:
+                    i = 0
+                    for dict_preset_euclideanRythm in preset:
+                        full_config_loaded, self.presets[preset_index][i].is_turing_machine = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].is_turing_machine, dict_preset_euclideanRythm, "is_turing_machine")
+                        full_config_loaded, self.presets[preset_index][i].beats = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].beats, dict_preset_euclideanRythm, "beats")
+                        full_config_loaded, self.presets[preset_index][i].pulses = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].pulses, dict_preset_euclideanRythm, "pulses")
+                        full_config_loaded, self.presets[preset_index][i].offset = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].offset, dict_preset_euclideanRythm, "offset")
+                        full_config_loaded, self.presets[preset_index][i].turing_probability = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].turing_probability, dict_preset_euclideanRythm, "turing_probability")
+                        full_config_loaded, self.presets[preset_index][i].prescaler_index = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].prescaler_index, dict_preset_euclideanRythm, "prescaler_index")
+                        i+=1
+                    preset_index += 1
+            else:
+                full_config_loaded = False
 
-            outer_circle_dict = interface_dict["outer_circle"]
-            self.outer_rotate_action = outer_circle_dict["outer_rotate_action"] 
-            self.outer_action_rythm = outer_circle_dict["outer_action_rythm"]
+            interface_dict = dict_data.get("interface",None)
+            
+            if interface_dict != None:
+            
+                tap_btn_dict = interface_dict.get("tap_btn",None)
+                if tap_btn_dict != None:
+                    full_config_loaded, self.tap_long_press_action = set_value_dict_if_exists(full_config_loaded, self.tap_long_press_action,tap_btn_dict,"tap_long_press_action")
+                else:
+                    full_config_loaded = False
+                
+                
+                encoder_dict = interface_dict.get("encoder",None)
+                if encoder_dict != None:
+                    full_config_loaded, self.encoder_long_press_action = set_value_dict_if_exists(full_config_loaded, self.encoder_long_press_action,encoder_dict,"encoder_long_press_action")
+                else:
+                    full_config_loaded = False
+                
+                inner_circle_dict = interface_dict.get("inner_circle",None)
+                if inner_circle_dict != None:
+                    full_config_loaded, self.inner_rotate_action = set_value_dict_if_exists(full_config_loaded, self.inner_rotate_action,inner_circle_dict,"inner_rotate_action")
+                    full_config_loaded, self.inner_action_rythm = set_value_dict_if_exists(full_config_loaded, self.inner_action_rythm,inner_circle_dict,"inner_action_rythm")
+                else:
+                    full_config_loaded = False
 
-            self.clk_mode = dict_data["clk"]["clk_mode"]
-            self.clk_polarity = dict_data["clk"]["clk_polarity"]
-            self.rst_polarity = dict_data["rst"]["rst_polarity"]
+                outer_circle_dict = interface_dict.get("outer_circle",None)
+                if outer_circle_dict != None:
+                    full_config_loaded, self.outer_rotate_action = set_value_dict_if_exists(full_config_loaded, self.outer_rotate_action,outer_circle_dict,"outer_rotate_action")
+                    full_config_loaded, self.outer_action_rythm = set_value_dict_if_exists(full_config_loaded, self.outer_action_rythm,outer_circle_dict,"outer_action_rythm")
+                else:
+                    full_config_loaded = False
+            else:
+                full_config_loaded = False
+                
+            clk_dict = dict_data.get("clk",None)
+            if clk_dict!= None:
+                full_config_loaded, self.clk_mode = set_value_dict_if_exists(full_config_loaded, self.clk_mode,clk_dict,"clk_mode")
+                full_config_loaded, self.clk_polarity = set_value_dict_if_exists(full_config_loaded, self.clk_polarity,clk_dict,"clk_polarity")
+            else:
+                full_config_loaded = False
+                
+            rst_dict = dict_data.get("rst",None)
+            if rst_dict!= None:
+                full_config_loaded, self.rst_polarity = set_value_dict_if_exists(full_config_loaded, self.rst_polarity,rst_dict,"rst_polarity")
+            else:
+                full_config_loaded = False
 
-            self.LCD.display_circle_lines = dict_data["display"]["display_circle_lines"]
 
-            print("Data Loaded!")
+            display_dict = dict_data.get("display",None)
+            if display_dict!= None:
+                full_config_loaded, self.LCD.display_circle_lines = set_value_dict_if_exists(full_config_loaded, self.LCD.display_circle_lines,display_dict,"display_circle_lines")
+            else:
+                full_config_loaded = False
+
+            if full_config_loaded:
+                print("Full configuration was loaded")
+            else:
+                print("Configuration loaded but some parameters were missing")
+                
         except OSError:
             print("Couldn't load config because of OS ERROR")
-        except Exception as e:
-            print("Couldn't load config because unknown error")
-            print(e)
+        #except Exception as e:
+        #    print("Couldn't load config because unknown error")
+        #    print(e)
 
         if config_file != None:
             config_file.close()
