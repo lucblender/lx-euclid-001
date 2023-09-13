@@ -291,6 +291,10 @@ class LxEuclidConfig:
         self.rythm_lock = _thread.allocate_lock()
         self.menu_lock = _thread.allocate_lock()
         self.state_lock = _thread.allocate_lock()
+        self.save_data_lock = _thread.allocate_lock()
+        
+        self.dict_data_to_save = {}
+        self.need_save_data_in_file = False
 
         self.state = LxEuclidConfig.STATE_INIT
         self.on_event(LxEuclidConfig.EVENT_INIT)
@@ -795,7 +799,7 @@ class LxEuclidConfig:
             self.current_menu_selected = self.current_menu_selected + 1
 
     def save_data(self):
-
+        a = ticks_ms()
         dict_data = {}
         euclideanRythms_list = []
         i = 0
@@ -861,8 +865,25 @@ class LxEuclidConfig:
         dict_data["clk"] = clk_dict
         dict_data["rst"] = rst_dict
         dict_data["display"] = display_dict
-        with open(JSON_CONFIG_FILE_NAME, "w") as config_file:
-            json.dump(dict_data, config_file)
+        
+        self.save_data_lock.acquire()
+        self.dict_data_to_save = dict_data
+        self.need_save_data_in_file = True
+        self.save_data_lock.release()
+        
+        print("after save_data tick:", ticks_ms()-a)
+    
+    def test_save_data_in_file(self):
+        
+        a = ticks_ms()
+        self.save_data_lock.acquire()
+        if self.need_save_data_in_file:
+            self.need_save_data_in_file = False
+            with open(JSON_CONFIG_FILE_NAME, "w") as config_file:
+                json.dump(self.dict_data_to_save, config_file)
+                
+            print("test_save_data_in_file tick:", ticks_ms()-a)
+        self.save_data_lock.release()
 
     def load_data(self):
         print("Start loading data")

@@ -1,6 +1,6 @@
 from Rp2040Lcd import LCD_1inch28
 
-VERSION = "v0.0.3_dev"
+VERSION = "v0.0.3devmulti"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
                             # once used, the lxb pic buffer is thrown away
 import gc
@@ -146,7 +146,7 @@ def is_usb_connected():
         return False
 
 def display_thread():
-    global wait_display_thread, stop_thread
+    global wait_display_thread, stop_thread, lxHardware, last_capacitive_circles_read_ms
     
     while wait_display_thread:
         time.sleep(0.1)
@@ -155,11 +155,15 @@ def display_thread():
         #debug_print("149")
         #time.sleep(0.1)
         #debug_print("152")
+        lxEuclidConfig.test_save_data_in_file()
         if LCD.get_need_display() == True:
             #debug_print("153")
             LCD.display_rythms()
             #debug_print("155")
         #debug_print("156")
+        if time.ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
+            lxHardware.get_touch_circles_updates()
+            last_capacitive_circles_read_ms = time.ticks_ms()
 
 
 def global_incr_steps(timer=None):
@@ -215,15 +219,11 @@ if __name__=='__main__':
                     lxhardware_changed(lxHardware.lxHardwareEventFifo.popleft())
                 if(len(rotary.rotaryEventFifo)>0):
                     rotary_changed(rotary.rotaryEventFifo.popleft())
-                    #lxhardware_changed
-                if time.ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
-                    lxHardware.get_touch_circles_updates()
-                    last_capacitive_circles_read_ms = time.ticks_ms()
 
                 if lxEuclidConfig.clk_mode ==  LxEuclidConfig.TAP_MODE:
                     # due to some micropython bug  (https://forum.micropython.org/viewtopic.php?f=21&t=12639)
                     # sometimes timer can stop to work.... if the timer is not called after 1.2x its required time
-                    # we force it to relaunch
+                    # we force it to relaunch --> lol now we can't use Timer .....
                     # The bug only occure when the soft is on high demand (eg high interrupt number because of
                     # hardware gpio + timer)
                     if time.ticks_ms() - last_timer_launch_ms >= (tap_delay_ms):#*1.2):
