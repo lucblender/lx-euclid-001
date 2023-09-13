@@ -79,7 +79,7 @@ class LxHardware:
         # here https://forum.micropython.org/viewtopic.php?t=4027
         self.callback = self.call_handlers
         
-        self.lxHardwareEventFifo = deque((),1)
+        self.lxHardwareEventFifo = deque((),20)
 
     def clk_pin_change(self, pin):
         if self.clk_pin_status == self.clk_pin.value():
@@ -141,17 +141,23 @@ class LxHardware:
     def get_touch_circles_updates(self):
         circles_data  = self.capacitivesCircles.get_touch_circles_updates()
         if circles_data[2] == CapacitivesCircles.INNER_CIRCLE_INCR_EVENT:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_INCR, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_INCR, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.INNER_CIRCLE_INCR, circles_data))
         elif circles_data[2] == CapacitivesCircles.INNER_CIRCLE_DECR_EVENT:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_DECR, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_DECR, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.INNER_CIRCLE_DECR, circles_data))
         elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_INCR, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_INCR, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.OUTER_CIRCLE_INCR, circles_data))
         elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_DECR, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_DECR, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.OUTER_CIRCLE_DECR, circles_data))
         elif circles_data[0] == True:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_TOUCH, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_TOUCH, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.INNER_CIRCLE_TOUCH, circles_data))
         elif circles_data[1] == True:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
 
 
     def add_handler(self, handler):
