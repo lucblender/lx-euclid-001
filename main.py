@@ -42,8 +42,14 @@ last_tap_ms = 0
 tap_delay_ms = 500
 timer_incr_steps_tap_mode = Timer()
 
+DEBUG = True
+
+def debug_print(txt):
+    if DEBUG:
+        print(txt)
+
 def rotary_changed(change):
-    print("46")
+    debug_print("46")
     global lxEuclidConfig, enc_btn_press
     if change == Rotary.ROT_CCW:
         lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_INCR)
@@ -60,10 +66,10 @@ def rotary_changed(change):
         else:
             lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_BTN)
             LCD.set_need_display()
-    print("63")
+    debug_print("63")
 
 def lxhardware_changed(handlerEventData):
-    print("66")
+    debug_print("66")
     global tap_btn_press
     event = handlerEventData.event
     if event == lxHardware.CLK_RISE:
@@ -100,7 +106,7 @@ def lxhardware_changed(handlerEventData):
                 if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
                     tap_delay_ms = temp_tap_delay
                     if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
-                        timer_incr_steps_tap_mode.deinit()
+                        # timer_incr_steps_tap_mode.deinit()
                         global_incr_steps()
                 last_tap_ms = temp_last_tap_ms
 
@@ -123,10 +129,10 @@ def lxhardware_changed(handlerEventData):
     elif event == lxHardware.OUTER_CIRCLE_TOUCH:
         lxEuclidConfig.on_event(LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH, handlerEventData.data)
         LCD.set_need_display()
-    print("126")
+    debug_print("126")
 
-rotary.add_handler(rotary_changed)
-lxHardware.add_handler(lxhardware_changed)
+#rotary.add_handler(rotary_changed)
+#lxHardware.add_handler(lxhardware_changed)
 
 
 def is_usb_connected():
@@ -146,20 +152,22 @@ def display_thread():
         time.sleep(0.1)
         
     while not stop_thread:
-        print("149")
-        time.sleep(0.1)
-        print("152")
+        #debug_print("149")
+        #time.sleep(0.1)
+        #debug_print("152")
         if LCD.get_need_display() == True:
-            print("153")
+            #debug_print("153")
             LCD.display_rythms()
-            print("155")
-        print("156")
+            #debug_print("155")
+        #debug_print("156")
 
 
 def global_incr_steps(timer=None):
     global timer_incr_steps_tap_mode, last_timer_launch_ms
     if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
-        timer_incr_steps_tap_mode = Timer(period=tap_delay_ms, mode=Timer.ONE_SHOT, callback=global_incr_steps)
+        # nice, can't even use Timer lol sh*itty micropython multi-threading implementation
+        # https://github.com/orgs/micropython/discussions/10638
+        #timer_incr_steps_tap_mode = Timer(period=tap_delay_ms, mode=Timer.ONE_SHOT, callback=global_incr_steps)
         last_timer_launch_ms = time.ticks_ms()
     elif lxEuclidConfig.clk_mode == LxEuclidConfig.CLK_IN:
         pass
@@ -201,8 +209,8 @@ if __name__=='__main__':
                 global_incr_steps()
             
             while True:
-                print("198")
-                time.sleep(0.1)
+                #debug_print("198")
+                #time.sleep(0.1)
                 if(len(lxHardware.lxHardwareEventFifo)>0):
                     lxhardware_changed(lxHardware.lxHardwareEventFifo.popleft())
                 if(len(rotary.rotaryEventFifo)>0):
@@ -218,10 +226,10 @@ if __name__=='__main__':
                     # we force it to relaunch
                     # The bug only occure when the soft is on high demand (eg high interrupt number because of
                     # hardware gpio + timer)
-                    if time.ticks_ms() - last_timer_launch_ms > (tap_delay_ms*1.2):
+                    if time.ticks_ms() - last_timer_launch_ms >= (tap_delay_ms):#*1.2):
                         global_incr_steps()
-
-                print("214")
+                lxEuclidConfig.test_if_clear_gates_led()
+                #debug_print("214")
 
         print("quit")
     except Exception as e:

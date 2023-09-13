@@ -1,7 +1,6 @@
 import machine
 import utime as time
 from machine import Pin
-import micropython
 from ucollections import deque
 
 class Rotary:

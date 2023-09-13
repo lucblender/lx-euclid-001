@@ -1,5 +1,4 @@
 from machine import Pin
-import micropython
 from capacitivesCircles import *
 from machine import mem32
 from ucollections import deque
@@ -80,7 +79,7 @@ class LxHardware:
         # here https://forum.micropython.org/viewtopic.php?t=4027
         self.callback = self.call_handlers
         
-        self.lxHardwareEventFifo = deque((),20)
+        self.lxHardwareEventFifo = deque((),1)
 
     def clk_pin_change(self, pin):
         if self.clk_pin_status == self.clk_pin.value():
@@ -106,6 +105,7 @@ class LxHardware:
 
 
     def btn_tap_pin_change(self, pin):
+        #print("btn_tap_pin_change",mem32[0xd0000000])
         if self.btn_tap_pin_status == self.btn_tap_pin.value():
             return
         self.btn_tap_pin_status = self.btn_tap_pin.value()

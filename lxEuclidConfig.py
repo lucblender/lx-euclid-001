@@ -334,6 +334,9 @@ class LxEuclidConfig:
         
         self._need_circle_action_display = False
         self.last_set_need_circle_action_display_ms = ticks_ms()
+        self.last_gate_led_event = ticks_ms()
+        self.clear_led_needed = False
+        self.clear_gate_needed = False
         self.action_display_index = 0
         self.action_display_info = ""
         self.highlight_color_euclid = True
@@ -720,15 +723,26 @@ class LxEuclidConfig:
                 self.lxHardware.set_gate(index, euclideanRythm.inverted_output)
                 callback_param_dict[index] = index
             index = index + 1
-        tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
-        tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
+        #tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
+        #tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
+        self.last_gate_led_event = ticks_ms()        
+        self.clear_led_needed = True
+        self.clear_gate_needed = True
         self.LCD.set_need_display()
+        
+    def test_if_clear_gates_led(self):
+        if ticks_ms() -self.last_gate_led_event>=T_GATE_ON_MS and self.clear_led_needed == True:
+            self.callback_clear_gates()
+            self.clear_led_needed = False
+        if ticks_ms() -self.last_gate_led_event>=T_CLK_LED_ON_MS and self.clear_gate_needed == True:
+            self.callback_clear_led()
+            self.clear_gate_needed = False
 
-    def callback_clear_gates(self, timer):
+    def callback_clear_gates(self, timer=None):
         for i in range(0,4):
             self.lxHardware.clear_gate(i, self.euclideanRythms[i].inverted_output)
 
-    def callback_clear_led(self, timer):
+    def callback_clear_led(self, timer=None):
         self.lxHardware.clear_clk_led()
 
     def reset_steps(self):
