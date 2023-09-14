@@ -10,7 +10,9 @@ class Rotary:
     SW_PRESS = 4
     SW_RELEASE = 8
 
-    def __init__(self,dt,clk,sw):
+    def __init__(self,dt,clk,sw):        
+        self.rotaryEventFifo = deque((),20)
+        
         self.dt_pin = Pin(dt, Pin.IN, Pin.PULL_UP)
         self.clk_pin = Pin(clk, Pin.IN, Pin.PULL_UP)
         self.sw_pin = Pin(sw, Pin.IN, Pin.PULL_UP)
@@ -20,7 +22,6 @@ class Rotary:
         self.sw_pin.irq(handler=self.switch_detect, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
         self.handlers = []
         self.last_button_status = self.sw_pin.value()
-        self.rotaryEventFifo = deque((),20)
 
     def rotary_change(self, pin):
         new_status = (self.dt_pin.value() << 1) | self.clk_pin.value()
