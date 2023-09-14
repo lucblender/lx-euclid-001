@@ -172,6 +172,10 @@ class MPR121:
             raise ValueError('Electrode must be in range 0-11.')
         return self._register16(MPR121_ELECTRODE_FILTERED_DATA + electrode * 2)
 
+    def all_filtered_data(self):
+        """Returns all electrodes filtered data"""
+        return ustruct.unpack("<HHHHHHHHHHHH", self.i2c.readfrom_mem(0x5a,0x04,24))
+
     def baseline_data(self, electrode):
         """Returns baseline data value for the specified electrode (0-11)"""
         if not 0 <= electrode <= 11:

@@ -65,8 +65,11 @@ class CapacitivesCircles():
 
             inner_angle_updated = False
             outer_angle_updated = False
+            
+            temp_data = self.mpr.all_filtered_data()
+
             for i in range(0,12):
-                data = self.mpr.filtered_data(i)
+                data = temp_data[i]
                 if data<(self.calibration_array[i]-CapacitivesCircles.CALIBRATION_THRESHOLD) :
                     if self.list_concordance_sensor[i]<6:
                         inner_circle_len += 1
@@ -171,6 +174,4 @@ if __name__=='__main__':
     while(True):
         time.sleep(0.05)
         data = capacitivesCircles.get_touch_circles_updates()
-        print(data)
-
 
