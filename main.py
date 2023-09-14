@@ -49,7 +49,6 @@ def debug_print(txt):
         print(txt)
 
 def rotary_changed(change):
-    debug_print("46")
     global lxEuclidConfig, enc_btn_press
     if change == Rotary.ROT_CCW:
         lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_INCR)
@@ -66,10 +65,8 @@ def rotary_changed(change):
         else:
             lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_BTN)
             LCD.set_need_display()
-    debug_print("63")
 
 def lxhardware_changed(handlerEventData):
-    debug_print("66")
     global tap_btn_press
     event = handlerEventData.event
     if event == lxHardware.CLK_RISE:
@@ -129,7 +126,6 @@ def lxhardware_changed(handlerEventData):
     elif event == lxHardware.OUTER_CIRCLE_TOUCH:
         lxEuclidConfig.on_event(LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH, handlerEventData.data)
         LCD.set_need_display()
-    debug_print("126")
 
 #rotary.add_handler(rotary_changed)
 #lxHardware.add_handler(lxhardware_changed)
@@ -147,22 +143,17 @@ def is_usb_connected():
 
 def display_thread():
     global wait_display_thread, stop_thread, lxHardware, last_capacitive_circles_read_ms
-    
+    print("146")
     while wait_display_thread:
         time.sleep(0.1)
-        
+    print("149")
     while not stop_thread:
-        #debug_print("149")
-        #time.sleep(0.1)
-        #debug_print("152")
+        print("151")
         lxEuclidConfig.test_save_data_in_file()
-        if LCD.get_need_display() == True:
-            #debug_print("153")
-            LCD.display_rythms()
-            #debug_print("155")
-        #debug_print("156")
+        #if LCD.get_need_display() == True:
+        #    LCD.display_rythms()
         if time.ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
-            lxHardware.get_touch_circles_updates()
+            #lxHardware.get_touch_circles_updates()
             last_capacitive_circles_read_ms = time.ticks_ms()
 
 
@@ -194,28 +185,31 @@ def append_error(error):
     error_file.close()
 
 
+print("187")
 _thread.start_new_thread(display_thread, ())
 if __name__=='__main__':
     try:
         gc.collect()
-        print_ram("188")
 
+        print("a")
         if is_usb_connected() and lxHardware.get_btn_tap_pin_value() == 0:
             stop_thread = True
             wait_display_thread = False
             LCD.display_programming_mode()
-        else:            
+        else:
+            
+            print("b")
             if lxHardware.capacitivesCircles.is_mpr_detected == False:
                 LCD.display_error("No touch sensor\ndetected")
             
             if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
                 global_incr_steps()
             
+            print("c")
             wait_display_thread = False            
             LCD.set_need_display()
             while True:
-                #debug_print("198")
-                #time.sleep(0.1)
+                print("d")
                 if(len(lxHardware.lxHardwareEventFifo)>0):
                     lxhardware_changed(lxHardware.lxHardwareEventFifo.popleft())
                 if(len(rotary.rotaryEventFifo)>0):
@@ -227,10 +221,9 @@ if __name__=='__main__':
                     # we force it to relaunch --> lol now we can't use Timer .....
                     # The bug only occure when the soft is on high demand (eg high interrupt number because of
                     # hardware gpio + timer)
-                    if time.ticks_ms() - last_timer_launch_ms >= (tap_delay_ms):#*1.2):
+                    if time.ticks_ms() - last_timer_launch_ms >= (tap_delay_ms):
                         global_incr_steps()
                 lxEuclidConfig.test_if_clear_gates_led()
-                #debug_print("214")
 
         print("quit")
     except Exception as e:

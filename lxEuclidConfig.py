@@ -403,11 +403,9 @@ class LxEuclidConfig:
 
 
     def on_event(self, event, data = None):
-        print("lx391")
         self.state_lock.acquire()
         local_state = self.state
         self.state_lock.release()
-        print("lx395")
         
         if self.state == LxEuclidConfig.STATE_INIT:
             if event == LxEuclidConfig.EVENT_INIT:
@@ -623,17 +621,13 @@ class LxEuclidConfig:
                         self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT
                         self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
-                print("592")
                 self.menu_lock.acquire()
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter+1)%5
                 self.menu_lock.release()
-                print("596")
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
-                print("598")
                 self.menu_lock.acquire()
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter-1)%5
                 self.menu_lock.release()
-                print("602")
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
@@ -807,7 +801,6 @@ class LxEuclidConfig:
             self.current_menu_selected = self.current_menu_selected + 1
 
     def save_data(self):
-        a = ticks_ms()
         dict_data = {}
         euclideanRythms_list = []
         i = 0
@@ -879,18 +872,13 @@ class LxEuclidConfig:
         self.need_save_data_in_file = True
         self.save_data_lock.release()
         
-        print("after save_data tick:", ticks_ms()-a)
     
     def test_save_data_in_file(self):
-        
-        a = ticks_ms()
         self.save_data_lock.acquire()
         if self.need_save_data_in_file:
             self.need_save_data_in_file = False
             with open(JSON_CONFIG_FILE_NAME, "w") as config_file:
                 json.dump(self.dict_data_to_save, config_file)
-                
-            print("test_save_data_in_file tick:", ticks_ms()-a)
         self.save_data_lock.release()
 
     def load_data(self):
@@ -997,9 +985,9 @@ class LxEuclidConfig:
                 
         except OSError:
             print("Couldn't load config because of OS ERROR")
-        #except Exception as e:
-        #    print("Couldn't load config because unknown error")
-        #    print(e)
+        except Exception as e:
+            print("Couldn't load config because unknown error")
+            print(e)
 
         if config_file != None:
             config_file.close()

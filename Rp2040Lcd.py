@@ -364,15 +364,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
         angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitivesCircles.inner_circle_angle
         self.draw_approx_pie_slice([120,120],90,100,angle_inner-10,angle_inner+10,self.grey)
         
-        debug_print("LCD 354")
         self.lxEuclidConfig.state_lock.acquire()
         local_state = self.lxEuclidConfig.state
-        self.lxEuclidConfig.state_lock.release()
-        debug_print("LCD 358")
-        
+        self.lxEuclidConfig.state_lock.release()        
         
         if local_state == self.lxEuclidConfig.STATE_LIVE:
-            debug_print("LCD 362")
             self.display_rythm_circles()
             if self.lxEuclidConfig.need_circle_action_display == True:
                 txt = self.lxEuclidConfig.action_display_info 
@@ -382,15 +378,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 else:
                     color = self.rythm_colors_turing[self.lxEuclidConfig.action_display_index]
                 self.font_writer_freesans20.text(txt,120-int(txt_len/2),110, color)
-            debug_print("LCD 372")
         elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
             
-            
-            debug_print("lcd 371")
             self.lxEuclidConfig.menu_lock.acquire()
             rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
-            self.lxEuclidConfig.menu_lock.release()            
-            debug_print("lcd 375")
+            self.lxEuclidConfig.menu_lock.release()           
 
             if rythm_param_counter== 4:
                 if self.parameter_selected != None:
@@ -509,7 +501,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.show()
         self.__need_display = False
-        debug_print("LCD 497")
 
     def display_rythm_circles(self):
         radius = 110
