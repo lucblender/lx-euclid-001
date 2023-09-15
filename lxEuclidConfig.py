@@ -10,7 +10,7 @@ from MenuNavigationMap import get_menu_navigation_map
 JSON_CONFIG_FILE_NAME = "lx-euclide_config.json"
 
 T_CLK_LED_ON_MS = 10
-T_GATE_ON_MS = 1
+T_GATE_ON_MS = 10
 
 def set_value_dict_if_exists(full_config_loaded, var, local_dict, key):
     if key in local_dict:
@@ -53,6 +53,10 @@ class EuclideanRythmParameters:
             self.beats = 1
         if self.pulses < 1:
             self.pulses = 1
+            
+        self.clear_gate_needed = False
+        self.gate_length_ms = T_GATE_ON_MS
+        self.last_set_gate_ticks = ticks_ms()
 
     @property
     def prescaler_index(self):
@@ -727,6 +731,8 @@ class LxEuclidConfig:
             did_step = euclideanRythm.incr_step()
             if euclideanRythm.get_current_step() and did_step:
                 self.lxHardware.set_gate(index, euclideanRythm.inverted_output)
+                euclideanRythm.clear_gate_needed = True
+                euclideanRythm.last_set_gate_ticks = ticks_ms()
                 callback_param_dict[index] = index
             index = index + 1
         #tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
@@ -737,16 +743,19 @@ class LxEuclidConfig:
         self.LCD.set_need_display()
         
     def test_if_clear_gates_led(self):
-        if ticks_ms() -self.last_gate_led_event>=T_GATE_ON_MS and self.clear_led_needed == True:
-            self.callback_clear_gates()
-            self.clear_led_needed = False
+        self.callback_clear_gates()
+        #if ticks_ms() -self.last_gate_led_event>=T_GATE_ON_MS and self.clear_led_needed == True:
+        #    self.callback_clear_gates()
+        #    self.clear_gate_needed = False
         if ticks_ms() -self.last_gate_led_event>=T_CLK_LED_ON_MS and self.clear_gate_needed == True:
             self.callback_clear_led()
-            self.clear_gate_needed = False
+            self.clear_led_needed = False
 
     def callback_clear_gates(self, timer=None):
         for i in range(0,4):
-            self.lxHardware.clear_gate(i, self.euclideanRythms[i].inverted_output)
+            if ticks_ms() - self.euclideanRythms[i].last_set_gate_ticks>=self.euclideanRythms[i].gate_length_ms and self.euclideanRythms[i].clear_gate_needed == True:
+                self.lxHardware.clear_gate(i, self.euclideanRythms[i].inverted_output)
+                self.euclideanRythms[i].clear_gate_needed = False
 
     def callback_clear_led(self, timer=None):
         self.lxHardware.clear_clk_led()
@@ -760,28 +769,31 @@ class LxEuclidConfig:
         if len(self.menu_path) > 0:
             self.menu_path = self.menu_path[:-1]
             self.current_menu_selected = 0
-            current_keys, _ = self.get_current_menu_keys()
+            current_keys, _, _ = self.get_current_menu_keys()
             self.current_menu_len = len(current_keys)
             return True
         else:
             return False
 
     def menu_enter_pressed(self):
-        current_keys, in_last_sub_menu  = self.get_current_menu_keys()
+        current_keys, in_last_sub_menu, in_min_max_menu = self.get_current_menu_keys()
         if in_last_sub_menu:
             # need to change value
             tmp_menu_selected = self.menu_navigation_map
             for key_path in self.menu_path:
                 tmp_menu_selected = tmp_menu_selected[key_path]
             attribute_name = tmp_menu_selected["attribute_name"]
-            attribute_value = setattr(self.get_current_data_pointer(), attribute_name,self.current_menu_selected)
+            if in_min_max_menu:
+                attribute_value = setattr(self.get_current_data_pointer(), attribute_name,int(current_keys[0]))
+            else:
+                attribute_value = setattr(self.get_current_data_pointer(), attribute_name,self.current_menu_selected)
             self.current_menu_value = self.current_menu_selected
             self.save_data()
             return True
         else:
             self.menu_path.append(current_keys[self.current_menu_selected])
             self.current_menu_selected = 0
-            current_keys, in_last_sub_menu  = self.get_current_menu_keys()
+            current_keys, in_last_sub_menu, in_min_max_menu = self.get_current_menu_keys()
             self.current_menu_len = len(current_keys)
             if in_last_sub_menu:
                 tmp_menu_selected = self.menu_navigation_map
@@ -789,17 +801,55 @@ class LxEuclidConfig:
                     tmp_menu_selected = tmp_menu_selected[key_path]
                 attribute_name = tmp_menu_selected["attribute_name"]
                 attribute_value = getattr(self.get_current_data_pointer(), attribute_name)
-                self.current_menu_selected = attribute_value
-                self.current_menu_value = attribute_value
+                if in_min_max_menu:
+                    self.current_menu_selected = 0
+                else:
+                    self.current_menu_value = attribute_value
                 return False
-    def menu_up_action(self):
-        if self.current_menu_selected > 0:
-            self.current_menu_selected = self.current_menu_selected - 1
+    def menu_up_action(self):        
+        _ , _ , in_min_max_menu = self.get_current_menu_keys()
+        if in_min_max_menu:            
+            data_pointer, attribute_name, min_val, max_val, steps_val, current_value = self.get_min_max_parameters()
+            
+            next_value = current_value - steps_val
+            
+            if next_value < min_val:
+               next_value = min_val 
+            attribute_value = setattr(data_pointer, attribute_name,next_value)
+        else:
+            if self.current_menu_selected > 0:
+                self.current_menu_selected = self.current_menu_selected - 1
+                
+   
 
-    def menu_down_action(self):
-       if self.current_menu_selected < self.current_menu_len-1:
-            self.current_menu_selected = self.current_menu_selected + 1
-
+    def menu_down_action(self):#TODO
+        _ , _ , in_min_max_menu = self.get_current_menu_keys()
+        if in_min_max_menu:            
+            data_pointer, attribute_name, min_val, max_val, steps_val, current_value = self.get_min_max_parameters()
+            
+            next_value = current_value + steps_val
+            
+            if next_value > max_val:
+               next_value = max_val 
+            attribute_value = setattr(data_pointer, attribute_name,next_value)
+        else:
+            if self.current_menu_selected < self.current_menu_len-1:
+                self.current_menu_selected = self.current_menu_selected + 1
+                
+    def get_min_max_parameters(self):
+        data_pointer = self.get_current_data_pointer()
+            
+        tmp_menu_selected = self.menu_navigation_map
+        for key_path in self.menu_path:
+            tmp_menu_selected = tmp_menu_selected[key_path]                
+            
+        attribute_name = tmp_menu_selected["attribute_name"]
+        min_val = tmp_menu_selected["min"]
+        max_val = tmp_menu_selected["max"]
+        steps_val = tmp_menu_selected["steps"]
+        current_value = getattr(data_pointer, attribute_name)
+        
+        return data_pointer, attribute_name, min_val, max_val, steps_val, current_value
     def save_data(self):
         dict_data = {}
         euclideanRythms_list = []
@@ -1007,6 +1057,7 @@ class LxEuclidConfig:
 
     def get_current_menu_keys(self):
         in_last_sub_menu = False
+        in_min_max_menu = False
         if len(self.menu_path) == 0:
             current_keys = list(self.menu_navigation_map.keys())
         else:
@@ -1020,6 +1071,18 @@ class LxEuclidConfig:
                 tmp_menu_selected = tmp_menu_selected[key_path]
             current_keys = tmp_menu_selected["values"]
             in_last_sub_menu  = True
+        elif "min" in current_keys:
+            tmp_menu_selected = self.menu_navigation_map
+            for key_path in self.menu_path:
+                tmp_menu_selected = tmp_menu_selected[key_path]
+            print(self.get_current_data_pointer())
+            print(current_keys)
+            
+            attribute_name = tmp_menu_selected["attribute_name"]
+            print(attribute_name)
+            current_keys = [str(getattr(self.get_current_data_pointer(), attribute_name))]
+            in_last_sub_menu  = True
+            in_min_max_menu = True
         if "data_pointer" in current_keys:
             current_keys.remove("data_pointer")
-        return current_keys, in_last_sub_menu
+        return current_keys, in_last_sub_menu, in_min_max_menu

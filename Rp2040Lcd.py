@@ -400,7 +400,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             
             self.lxEuclidConfig.menu_lock.acquire()
             #get all data from lxEuclidConfig in local variables
-            current_keys, in_last_sub_menu = self.lxEuclidConfig.get_current_menu_keys()
+            current_keys, in_last_sub_menu, _ = self.lxEuclidConfig.get_current_menu_keys()
             current_menu_len = len(current_keys)
             current_menu_selected = self.lxEuclidConfig.current_menu_selected
             current_menu_value = self.lxEuclidConfig.current_menu_value
