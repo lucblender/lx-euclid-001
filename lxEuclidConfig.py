@@ -23,13 +23,13 @@ def set_value_dict_if_exists(full_config_loaded, var, local_dict, key):
 class EuclideanRythmParameters:
 
     PRESCALER_LIST = [1,2,3,4,8,16]
-    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50, prescaler_index = 0):
-        self.set_parameters(beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index)
+    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50, prescaler_index = 0, gate_length_ms = T_GATE_ON_MS):
+        self.set_parameters(beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index, gate_length_ms)
 
     def set_parameters_from_rythm(self, euclideanRythmParameters):
-        self.set_parameters(euclideanRythmParameters.beats, euclideanRythmParameters.pulses, euclideanRythmParameters.offset, euclideanRythmParameters.is_turing_machine, euclideanRythmParameters.turing_probability, euclideanRythmParameters.prescaler_index)
+        self.set_parameters(euclideanRythmParameters.beats, euclideanRythmParameters.pulses, euclideanRythmParameters.offset, euclideanRythmParameters.is_turing_machine, euclideanRythmParameters.turing_probability, euclideanRythmParameters.prescaler_index, euclideanRythmParameters.gate_length_ms)
 
-    def set_parameters(self, beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index):
+    def set_parameters(self, beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index, gate_length_ms):
         self._is_turing_machine = is_turing_machine
         self.turing_probability = turing_probability
         self._prescaler_index = prescaler_index
@@ -55,7 +55,7 @@ class EuclideanRythmParameters:
             self.pulses = 1
             
         self.clear_gate_needed = False
-        self.gate_length_ms = T_GATE_ON_MS
+        self.gate_length_ms = gate_length_ms
         self.last_set_gate_ticks = ticks_ms()
 
     @property
@@ -864,6 +864,7 @@ class LxEuclidConfig:
             dict_EuclideanRythm["offset"] = euclideanRythm.offset
             dict_EuclideanRythm["turing_probability"] = euclideanRythm.turing_probability
             dict_EuclideanRythm["prescaler_index"] = euclideanRythm.prescaler_index
+            dict_EuclideanRythm["gate_length_ms"] = euclideanRythm.gate_length_ms
             euclideanRythms_list.append(dict_EuclideanRythm)
 
         dict_data["euclideanRythms"] = euclideanRythms_list
@@ -879,6 +880,7 @@ class LxEuclidConfig:
                 dict_presetsRythms["offset"] = preset_euclideanRythm.offset
                 dict_presetsRythms["turing_probability"] = preset_euclideanRythm.turing_probability
                 dict_presetsRythms["prescaler_index"] = euclideanRythm.prescaler_index
+                dict_presetsRythms["gate_length_ms"] = euclideanRythm.gate_length_ms
                 presetsRythms_list.append(dict_presetsRythms)
             presets_list.append(presetsRythms_list)
 
@@ -953,6 +955,7 @@ class LxEuclidConfig:
                     full_config_loaded, self.euclideanRythms[i].offset = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].offset, dict_EuclideanRythm,"offset")
                     full_config_loaded, self.euclideanRythms[i].turing_probability = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].turing_probability, dict_EuclideanRythm,"turing_probability")
                     full_config_loaded, self.euclideanRythms[i].prescaler_index = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].prescaler_index, dict_EuclideanRythm,"prescaler_index")
+                    full_config_loaded, self.euclideanRythms[i].gate_length_ms = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].prescaler_index, dict_EuclideanRythm,"gate_length_ms")
                     i+=1
             else:                
                 full_config_loaded = False
@@ -970,6 +973,8 @@ class LxEuclidConfig:
                         full_config_loaded, self.presets[preset_index][i].offset = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].offset, dict_preset_euclideanRythm, "offset")
                         full_config_loaded, self.presets[preset_index][i].turing_probability = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].turing_probability, dict_preset_euclideanRythm, "turing_probability")
                         full_config_loaded, self.presets[preset_index][i].prescaler_index = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].prescaler_index, dict_preset_euclideanRythm, "prescaler_index")
+                        full_config_loaded, self.presets[preset_index][i].gate_length_ms = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].prescaler_index, dict_preset_euclideanRythm, "gate_length_ms")
+                
                         i+=1
                     preset_index += 1
             else:
@@ -1074,12 +1079,8 @@ class LxEuclidConfig:
         elif "min" in current_keys:
             tmp_menu_selected = self.menu_navigation_map
             for key_path in self.menu_path:
-                tmp_menu_selected = tmp_menu_selected[key_path]
-            print(self.get_current_data_pointer())
-            print(current_keys)
-            
+                tmp_menu_selected = tmp_menu_selected[key_path]            
             attribute_name = tmp_menu_selected["attribute_name"]
-            print(attribute_name)
             current_keys = [str(getattr(self.get_current_data_pointer(), attribute_name))]
             in_last_sub_menu  = True
             in_min_max_menu = True
