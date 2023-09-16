@@ -3,24 +3,33 @@ import json
 from random import randint
 
 from utime import ticks_ms
+import _thread
 
 from MenuNavigationMap import get_menu_navigation_map
 
 JSON_CONFIG_FILE_NAME = "lx-euclide_config.json"
 
 T_CLK_LED_ON_MS = 10
-T_GATE_ON_MS = 1
+T_GATE_ON_MS = 10
+
+def set_value_dict_if_exists(full_config_loaded, var, local_dict, key):
+    if key in local_dict:
+        var = local_dict[key]
+        return full_config_loaded, var
+    else:
+        return False, var
+
 
 class EuclideanRythmParameters:
 
     PRESCALER_LIST = [1,2,3,4,8,16]
-    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50, prescaler_index = 0):
-        self.set_parameters(beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index)
+    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50, prescaler_index = 0, gate_length_ms = T_GATE_ON_MS):
+        self.set_parameters(beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index, gate_length_ms)
 
     def set_parameters_from_rythm(self, euclideanRythmParameters):
-        self.set_parameters(euclideanRythmParameters.beats, euclideanRythmParameters.pulses, euclideanRythmParameters.offset, euclideanRythmParameters.is_turing_machine, euclideanRythmParameters.turing_probability, euclideanRythmParameters.prescaler_index)
+        self.set_parameters(euclideanRythmParameters.beats, euclideanRythmParameters.pulses, euclideanRythmParameters.offset, euclideanRythmParameters.is_turing_machine, euclideanRythmParameters.turing_probability, euclideanRythmParameters.prescaler_index, euclideanRythmParameters.gate_length_ms)
 
-    def set_parameters(self, beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index):
+    def set_parameters(self, beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index, gate_length_ms):
         self._is_turing_machine = is_turing_machine
         self.turing_probability = turing_probability
         self._prescaler_index = prescaler_index
@@ -44,6 +53,10 @@ class EuclideanRythmParameters:
             self.beats = 1
         if self.pulses < 1:
             self.pulses = 1
+            
+        self.clear_gate_needed = False
+        self.gate_length_ms = gate_length_ms
+        self.last_set_gate_ticks = ticks_ms()
 
     @property
     def prescaler_index(self):
@@ -287,6 +300,13 @@ class LxEuclidConfig:
         self.presets.append([EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0)])
         self.presets.append([EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0)])
 
+        self.rythm_lock = _thread.allocate_lock()
+        self.menu_lock = _thread.allocate_lock()
+        self.state_lock = _thread.allocate_lock()
+        self.save_data_lock = _thread.allocate_lock()
+        
+        self.dict_data_to_save = {}
+        self.need_save_data_in_file = False
 
         self.state = LxEuclidConfig.STATE_INIT
         self.on_event(LxEuclidConfig.EVENT_INIT)
@@ -330,6 +350,9 @@ class LxEuclidConfig:
         
         self._need_circle_action_display = False
         self.last_set_need_circle_action_display_ms = ticks_ms()
+        self.last_gate_led_event = ticks_ms()
+        self.clear_led_needed = False
+        self.clear_gate_needed = False
         self.action_display_index = 0
         self.action_display_info = ""
         self.highlight_color_euclid = True
@@ -383,14 +406,22 @@ class LxEuclidConfig:
 
 
 
-    def on_event(self, event, data = None):  
+    def on_event(self, event, data = None):
+        self.state_lock.acquire()
+        local_state = self.state
+        self.state_lock.release()
+        
         if self.state == LxEuclidConfig.STATE_INIT:
             if event == LxEuclidConfig.EVENT_INIT:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
+                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_LIVE:
             if event == LxEuclidConfig.EVENT_ENC_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
                 self.sm_rythm_param_counter  = 0
             elif event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 if self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_NONE:
@@ -576,44 +607,66 @@ class LxEuclidConfig:
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
             if event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
+                self.state_lock.release()
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 if self.sm_rythm_param_counter == MAIN_MENU_PARAMETER_INDEX:
+                    self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_PARAMETERS
+                    self.state_lock.release()
                 else:
                     if self.euclideanRythms[self.sm_rythm_param_counter].is_turing_machine:
+                        self.state_lock.acquire()
                         self.state = LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY
+                        self.state_lock.release()
                     else:
+                        self.state_lock.acquire()
                         self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT
+                        self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+                self.menu_lock.acquire()
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter+1)%5
+                self.menu_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                self.menu_lock.acquire()
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter-1)%5
+                self.menu_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE
+                self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_beats()
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET
+                self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 self.save_data()
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_offset()
             elif event == LxEuclidConfig.EVENT_ENC_DECR:
@@ -623,34 +676,52 @@ class LxEuclidConfig:
                 degree_steps = 360 / self.euclideanRythms[self.sm_rythm_param_counter].beats
                 self.euclideanRythms[self.sm_rythm_param_counter].set_offset(int(angle_inner/degree_steps))
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 self.save_data()
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_probability()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_probability()
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_PARAMETERS:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+                self.menu_lock.acquire()
                 parameter_set = self.menu_enter_pressed()
                 if parameter_set:
                     success = self.menu_back_pressed()
                     if success == False:
+                        self.state_lock.acquire()
                         self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                        self.state_lock.release()
+                self.menu_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+                self.menu_lock.acquire()
                 self.menu_down_action()
+                self.menu_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                self.menu_lock.acquire()
                 self.menu_up_action()
+                self.menu_lock.release()
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
+                self.menu_lock.acquire()
                 success = self.menu_back_pressed()
                 if success == False:
+                    self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                    self.state_lock.release()
+                self.menu_lock.release()
 
     def incr_steps(self):
         index = 0
@@ -660,17 +731,33 @@ class LxEuclidConfig:
             did_step = euclideanRythm.incr_step()
             if euclideanRythm.get_current_step() and did_step:
                 self.lxHardware.set_gate(index, euclideanRythm.inverted_output)
+                euclideanRythm.clear_gate_needed = True
+                euclideanRythm.last_set_gate_ticks = ticks_ms()
                 callback_param_dict[index] = index
             index = index + 1
-        tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
-        tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
+        #tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
+        #tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
+        self.last_gate_led_event = ticks_ms()        
+        self.clear_led_needed = True
+        self.clear_gate_needed = True
         self.LCD.set_need_display()
+        
+    def test_if_clear_gates_led(self):
+        self.callback_clear_gates()
+        #if ticks_ms() -self.last_gate_led_event>=T_GATE_ON_MS and self.clear_led_needed == True:
+        #    self.callback_clear_gates()
+        #    self.clear_gate_needed = False
+        if ticks_ms() -self.last_gate_led_event>=T_CLK_LED_ON_MS and self.clear_gate_needed == True:
+            self.callback_clear_led()
+            self.clear_led_needed = False
 
-    def callback_clear_gates(self, timer):
+    def callback_clear_gates(self, timer=None):
         for i in range(0,4):
-            self.lxHardware.clear_gate(i, self.euclideanRythms[i].inverted_output)
+            if ticks_ms() - self.euclideanRythms[i].last_set_gate_ticks>=self.euclideanRythms[i].gate_length_ms and self.euclideanRythms[i].clear_gate_needed == True:
+                self.lxHardware.clear_gate(i, self.euclideanRythms[i].inverted_output)
+                self.euclideanRythms[i].clear_gate_needed = False
 
-    def callback_clear_led(self, timer):
+    def callback_clear_led(self, timer=None):
         self.lxHardware.clear_clk_led()
 
     def reset_steps(self):
@@ -682,28 +769,31 @@ class LxEuclidConfig:
         if len(self.menu_path) > 0:
             self.menu_path = self.menu_path[:-1]
             self.current_menu_selected = 0
-            current_keys, _ = self.get_current_menu_keys()
+            current_keys, _, _ = self.get_current_menu_keys()
             self.current_menu_len = len(current_keys)
             return True
         else:
             return False
 
     def menu_enter_pressed(self):
-        current_keys, in_last_sub_menu  = self.get_current_menu_keys()
+        current_keys, in_last_sub_menu, in_min_max_menu = self.get_current_menu_keys()
         if in_last_sub_menu:
             # need to change value
             tmp_menu_selected = self.menu_navigation_map
             for key_path in self.menu_path:
                 tmp_menu_selected = tmp_menu_selected[key_path]
             attribute_name = tmp_menu_selected["attribute_name"]
-            attribute_value = setattr(self.get_current_data_pointer(), attribute_name,self.current_menu_selected)
+            if in_min_max_menu:
+                attribute_value = setattr(self.get_current_data_pointer(), attribute_name,int(current_keys[0]))
+            else:
+                attribute_value = setattr(self.get_current_data_pointer(), attribute_name,self.current_menu_selected)
             self.current_menu_value = self.current_menu_selected
             self.save_data()
             return True
         else:
             self.menu_path.append(current_keys[self.current_menu_selected])
             self.current_menu_selected = 0
-            current_keys, in_last_sub_menu  = self.get_current_menu_keys()
+            current_keys, in_last_sub_menu, in_min_max_menu = self.get_current_menu_keys()
             self.current_menu_len = len(current_keys)
             if in_last_sub_menu:
                 tmp_menu_selected = self.menu_navigation_map
@@ -711,19 +801,56 @@ class LxEuclidConfig:
                     tmp_menu_selected = tmp_menu_selected[key_path]
                 attribute_name = tmp_menu_selected["attribute_name"]
                 attribute_value = getattr(self.get_current_data_pointer(), attribute_name)
-                self.current_menu_selected = attribute_value
-                self.current_menu_value = attribute_value
+                if in_min_max_menu:
+                    self.current_menu_selected = 0
+                else:
+                    self.current_menu_value = attribute_value
                 return False
-    def menu_up_action(self):
-        if self.current_menu_selected > 0:
-            self.current_menu_selected = self.current_menu_selected - 1
+    def menu_up_action(self):        
+        _ , _ , in_min_max_menu = self.get_current_menu_keys()
+        if in_min_max_menu:            
+            data_pointer, attribute_name, min_val, max_val, steps_val, current_value = self.get_min_max_parameters()
+            
+            next_value = current_value - steps_val
+            
+            if next_value < min_val:
+               next_value = min_val 
+            attribute_value = setattr(data_pointer, attribute_name,next_value)
+        else:
+            if self.current_menu_selected > 0:
+                self.current_menu_selected = self.current_menu_selected - 1
+                
+   
 
-    def menu_down_action(self):
-       if self.current_menu_selected < self.current_menu_len-1:
-            self.current_menu_selected = self.current_menu_selected + 1
-
+    def menu_down_action(self):#TODO
+        _ , _ , in_min_max_menu = self.get_current_menu_keys()
+        if in_min_max_menu:            
+            data_pointer, attribute_name, min_val, max_val, steps_val, current_value = self.get_min_max_parameters()
+            
+            next_value = current_value + steps_val
+            
+            if next_value > max_val:
+               next_value = max_val 
+            attribute_value = setattr(data_pointer, attribute_name,next_value)
+        else:
+            if self.current_menu_selected < self.current_menu_len-1:
+                self.current_menu_selected = self.current_menu_selected + 1
+                
+    def get_min_max_parameters(self):
+        data_pointer = self.get_current_data_pointer()
+            
+        tmp_menu_selected = self.menu_navigation_map
+        for key_path in self.menu_path:
+            tmp_menu_selected = tmp_menu_selected[key_path]                
+            
+        attribute_name = tmp_menu_selected["attribute_name"]
+        min_val = tmp_menu_selected["min"]
+        max_val = tmp_menu_selected["max"]
+        steps_val = tmp_menu_selected["steps"]
+        current_value = getattr(data_pointer, attribute_name)
+        
+        return data_pointer, attribute_name, min_val, max_val, steps_val, current_value
     def save_data(self):
-
         dict_data = {}
         euclideanRythms_list = []
         i = 0
@@ -737,6 +864,7 @@ class LxEuclidConfig:
             dict_EuclideanRythm["offset"] = euclideanRythm.offset
             dict_EuclideanRythm["turing_probability"] = euclideanRythm.turing_probability
             dict_EuclideanRythm["prescaler_index"] = euclideanRythm.prescaler_index
+            dict_EuclideanRythm["gate_length_ms"] = euclideanRythm.gate_length_ms
             euclideanRythms_list.append(dict_EuclideanRythm)
 
         dict_data["euclideanRythms"] = euclideanRythms_list
@@ -752,6 +880,7 @@ class LxEuclidConfig:
                 dict_presetsRythms["offset"] = preset_euclideanRythm.offset
                 dict_presetsRythms["turing_probability"] = preset_euclideanRythm.turing_probability
                 dict_presetsRythms["prescaler_index"] = euclideanRythm.prescaler_index
+                dict_presetsRythms["gate_length_ms"] = euclideanRythm.gate_length_ms
                 presetsRythms_list.append(dict_presetsRythms)
             presets_list.append(presetsRythms_list)
 
@@ -789,65 +918,126 @@ class LxEuclidConfig:
         dict_data["clk"] = clk_dict
         dict_data["rst"] = rst_dict
         dict_data["display"] = display_dict
-        with open(JSON_CONFIG_FILE_NAME, "w") as config_file:
-            json.dump(dict_data, config_file)
+        
+        self.save_data_lock.acquire()
+        self.dict_data_to_save = dict_data
+        self.need_save_data_in_file = True
+        self.save_data_lock.release()
+        
+    
+    def test_save_data_in_file(self):
+        self.save_data_lock.acquire()
+        if self.need_save_data_in_file:
+            self.need_save_data_in_file = False
+            with open(JSON_CONFIG_FILE_NAME, "w") as config_file:
+                json.dump(self.dict_data_to_save, config_file)
+        self.save_data_lock.release()
 
     def load_data(self):
         print("Start loading data")
+        
+        full_config_loaded = True
         
         config_file = None
         try:
             config_file = open(JSON_CONFIG_FILE_NAME, "r")
             dict_data = json.load(config_file)
 
-            euclideanRythmsList = dict_data["euclideanRythms"]
-
-            i = 0
-            for dict_EuclideanRythm in euclideanRythmsList:
-                self.euclideanRythms[i].inverted_output = dict_EuclideanRythm["inverted_output"]
-                self.euclideanRythms[i].is_turing_machine = dict_EuclideanRythm["is_turing_machine"]
-                self.euclideanRythms[i].beats = dict_EuclideanRythm["beats"]
-                self.euclideanRythms[i].pulses = dict_EuclideanRythm["pulses"]
-                self.euclideanRythms[i].offset = dict_EuclideanRythm["offset"]
-                self.euclideanRythms[i].turing_probability = dict_EuclideanRythm["turing_probability"]
-                self.euclideanRythms[i].prescaler_index = dict_EuclideanRythm["prescaler_index"]
-                i+=1
-
-            presets_list = dict_data["presets"]
-            preset_index = 0
-            for preset in presets_list:
+            euclideanRythmsList = dict_data.get("euclideanRythms",None)
+             
+            if euclideanRythmsList != None:
                 i = 0
-                for dict_preset_euclideanRythm in preset:
-                    self.presets[preset_index][i].is_turing_machine = dict_preset_euclideanRythm["is_turing_machine"]
-                    self.presets[preset_index][i].beats = dict_preset_euclideanRythm["beats"]
-                    self.presets[preset_index][i].pulses = dict_preset_euclideanRythm["pulses"]
-                    self.presets[preset_index][i].offset = dict_preset_euclideanRythm["offset"]
-                    self.presets[preset_index][i].turing_probability = dict_preset_euclideanRythm["turing_probability"]
-                    self.presets[preset_index][i].prescaler_index = dict_preset_euclideanRythm["prescaler_index"]
+                for dict_EuclideanRythm in euclideanRythmsList:
+                    full_config_loaded, self.euclideanRythms[i].inverted_output = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].inverted_output, dict_EuclideanRythm,"inverted_output")
+                    full_config_loaded, self.euclideanRythms[i].is_turing_machine = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].is_turing_machine, dict_EuclideanRythm,"is_turing_machine")
+                    full_config_loaded, self.euclideanRythms[i].beats = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].beats, dict_EuclideanRythm,"beats")
+                    full_config_loaded, self.euclideanRythms[i].pulses = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].pulses, dict_EuclideanRythm,"pulses")
+                    full_config_loaded, self.euclideanRythms[i].offset = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].offset, dict_EuclideanRythm,"offset")
+                    full_config_loaded, self.euclideanRythms[i].turing_probability = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].turing_probability, dict_EuclideanRythm,"turing_probability")
+                    full_config_loaded, self.euclideanRythms[i].prescaler_index = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].prescaler_index, dict_EuclideanRythm,"prescaler_index")
+                    full_config_loaded, self.euclideanRythms[i].gate_length_ms = set_value_dict_if_exists(full_config_loaded, self.euclideanRythms[i].prescaler_index, dict_EuclideanRythm,"gate_length_ms")
                     i+=1
-                preset_index += 1
+            else:                
+                full_config_loaded = False
 
-            interface_dict = dict_data["interface"]
-            encoder_dict = interface_dict["encoder"]
-            tap_btn_dict = interface_dict["tap_btn"]
-            self.tap_long_press_action = tap_btn_dict["tap_long_press_action"]
-            self.encoder_long_press_action = encoder_dict["encoder_long_press_action"]
+            presets_list = dict_data.get("presets",None)
             
-            inner_circle_dict = interface_dict["inner_circle"]
-            self.inner_rotate_action = inner_circle_dict["inner_rotate_action"]
-            self.inner_action_rythm = inner_circle_dict["inner_action_rythm"] 
+            if presets_list != None:
+                preset_index = 0
+                for preset in presets_list:
+                    i = 0
+                    for dict_preset_euclideanRythm in preset:
+                        full_config_loaded, self.presets[preset_index][i].is_turing_machine = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].is_turing_machine, dict_preset_euclideanRythm, "is_turing_machine")
+                        full_config_loaded, self.presets[preset_index][i].beats = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].beats, dict_preset_euclideanRythm, "beats")
+                        full_config_loaded, self.presets[preset_index][i].pulses = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].pulses, dict_preset_euclideanRythm, "pulses")
+                        full_config_loaded, self.presets[preset_index][i].offset = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].offset, dict_preset_euclideanRythm, "offset")
+                        full_config_loaded, self.presets[preset_index][i].turing_probability = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].turing_probability, dict_preset_euclideanRythm, "turing_probability")
+                        full_config_loaded, self.presets[preset_index][i].prescaler_index = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].prescaler_index, dict_preset_euclideanRythm, "prescaler_index")
+                        full_config_loaded, self.presets[preset_index][i].gate_length_ms = set_value_dict_if_exists(full_config_loaded, self.presets[preset_index][i].prescaler_index, dict_preset_euclideanRythm, "gate_length_ms")
+                
+                        i+=1
+                    preset_index += 1
+            else:
+                full_config_loaded = False
 
-            outer_circle_dict = interface_dict["outer_circle"]
-            self.outer_rotate_action = outer_circle_dict["outer_rotate_action"] 
-            self.outer_action_rythm = outer_circle_dict["outer_action_rythm"]
+            interface_dict = dict_data.get("interface",None)
+            
+            if interface_dict != None:
+            
+                tap_btn_dict = interface_dict.get("tap_btn",None)
+                if tap_btn_dict != None:
+                    full_config_loaded, self.tap_long_press_action = set_value_dict_if_exists(full_config_loaded, self.tap_long_press_action,tap_btn_dict,"tap_long_press_action")
+                else:
+                    full_config_loaded = False
+                
+                
+                encoder_dict = interface_dict.get("encoder",None)
+                if encoder_dict != None:
+                    full_config_loaded, self.encoder_long_press_action = set_value_dict_if_exists(full_config_loaded, self.encoder_long_press_action,encoder_dict,"encoder_long_press_action")
+                else:
+                    full_config_loaded = False
+                
+                inner_circle_dict = interface_dict.get("inner_circle",None)
+                if inner_circle_dict != None:
+                    full_config_loaded, self.inner_rotate_action = set_value_dict_if_exists(full_config_loaded, self.inner_rotate_action,inner_circle_dict,"inner_rotate_action")
+                    full_config_loaded, self.inner_action_rythm = set_value_dict_if_exists(full_config_loaded, self.inner_action_rythm,inner_circle_dict,"inner_action_rythm")
+                else:
+                    full_config_loaded = False
 
-            self.clk_mode = dict_data["clk"]["clk_mode"]
-            self.clk_polarity = dict_data["clk"]["clk_polarity"]
-            self.rst_polarity = dict_data["rst"]["rst_polarity"]
+                outer_circle_dict = interface_dict.get("outer_circle",None)
+                if outer_circle_dict != None:
+                    full_config_loaded, self.outer_rotate_action = set_value_dict_if_exists(full_config_loaded, self.outer_rotate_action,outer_circle_dict,"outer_rotate_action")
+                    full_config_loaded, self.outer_action_rythm = set_value_dict_if_exists(full_config_loaded, self.outer_action_rythm,outer_circle_dict,"outer_action_rythm")
+                else:
+                    full_config_loaded = False
+            else:
+                full_config_loaded = False
+                
+            clk_dict = dict_data.get("clk",None)
+            if clk_dict!= None:
+                full_config_loaded, self.clk_mode = set_value_dict_if_exists(full_config_loaded, self.clk_mode,clk_dict,"clk_mode")
+                full_config_loaded, self.clk_polarity = set_value_dict_if_exists(full_config_loaded, self.clk_polarity,clk_dict,"clk_polarity")
+            else:
+                full_config_loaded = False
+                
+            rst_dict = dict_data.get("rst",None)
+            if rst_dict!= None:
+                full_config_loaded, self.rst_polarity = set_value_dict_if_exists(full_config_loaded, self.rst_polarity,rst_dict,"rst_polarity")
+            else:
+                full_config_loaded = False
 
-            self.LCD.display_circle_lines = dict_data["display"]["display_circle_lines"]
 
-            print("Data Loaded!")
+            display_dict = dict_data.get("display",None)
+            if display_dict!= None:
+                full_config_loaded, self.LCD.display_circle_lines = set_value_dict_if_exists(full_config_loaded, self.LCD.display_circle_lines,display_dict,"display_circle_lines")
+            else:
+                full_config_loaded = False
+
+            if full_config_loaded:
+                print("Full configuration was loaded")
+            else:
+                print("Configuration loaded but some parameters were missing")
+                
         except OSError:
             print("Couldn't load config because of OS ERROR")
         except Exception as e:
@@ -872,6 +1062,7 @@ class LxEuclidConfig:
 
     def get_current_menu_keys(self):
         in_last_sub_menu = False
+        in_min_max_menu = False
         if len(self.menu_path) == 0:
             current_keys = list(self.menu_navigation_map.keys())
         else:
@@ -885,6 +1076,14 @@ class LxEuclidConfig:
                 tmp_menu_selected = tmp_menu_selected[key_path]
             current_keys = tmp_menu_selected["values"]
             in_last_sub_menu  = True
+        elif "min" in current_keys:
+            tmp_menu_selected = self.menu_navigation_map
+            for key_path in self.menu_path:
+                tmp_menu_selected = tmp_menu_selected[key_path]            
+            attribute_name = tmp_menu_selected["attribute_name"]
+            current_keys = [str(getattr(self.get_current_data_pointer(), attribute_name))]
+            in_last_sub_menu  = True
+            in_min_max_menu = True
         if "data_pointer" in current_keys:
             current_keys.remove("data_pointer")
-        return current_keys, in_last_sub_menu
+        return current_keys, in_last_sub_menu, in_min_max_menu

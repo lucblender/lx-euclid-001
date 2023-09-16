@@ -7,6 +7,7 @@ from array import array
 import writer
 import gc
 from micropython import const
+import _thread
 
 DC = 8
 CS = 9
@@ -17,6 +18,12 @@ RST = 12
 BL = 25
 
 Vbat_Pin = 29
+
+DEBUG = False
+
+def debug_print(txt):
+    if DEBUG:
+        print(txt)
 
 def rgb888_to_rgb565(R,G,B): # Convert RGB888 to RGB565
     return (((G&0b00011100)<<3) +((B&0b11111000)>>3)<<8) + (R&0b11111000)+((G&0b11100000)>>5)
@@ -80,7 +87,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.font_writer_freesans20 = None #writer.Writer(self, freesans20)
         self.font_writer_font6 = None #writer.Writer(self, font6)
 
-        self.__need_display = False
+        self.__need_display = False        
+        self.need_display_lock = _thread.allocate_lock()
         self.display_circle_lines = LCD_1inch28.DISPLAY_CIRCLE
 
         self.set_bl_pwm(65535)
@@ -339,10 +347,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
         gc.collect()
 
     def set_need_display(self):
+        self.need_display_lock.acquire()
         self.__need_display = True
+        self.need_display_lock.release()
 
     def get_need_display(self):
-        return self.__need_display
+        self.need_display_lock.acquire()
+        to_return = self.__need_display
+        self.need_display_lock.release()
+        return to_return
 
     def display_rythms(self):
         self.fill(self.black)
@@ -350,19 +363,28 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.draw_approx_pie_slice([120,120],110,120,angle_outer-10,angle_outer+10,self.grey)
         angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitivesCircles.inner_circle_angle
         self.draw_approx_pie_slice([120,120],90,100,angle_inner-10,angle_inner+10,self.grey)
-        if self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_LIVE:
-                self.display_rythm_circles()
-                if self.lxEuclidConfig.need_circle_action_display == True:
-                    txt = self.lxEuclidConfig.action_display_info 
-                    txt_len = self.font_writer_freesans20.stringlen(txt)
-                    if self.lxEuclidConfig.highlight_color_euclid:
-                        color = self.rythm_colors[self.lxEuclidConfig.action_display_index]
-                    else:
-                        color = self.rythm_colors_turing[self.lxEuclidConfig.action_display_index]
-                    self.font_writer_freesans20.text(txt,120-int(txt_len/2),110, color)
-        elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
+        
+        self.lxEuclidConfig.state_lock.acquire()
+        local_state = self.lxEuclidConfig.state
+        self.lxEuclidConfig.state_lock.release()        
+        
+        if local_state == self.lxEuclidConfig.STATE_LIVE:
+            self.display_rythm_circles()
+            if self.lxEuclidConfig.need_circle_action_display == True:
+                txt = self.lxEuclidConfig.action_display_info 
+                txt_len = self.font_writer_freesans20.stringlen(txt)
+                if self.lxEuclidConfig.highlight_color_euclid:
+                    color = self.rythm_colors[self.lxEuclidConfig.action_display_index]
+                else:
+                    color = self.rythm_colors_turing[self.lxEuclidConfig.action_display_index]
+                self.font_writer_freesans20.text(txt,120-int(txt_len/2),110, color)
+        elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
+            
+            self.lxEuclidConfig.menu_lock.acquire()
+            rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
+            self.lxEuclidConfig.menu_lock.release()           
 
-            if self.lxEuclidConfig.sm_rythm_param_counter == 4:
+            if rythm_param_counter== 4:
                 if self.parameter_selected != None:
                     self.blit(self.parameter_selected, 100, 100)
             else:
@@ -372,17 +394,19 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.display_rythm_circles()
             self.display_enter_return_txt()
 
-        elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_PARAMETERS:
+        elif local_state == self.lxEuclidConfig.STATE_PARAMETERS:
             self.display_rythm_circles()
             self.display_enter_return_txt()
-
+            
+            self.lxEuclidConfig.menu_lock.acquire()
             #get all data from lxEuclidConfig in local variables
-            current_keys, in_last_sub_menu = self.lxEuclidConfig.get_current_menu_keys()
+            current_keys, in_last_sub_menu, _ = self.lxEuclidConfig.get_current_menu_keys()
             current_menu_len = len(current_keys)
             current_menu_selected = self.lxEuclidConfig.current_menu_selected
             current_menu_value = self.lxEuclidConfig.current_menu_value
             menu_path = self.lxEuclidConfig.menu_path
             current_menu_selected = self.lxEuclidConfig.current_menu_selected
+            self.lxEuclidConfig.menu_lock.release()
 
             if self.parameter_unselected != None:
                 self.blit(self.parameter_unselected, 100, 5)
@@ -433,9 +457,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
             if max_scrollbar_size == 0:
                 max_scrollbar_size = 1
             self.fill_rect(scrollbar_x,scrollbar_y+int(max_scrollbar_size_float*current_menu_selected ), scrollbar_width, max_scrollbar_size, self.white)
-        elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
-            current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
-            highlight_color = self.rythm_colors_turing[self.lxEuclidConfig.sm_rythm_param_counter]
+        elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
+            self.lxEuclidConfig.menu_lock.acquire()
+            rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
+            self.lxEuclidConfig.menu_lock.release()
+            current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[rythm_param_counter]
+            highlight_color = self.rythm_colors_turing[rythm_param_counter]
 
             if current_euclidean_rythm.is_turing_machine:
                 txt = str(current_euclidean_rythm.turing_probability) + "%"
@@ -444,23 +471,28 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             self.display_rythm_circles()
             self.display_enter_return_txt()
-        elif self.lxEuclidConfig.state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT,self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE,self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET]:
-            current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[self.lxEuclidConfig.sm_rythm_param_counter]
-            highlight_color = self.rythm_colors[self.lxEuclidConfig.sm_rythm_param_counter]
+        elif local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT,self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE,self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET]:
+            
+            self.lxEuclidConfig.menu_lock.acquire()
+            rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
+            self.lxEuclidConfig.menu_lock.release()
+            
+            current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[rythm_param_counter]
+            highlight_color = self.rythm_colors[rythm_param_counter]
 
             b = "{0:0=2d}".format(current_euclidean_rythm.beats)
             p = "{0:0=2d}".format(current_euclidean_rythm.pulses)
             o = "{0:0=2d}".format(current_euclidean_rythm.offset)
 
-            if self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT:
+            if local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT:
                 self.font_writer_freesans20.text(str(b),100,95,highlight_color)
                 self.font_writer_freesans20.text(str(p),100,125,self.grey)
                 self.font_writer_freesans20.text(str(o),132,110,self.grey)
-            elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE:
+            elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE:
                 self.font_writer_freesans20.text(str(b),100,95,self.grey)
                 self.font_writer_freesans20.text(str(p),100,125,highlight_color)
                 self.font_writer_freesans20.text(str(o),132,110,self.grey)
-            elif self.lxEuclidConfig.state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET:
+            elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET:
                 self.font_writer_freesans20.text(str(b),100,95,self.grey)
                 self.font_writer_freesans20.text(str(p),100,125,self.grey)
                 self.font_writer_freesans20.text(str(o),132,110,highlight_color)
@@ -473,6 +505,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def display_rythm_circles(self):
         radius = 110
         rythm_index = 0
+        
+        self.lxEuclidConfig.menu_lock.acquire()
+        rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
+        self.lxEuclidConfig.menu_lock.release()        
+        
+        self.lxEuclidConfig.state_lock.acquire()
+        local_state = self.lxEuclidConfig.state
+        self.lxEuclidConfig.state_lock.release()
 
         for euclidieanRythm in self.lxEuclidConfig.euclideanRythms:
 
@@ -484,8 +524,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 beat_color_hightlight = self.rythm_colors_highlight[rythm_index]
 
             highlight_color = self.white
-            if self.lxEuclidConfig.state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY, self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET]:
-                if rythm_index != self.lxEuclidConfig.sm_rythm_param_counter:
+            if local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY, self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET]:
+                if rythm_index != rythm_param_counter:
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
                     highlight_color = self.grey

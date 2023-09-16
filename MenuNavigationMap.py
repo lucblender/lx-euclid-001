@@ -16,6 +16,12 @@ def get_menu_navigation_map():
             "Prescaler": {
                 "values": ["1", "2","3","4","8","16"],
                 "attribute_name": "prescaler_index"
+            },
+            "Gate Length": {
+                "min": 10,
+                "max": 2000,
+                "steps": 10,
+                "attribute_name": "gate_length_ms"
             }
         },
             "Out 1": {
@@ -31,6 +37,12 @@ def get_menu_navigation_map():
             "Prescaler": {
                 "values": ["1", "2","3","4","8","16"],
                 "attribute_name": "prescaler_index"
+            },
+            "Gate Length": {
+                "min": 10,
+                "max": 2000,
+                "steps": 10,
+                "attribute_name": "gate_length_ms"
             }
         },
             "Out 2": {
@@ -46,6 +58,12 @@ def get_menu_navigation_map():
             "Prescaler": {
                 "values": ["1", "2","3","4","8","16"],
                 "attribute_name": "prescaler_index"
+            },
+            "Gate Length": {
+                "min": 10,
+                "max": 2000,
+                "steps": 10,
+                "attribute_name": "gate_length_ms"
             }
         },
             "Out 3": {
@@ -61,6 +79,12 @@ def get_menu_navigation_map():
             "Prescaler": {
                 "values": ["1", "2","3","4","8","16"],
                 "attribute_name": "prescaler_index"
+            },
+            "Gate Length": {
+                "min": 10,
+                "max": 2000,
+                "steps": 10,
+                "attribute_name": "gate_length_ms"
             }
         }
         }),
