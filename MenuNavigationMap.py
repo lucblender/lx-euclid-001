@@ -3,7 +3,7 @@ from collections import OrderedDict
 def get_menu_navigation_map():
     my_dict =  OrderedDict({
         "Outputs":OrderedDict(
-        {"Out 0": {
+        {"Out 0": OrderedDict({
             "data_pointer": None,
             "Inverted output": {
                 "values": ["False", "True"],
@@ -22,9 +22,13 @@ def get_menu_navigation_map():
                 "max": 2000,
                 "steps": 10,
                 "attribute_name": "gate_length_ms"
+            },
+            "Rand Gate Length": {
+                "values": ["False", "True"],
+                "attribute_name": "randomize_gate_length"
             }
-        },
-            "Out 1": {
+        }),
+            "Out 1": OrderedDict({
             "data_pointer": None,
             "Inverted output": {
                 "values": ["False", "True"],
@@ -43,9 +47,13 @@ def get_menu_navigation_map():
                 "max": 2000,
                 "steps": 10,
                 "attribute_name": "gate_length_ms"
+            },
+            "Rand Gate Length": {
+                "values": ["False", "True"],
+                "attribute_name": "randomize_gate_length"
             }
-        },
-            "Out 2": {
+        }),
+            "Out 2": OrderedDict({
             "data_pointer": None,
             "Inverted output": {
                 "values": ["False", "True"],
@@ -64,9 +72,13 @@ def get_menu_navigation_map():
                 "max": 2000,
                 "steps": 10,
                 "attribute_name": "gate_length_ms"
+            },
+            "Rand Gate Length": {
+                "values": ["False", "True"],
+                "attribute_name": "randomize_gate_length"
             }
-        },
-            "Out 3": {
+        }),
+            "Out 3": OrderedDict({
             "data_pointer": None,
             "Inverted output": {
                 "values": ["False", "True"],
@@ -85,8 +97,12 @@ def get_menu_navigation_map():
                 "max": 2000,
                 "steps": 10,
                 "attribute_name": "gate_length_ms"
+            },
+            "Rand Gate Length": {
+                "values": ["False", "True"],
+                "attribute_name": "randomize_gate_length"
             }
-        }
+        })
         }),
         "Clock":OrderedDict(
         {"data_pointer": None,
