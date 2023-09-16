@@ -4,7 +4,7 @@ import utime as time
 
 class CapacitivesCircles():
     MAX_DELAY_INCR_DECR_MS = 1000
-    STEP_TRIGGER_INCR_DEGREE = 10
+    STEP_TRIGGER_INCR_DEGREE = [25,10,5]
 
     NO_INCR_DECR_EVENT = 0
     INNER_CIRCLE_INCR_EVENT = 1
@@ -36,7 +36,8 @@ class CapacitivesCircles():
 
         self.last_inner_circle_angle_timestamp_ms = time.ticks_ms()
         self.last_outer_circle_angle_timestamp_ms = time.ticks_ms()
-
+        
+        self.touch_sensitivity = 0
 
         self.calibration_array = [0,0,0,0,0,0,0,0,0,0,0,0]
         if self.is_mpr_detected:
@@ -131,10 +132,10 @@ class CapacitivesCircles():
                         delta = self.last_inner_circle_angle-angle
                         # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
                         # and vice versa
-                        if  (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE and delta < 340) or delta < -340:
+                        if  (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[self.touch_sensitivity] and delta < 340) or delta < -340:
                             incr_decr_event = CapacitivesCircles.INNER_CIRCLE_INCR_EVENT
                             self.last_inner_circle_angle = angle
-                        elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE or delta > 340:
+                        elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[self.touch_sensitivity] or delta > 340:
                             incr_decr_event = CapacitivesCircles.INNER_CIRCLE_DECR_EVENT
                             self.last_inner_circle_angle = angle
                     else:
@@ -150,10 +151,10 @@ class CapacitivesCircles():
                         delta = self.last_outer_circle_angle-angle
                         # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
                         # and vice versa
-                        if  (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE and delta < 340) or delta < -340:
+                        if  (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[self.touch_sensitivity] and delta < 340) or delta < -340:
                             incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT
                             self.last_outer_circle_angle = angle
-                        elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE or delta > 340:
+                        elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[self.touch_sensitivity] or delta > 340:
                             incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT
                             self.last_outer_circle_angle = angle
                     else:

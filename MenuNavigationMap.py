@@ -122,6 +122,13 @@ def get_menu_navigation_map():
                     "attribute_name": "tap_long_press_action"
                     },
                 },
+                "Touch":
+                {"data_pointer": None,
+                 "Sensitivity": {
+                    "values": ["Low", "Medium", "High"],
+                    "attribute_name": "touch_sensitivity"
+                    },
+                },
                 "Inner Circle":
                 {"data_pointer": None,
                  "Live action": {

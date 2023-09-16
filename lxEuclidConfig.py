@@ -331,6 +331,7 @@ class LxEuclidConfig:
         self.menu_navigation_map["Interface"]["Tap Button"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Outer Circle"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Inner Circle"]["data_pointer"] = self
+        self.menu_navigation_map["Interface"]["Touch"]["data_pointer"] = self.lxHardware.capacitivesCircles
 
         self.current_menu_len = len(self.menu_navigation_map)
         self.current_menu_selected = 0
@@ -903,8 +904,13 @@ class LxEuclidConfig:
         outer_circle_dict = {}
         outer_circle_dict["outer_rotate_action"] = self.outer_rotate_action
         outer_circle_dict["outer_action_rythm"] = self.outer_action_rythm
-        
+                
         interface_dict["outer_circle"] = outer_circle_dict
+        
+        touch_dict = {}
+        touch_dict["touch_sensitivity"] = self.lxHardware.capacitivesCircles.touch_sensitivity     
+        
+        interface_dict["touch"] = touch_dict
         
         dict_data["interface"] = interface_dict
         
@@ -1008,6 +1014,13 @@ class LxEuclidConfig:
                 if outer_circle_dict != None:
                     full_config_loaded, self.outer_rotate_action = set_value_dict_if_exists(full_config_loaded, self.outer_rotate_action,outer_circle_dict,"outer_rotate_action")
                     full_config_loaded, self.outer_action_rythm = set_value_dict_if_exists(full_config_loaded, self.outer_action_rythm,outer_circle_dict,"outer_action_rythm")
+                else:
+                    full_config_loaded = False
+                    
+                touch_dict = interface_dict.get("touch",None)                
+                
+                if touch_dict != None:
+                    full_config_loaded, self.lxHardware.capacitivesCircles.touch_sensitivity = set_value_dict_if_exists(full_config_loaded, self.lxHardware.capacitivesCircles.touch_sensitivity,touch_dict,"touch_sensitivity")
                 else:
                     full_config_loaded = False
             else:
