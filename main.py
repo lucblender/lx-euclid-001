@@ -187,6 +187,7 @@ _thread.start_new_thread(display_thread, ())
 if __name__=='__main__':
     try:
         gc.collect()
+        print_ram()
         
         if is_usb_connected() and lxHardware.get_btn_tap_pin_value() == 0:
             stop_thread = True

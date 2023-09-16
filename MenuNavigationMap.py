@@ -152,7 +152,7 @@ def get_menu_navigation_map():
                             } 
     interface_dict["Inner Circle"] = {"data_pointer": None,
                                      "Live action": {
-                                        "values": ["None", "Rotate Rythm", "Incr/Decr Pulses", "Incr/Decr Probability"],
+                                        "values": ["None", "Rotate Rythm", "Incr/Decr Pulses", "Incr/Decr Probability", "Incr/Decr Gate Length"],
                                         "attribute_name": "inner_rotate_action"
                                         },
                                      "Action Rythm": {
@@ -162,7 +162,7 @@ def get_menu_navigation_map():
                                     }
     interface_dict["Outer Circle"] = {"data_pointer": None,
                                      "Live action": {
-                                        "values": ["None", "Rotate Rythm", "Incr/Decr Pulses", "Incr/Decr Probability"],
+                                        "values": ["None", "Rotate Rythm", "Incr/Decr Pulses", "Incr/Decr Probability", "Incr/Decr Gate Length"],
                                         "attribute_name": "outer_rotate_action"
                                         },
                                      "Action Rythm": {

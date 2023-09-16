@@ -175,6 +175,17 @@ class EuclideanRythm(EuclideanRythmParameters):
     def decr_probability(self):
         if self.turing_probability != 0:
             self.turing_probability = self.turing_probability - 5
+            
+    def incr_gate_length(self):
+        if (self.gate_length_ms+100) < 2000:
+            self.gate_length_ms = self.gate_length_ms + 100
+        else:
+            self.gate_length_ms = 2000
+    def decr_gate_length(self):
+        if (self.gate_length_ms-100) > 10:
+            self.gate_length_ms = self.gate_length_ms - 100
+        else:
+            self.gate_length_ms = 10
 
     def reset_step(self):
         self.current_step = 0
@@ -256,6 +267,7 @@ class LxEuclidConfig:
     CIRCLE_ACTION_ROTATE = 1
     CIRCLE_ACTION_PULSES = 2
     CIRCLE_ACTION_PROBABILITY = 3
+    CIRCLE_ACTION_GATE_LENGTH = 4
 
     CIRCLE_RYTHM_1 = 0
     CIRCLE_RYTHM_2 = 1
@@ -502,14 +514,14 @@ class LxEuclidConfig:
                             self.need_circle_action_display = True                         
                             self.action_display_index = self.inner_action_rythm
                             self.action_display_info = "+"
-                            self.highlight_color_euclid = True
+                            self.highlight_color_euclid = False
                         elif  event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                             for euclideanRythm in self.euclideanRythms:
                                 euclideanRythm.decr_probability()
                             self.need_circle_action_display = True                         
                             self.action_display_index = self.inner_action_rythm
                             self.action_display_info = "-"
-                            self.highlight_color_euclid = True
+                            self.highlight_color_euclid = False
                     else:
                         if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                             self.euclideanRythms[self.inner_action_rythm].incr_probability()
@@ -523,6 +535,35 @@ class LxEuclidConfig:
                             self.action_display_index = self.inner_action_rythm
                             self.action_display_info = str(self.euclideanRythms[self.inner_action_rythm].turing_probability)+"%"
                             self.highlight_color_euclid = False
+                elif self.inner_rotate_action == LxEuclidConfig.CIRCLE_ACTION_GATE_LENGTH: #TODO
+                    if self.inner_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                        if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.incr_gate_length()
+                            self.need_circle_action_display = True                         
+                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_info = "+"
+                            self.highlight_color_euclid = True
+                        elif  event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.decr_gate_length()
+                            self.need_circle_action_display = True                         
+                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_info = "-"
+                            self.highlight_color_euclid = True
+                    else:
+                        if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+                            self.euclideanRythms[self.inner_action_rythm].incr_gate_length()
+                            self.need_circle_action_display = True                         
+                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_info = str(self.euclideanRythms[self.inner_action_rythm].gate_length_ms)+"ms"
+                            self.highlight_color_euclid = True
+                        elif  event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                            self.euclideanRythms[self.inner_action_rythm].decr_gate_length()
+                            self.need_circle_action_display = True                     
+                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_info = str(self.euclideanRythms[self.inner_action_rythm].gate_length_ms)+"ms"
+                            self.highlight_color_euclid = True
 
             elif  event in [LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH, LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR, LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR]:
                 if self.outer_rotate_action == LxEuclidConfig.CIRCLE_ACTION_ROTATE: 
@@ -586,14 +627,14 @@ class LxEuclidConfig:
                             self.need_circle_action_display = True              
                             self.action_display_index = self.outer_action_rythm
                             self.action_display_info = "+"
-                            self.highlight_color_euclid = True
+                            self.highlight_color_euclid = False
                         elif  event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
                             for euclideanRythm in self.euclideanRythms:
                                 euclideanRythm.decr_probability()
                             self.need_circle_action_display = True              
                             self.action_display_index = self.outer_action_rythm
                             self.action_display_info = "-"
-                            self.highlight_color_euclid = True
+                            self.highlight_color_euclid = False
                     else:
                         if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
                             self.euclideanRythms[self.outer_action_rythm].incr_probability()
@@ -607,6 +648,35 @@ class LxEuclidConfig:
                             self.action_display_index = self.outer_action_rythm
                             self.action_display_info = str(self.euclideanRythms[self.outer_action_rythm].turing_probability)+"%"
                             self.highlight_color_euclid = False
+                elif self.outer_rotate_action == LxEuclidConfig.CIRCLE_ACTION_GATE_LENGTH: #TODO
+                    if self.outer_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                        if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.incr_gate_length()
+                            self.need_circle_action_display = True                         
+                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_info = "+"
+                            self.highlight_color_euclid = True
+                        elif  event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
+                            for euclideanRythm in self.euclideanRythms:
+                                euclideanRythm.decr_gate_length()
+                            self.need_circle_action_display = True                         
+                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_info = "-"
+                            self.highlight_color_euclid = True
+                    else:
+                        if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
+                            self.euclideanRythms[self.outer_action_rythm].incr_gate_length()
+                            self.need_circle_action_display = True                         
+                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_info = str(self.euclideanRythms[self.outer_action_rythm].gate_length_ms)+"ms"
+                            self.highlight_color_euclid = True
+                        elif  event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+                            self.euclideanRythms[self.outer_action_rythm].decr_gate_length()
+                            self.need_circle_action_display = True                     
+                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_info = str(self.euclideanRythms[self.outer_action_rythm].gate_length_ms)+"ms"
+                            self.highlight_color_euclid = True
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
             if event == LxEuclidConfig.EVENT_TAP_BTN:
