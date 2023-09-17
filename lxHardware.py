@@ -1,6 +1,8 @@
 from machine import Pin
-import micropython
 from capacitivesCircles import *
+from machine import mem32
+from ucollections import deque
+from sys import print_exception
 
 CLK_OUT = 16
 CLK_IN = 18
@@ -16,6 +18,8 @@ class HandlerEventData:
     def __init__(self, event, data=None):
         self.event = event
         self.data = data
+        
+
 
 class LxHardware:
 
@@ -34,6 +38,17 @@ class LxHardware:
     OUTER_CIRCLE_TOUCH = 11
 
     def __init__(self):
+        
+        self.btn_fall_event = HandlerEventData(LxHardware.BTN_TAP_FALL)
+        self.btn_rise_event = HandlerEventData(LxHardware.BTN_TAP_RISE)
+
+        self.rst_fall_event = HandlerEventData(LxHardware.RST_FALL)
+        self.rst_rise_event = HandlerEventData(LxHardware.RST_RISE)
+
+        self.clk_fall_event = HandlerEventData(LxHardware.CLK_FALL)
+        self.clk_rise_event = HandlerEventData(LxHardware.CLK_RISE)        
+        
+        self.lxHardwareEventFifo = deque((),20)
 
         self.clk_pin = Pin(CLK_IN, Pin.IN)
         self.rst_pin = Pin(RST_IN, Pin.IN)
@@ -42,9 +57,9 @@ class LxHardware:
         self.rst_pin_status = self.rst_pin.value()
         self.btn_tap_pin_status = self.btn_tap_pin.value()
 
-        self.clk_pin.irq(handler=self.clk_pin_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING )
-        self.rst_pin.irq(handler=self.rst_pin_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING )
-        self.btn_tap_pin.irq(handler=self.btn_tap_pin_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING)
+        self.clk_pin.irq(handler=self.clk_pin_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+        self.rst_pin.irq(handler=self.rst_pin_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+        self.btn_tap_pin.irq(handler=self.btn_tap_pin_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
 
         self.clk_out_led = Pin(CLK_OUT,Pin.OUT)
         self.gate_out_0 = Pin(GATE_OUT_0,Pin.OUT)
@@ -63,34 +78,45 @@ class LxHardware:
         self.capacitivesCircles = CapacitivesCircles()
 
         self.handlers = []
+        # need to do this trickery of sh*t to not have a memory allocation error as show
+        # here https://forum.micropython.org/viewtopic.php?t=4027
+        self.callback = self.call_handlers        
 
     def clk_pin_change(self, pin):
         if self.clk_pin_status == self.clk_pin.value():
             return
         self.clk_pin_status = self.clk_pin.value()
         if self.clk_pin.value():
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_FALL))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_FALL))                
+            self.lxHardwareEventFifo.append(self.clk_fall_event)
         else:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_RISE))
-
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_RISE))
+            self.lxHardwareEventFifo.append(self.clk_rise_event)
+            
     def rst_pin_change(self, pin):
         if self.rst_pin_status == self.rst_pin.value():
             return
         self.rst_pin_status = self.rst_pin.value()
         if self.rst_pin.value():
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_FALL))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_FALL))
+            self.lxHardwareEventFifo.append(self.rst_fall_event)
         else:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_RISE))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_RISE))
+            self.lxHardwareEventFifo.append(self.rst_rise_event)
 
 
     def btn_tap_pin_change(self, pin):
+        #print("btn_tap_pin_change",mem32[0xd0000000])
         if self.btn_tap_pin_status == self.btn_tap_pin.value():
             return
         self.btn_tap_pin_status = self.btn_tap_pin.value()
         if self.btn_tap_pin.value():
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.BTN_TAP_FALL))
+            # can't f*cking use schedule because of this sh*t https://github.com/micropython/micropython/issues/10690
+            #micropython.schedule(self.callback, LxHardware.fall_event)
+            self.lxHardwareEventFifo.append(self.btn_fall_event)
         else:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.BTN_TAP_RISE))
+            #micropython.schedule(self.callback, LxHardware.rise_event)
+            self.lxHardwareEventFifo.append(self.btn_rise_event)
 
     def get_btn_tap_pin_value(self):
         return self.btn_tap_pin.value()
@@ -116,17 +142,23 @@ class LxHardware:
     def get_touch_circles_updates(self):
         circles_data  = self.capacitivesCircles.get_touch_circles_updates()
         if circles_data[2] == CapacitivesCircles.INNER_CIRCLE_INCR_EVENT:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_INCR, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_INCR, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.INNER_CIRCLE_INCR, circles_data))
         elif circles_data[2] == CapacitivesCircles.INNER_CIRCLE_DECR_EVENT:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_DECR, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_DECR, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.INNER_CIRCLE_DECR, circles_data))
         elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_INCR, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_INCR, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.OUTER_CIRCLE_INCR, circles_data))
         elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_DECR, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_DECR, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.OUTER_CIRCLE_DECR, circles_data))
         elif circles_data[0] == True:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_TOUCH, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_TOUCH, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.INNER_CIRCLE_TOUCH, circles_data))
         elif circles_data[1] == True:
-            micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
 
 
     def add_handler(self, handler):
