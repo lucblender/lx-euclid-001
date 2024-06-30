@@ -1,6 +1,6 @@
 from Rp2040Lcd import LCD_1inch28
 
-VERSION = "v0.0.3"
+VERSION = "v0.0.3_dev"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
                             # once used, the lxb pic buffer is thrown away
 import gc
@@ -96,7 +96,7 @@ def lxhardware_changed(handlerEventData):
         else:
             global last_tap_ms, tap_delay_ms
             if lxEuclidConfig.state != LxEuclidConfig.STATE_LIVE:
-                lxEuclidConfig.on_event(LxEuclidConfig.EVENT_TAP_BTN)                
+                lxEuclidConfig.on_event(LxEuclidConfig.EVENT_TAP_BTN)
                 LCD.set_need_display()
             else:
                 temp_last_tap_ms = time.ticks_ms()
@@ -147,7 +147,7 @@ def display_thread():
     while wait_display_thread:
         time.sleep(0.1)
     while not stop_thread:
-        
+
         lxEuclidConfig.test_save_data_in_file()
         if LCD.get_need_display() == True:
             LCD.display_rythms()
@@ -188,7 +188,7 @@ if __name__=='__main__':
     try:
         gc.collect()
         print_ram()
-        
+
         if is_usb_connected() and lxHardware.get_btn_tap_pin_value() == 0:
             stop_thread = True
             wait_display_thread = False
@@ -196,11 +196,11 @@ if __name__=='__main__':
         else:
             if lxHardware.capacitivesCircles.is_mpr_detected == False:
                 LCD.display_error("No touch sensor\ndetected")
-            
+
             if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
                 global_incr_steps()
-                
-            wait_display_thread = False            
+
+            wait_display_thread = False
             LCD.set_need_display()
             while True:
                 if(len(lxHardware.lxHardwareEventFifo)>0):

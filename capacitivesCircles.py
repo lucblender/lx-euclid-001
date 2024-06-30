@@ -14,11 +14,12 @@ class CapacitivesCircles():
 
     CALIBRATION_THRESHOLD = 10
 
-    def __init__(self):
-        self.i2c = I2C(0, sda=Pin(0), scl=Pin(1))
-        
+    def __init__(self, i2c):
+
+        self.i2c = i2c
+
         self.is_mpr_detected = 0x5A in self.i2c.scan()
-        
+
         if self.is_mpr_detected:
             self.mpr = MPR121(self.i2c)
         else:
@@ -36,7 +37,7 @@ class CapacitivesCircles():
 
         self.last_inner_circle_angle_timestamp_ms = time.ticks_ms()
         self.last_outer_circle_angle_timestamp_ms = time.ticks_ms()
-        
+
         self.touch_sensitivity = 0
 
         self.calibration_array = [0,0,0,0,0,0,0,0,0,0,0,0]
@@ -66,7 +67,7 @@ class CapacitivesCircles():
 
             inner_angle_updated = False
             outer_angle_updated = False
-            
+
             temp_data = self.mpr.all_filtered_data()
 
             for i in range(0,12):
@@ -170,7 +171,7 @@ class CapacitivesCircles():
 
 
 if __name__=='__main__':
-    capacitivesCircles = CapacitivesCircles()
+    capacitivesCircles = CapacitivesCircles(I2C(0, sda=Pin(0), scl=Pin(1)))
 
     while(True):
         time.sleep(0.05)
