@@ -71,7 +71,7 @@ class Writer():
             buf[i] = 0xFF & ~ v
         fbc = framebuf.FrameBuffer(buf, char_width, char_height, self.map)
 
-        buffer = bytearray(1)
+        buffer = bytearray(3)
         palette = framebuf.FrameBuffer(buffer, 1, 1, framebuf.RGB565)
 
         # we use color 0 as transparent color in the blit... so I change color 0 to 1. We don't have full black but eh, it works

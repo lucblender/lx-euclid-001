@@ -32,6 +32,27 @@ You will also need all the \*.bin files (pictures files) installed at the root o
 - [parameter_selected.bin](binaries/parameter_selected.bin)
 - [parameter_unselected.bin](binaries/parameter_unselected.bin)
 
+## Build micropython custom uf2
+
+Taken from [Raspberry Pi Pico Python SDK pdf book](https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf).
+
+Install micropython and submodules p5:
+```
+git clone https://github.com/micropython/micropython.git --branch master
+cd micropython
+make -C ports/rp2 submodules
+
+```
+
+From there, you'll need to execute shells scripts from ```shell scripts```directory.
+Open copy-python-files.sh , change source_directory on line 4 and destination_directory line 7.
+And open build-uf2.sh and change output uf2 destination file on line 5.
+
+When done you can execute the two scripts. First will copy python files into micropython git folders and second will build an uf2 image of micropython containing our files and copy it to our destination:
+```
+./copy-python-files.sh
+./build-uf2.sh
+```
 
 
 ## Completely  reset a module
