@@ -471,7 +471,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             self.display_rythm_circles()
             self.display_enter_return_txt()
-        elif local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT,self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE,self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET]:
+        elif local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
             
             self.lxEuclidConfig.menu_lock.acquire()
             rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
@@ -483,19 +483,23 @@ class LCD_1inch28(framebuf.FrameBuffer):
             b = "{0:0=2d}".format(current_euclidean_rythm.beats)
             p = "{0:0=2d}".format(current_euclidean_rythm.pulses)
             o = "{0:0=2d}".format(current_euclidean_rythm.offset)
+            prob = "{0:0=2d}".format(current_euclidean_rythm.pulses_probability)
 
-            if local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT:
+            if local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
                 self.font_writer_freesans20.text(str(b),100,95,highlight_color)
-                self.font_writer_freesans20.text(str(p),100,125,self.grey)
-                self.font_writer_freesans20.text(str(o),132,110,self.grey)
-            elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE:
-                self.font_writer_freesans20.text(str(b),100,95,self.grey)
                 self.font_writer_freesans20.text(str(p),100,125,highlight_color)
-                self.font_writer_freesans20.text(str(o),132,110,self.grey)
-            elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET:
+                self.font_writer_freesans20.text(str(o),132,95,self.grey)
+                self.font_writer_freesans20.text(str(prob),132,125,self.grey)
+            elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:
                 self.font_writer_freesans20.text(str(b),100,95,self.grey)
                 self.font_writer_freesans20.text(str(p),100,125,self.grey)
-                self.font_writer_freesans20.text(str(o),132,110,highlight_color)
+                self.font_writer_freesans20.text(str(o),132,95,highlight_color)
+                self.font_writer_freesans20.text(str(prob),132,125,highlight_color)
+#             elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET:
+#                 self.font_writer_freesans20.text(str(b),100,95,self.grey)
+#                 self.font_writer_freesans20.text(str(p),100,125,self.grey)
+#                 self.font_writer_freesans20.text(str(o),132,95,highlight_color)
+#                 self.font_writer_freesans20.text(str(prob),132,125,self.grey)
             self.display_rythm_circles()
             self.display_enter_return_txt()
 
@@ -524,7 +528,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 beat_color_hightlight = self.rythm_colors_highlight[rythm_index]
 
             highlight_color = self.white
-            if local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY, self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET]:
+            if local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY, self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
                 if rythm_index != rythm_param_counter:
                     beat_color = self.grey
                     beat_color_hightlight = self.grey

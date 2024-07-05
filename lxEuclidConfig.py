@@ -23,13 +23,13 @@ def set_val_dict(full_conf_load, var, local_dict, key):
 class EuclideanRythmParameters:
 
     PRESCALER_LIST = [1,2,3,4,8,16]
-    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50, prescaler_index = 0, gate_length_ms = T_GATE_ON_MS, randomize_gate_length = False):
-        self.set_parameters(beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index, gate_length_ms, randomize_gate_length)
+    def __init__(self, beats, pulses, offset, pulses_probability, is_turing_machine = 0, turing_probability = 50, prescaler_index = 0, gate_length_ms = T_GATE_ON_MS, randomize_gate_length = False):
+        self.set_parameters(beats, pulses, offset, pulses_probability, is_turing_machine, turing_probability, prescaler_index, gate_length_ms, randomize_gate_length)
 
     def set_parameters_from_rythm(self, euclideanRythmParameters):
         self.set_parameters(euclideanRythmParameters.beats, euclideanRythmParameters.pulses, euclideanRythmParameters.offset, euclideanRythmParameters.is_turing_machine, euclideanRythmParameters.turing_probability, euclideanRythmParameters.prescaler_index, euclideanRythmParameters.gate_length_ms, euclideanRythmParameters.randomize_gate_length)
 
-    def set_parameters(self, beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index, gate_length_ms, randomize_gate_length):
+    def set_parameters(self, beats, pulses, offset, pulses_probability, is_turing_machine, turing_probability, prescaler_index, gate_length_ms, randomize_gate_length):
         self._is_turing_machine = is_turing_machine
         self.turing_probability = turing_probability
         self._prescaler_index = prescaler_index
@@ -37,6 +37,8 @@ class EuclideanRythmParameters:
         self.prescaler = EuclideanRythmParameters.PRESCALER_LIST[prescaler_index]
 
         self.beats = beats
+        
+        self.pulses_probability = pulses_probability
 
         if pulses > beats:
             self.pulses = beats
@@ -77,9 +79,9 @@ class EuclideanRythmParameters:
         self._is_turing_machine = is_turing_machine
 
 class EuclideanRythm(EuclideanRythmParameters):
-    def __init__(self, beats, pulses, offset, is_turing_machine = 0, turing_probability = 50, prescaler_index = 0):
+    def __init__(self, beats, pulses, offset, pulses_probability, is_turing_machine = 0, turing_probability = 50, prescaler_index = 0):
 
-        EuclideanRythmParameters.__init__(self, beats, pulses, offset, is_turing_machine, turing_probability, prescaler_index)
+        EuclideanRythmParameters.__init__(self, beats, pulses, offset, pulses_probability, is_turing_machine, turing_probability, prescaler_index)
 
         self.current_step = 0
         self.inverted_output = 0
@@ -142,6 +144,14 @@ class EuclideanRythm(EuclideanRythmParameters):
         if self.pulses < 1:
             self.pulses = 1
         self.set_rythm()
+        
+    def incr_pulses_probability(self):
+        if self.pulses_probability != 100:
+            self.pulses_probability = self.pulses_probability +5
+            
+    def decr_pulses_probability(self):
+        if self.pulses_probability != 0:
+            self.pulses_probability = self.pulses_probability -5
 
     def incr_step(self):
         to_return = False
@@ -192,7 +202,16 @@ class EuclideanRythm(EuclideanRythmParameters):
         self.prescaler_rythm_counter = 0
 
     def get_current_step(self):
-        return self.rythm[(self.current_step-self.offset)%len(self.rythm)]
+        to_return = self.rythm[(self.current_step-self.offset)%len(self.rythm)]
+        if self.is_turing_machine:
+            return to_return
+        elif to_return == 0:
+            return 0
+        else:
+            if randint(0,100) < self.pulses_probability:
+                return 0
+            else:
+                return self.rythm[(self.current_step-self.offset)%len(self.rythm)]
 
     def set_rythm(self):
         if self.is_turing_machine:
@@ -279,10 +298,9 @@ class LxEuclidConfig:
     STATE_LIVE = 1
     STATE_PARAMETERS = 2
     STATE_RYTHM_PARAM_SELECT = 3
-    STATE_RYTHM_PARAM_INNER_BEAT = 4
-    STATE_RYTHM_PARAM_INNER_PULSE = 5
-    STATE_RYTHM_PARAM_INNER_OFFSET = 6
-    STATE_RYTHM_PARAM_PROBABILITY = 7
+    STATE_RYTHM_PARAM_PROBABILITY = 4
+    STATE_RYTHM_PARAM_INNER_BEAT_PULSE = 5
+    STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY = 6
     
     EVENT_INIT = 0
     EVENT_ENC_BTN = 1
@@ -305,14 +323,14 @@ class LxEuclidConfig:
         self.LCD = LCD
         self.LCD.set_config(self)
         self.euclideanRythms = []
-        self.euclideanRythms.append(EuclideanRythm(8, 4, 0))
-        self.euclideanRythms.append(EuclideanRythm(8, 2, 0))
-        self.euclideanRythms.append(EuclideanRythm(4, 3, 0))
-        self.euclideanRythms.append(EuclideanRythm(4, 2, 0))
+        self.euclideanRythms.append(EuclideanRythm(8, 4, 0, 100))
+        self.euclideanRythms.append(EuclideanRythm(8, 2, 0, 100))
+        self.euclideanRythms.append(EuclideanRythm(4, 3, 0, 100))
+        self.euclideanRythms.append(EuclideanRythm(4, 2, 0, 100))
 
         self.presets = []
-        self.presets.append([EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0)])
-        self.presets.append([EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0),EuclideanRythmParameters(8, 4, 0)])
+        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100)])
 
         self.rythm_lock = _thread.allocate_lock()
         self.menu_lock = _thread.allocate_lock()
@@ -695,7 +713,7 @@ class LxEuclidConfig:
                         self.state_lock.release()
                     else:
                         self.state_lock.acquire()
-                        self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT
+                        self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE
                         self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.menu_lock.acquire()
@@ -706,35 +724,41 @@ class LxEuclidConfig:
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter-1)%5
                 self.menu_lock.release()
 
-        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT:
+        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE
+                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
                 self.state_lock.release()
-            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
-            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_beats()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN:
-                self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
-                self.state_lock.release()
-
-        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE:
-            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
-                self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET
-                self.state_lock.release()
-            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+            elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
-            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+            elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
                 self.state_lock.release()
 
-        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET:
+#         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE:
+#             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+#                 self.state_lock.acquire()
+#                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET
+#                 self.state_lock.release()
+#             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+#                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
+#             elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
+#                 self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
+#             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+#                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
+#             elif event == LxEuclidConfig.EVENT_TAP_BTN:
+#                 self.state_lock.acquire()
+#                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+#                 self.state_lock.release()
+
+        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 self.save_data()
                 self.state_lock.acquire()
@@ -748,6 +772,10 @@ class LxEuclidConfig:
                 angle_inner = 180-self.lxHardware.capacitivesCircles.inner_circle_angle
                 degree_steps = 360 / self.euclideanRythms[self.sm_rythm_param_counter].beats
                 self.euclideanRythms[self.sm_rythm_param_counter].set_offset(int(angle_inner/degree_steps))
+            elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
+                self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses_probability()
+            elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR :
+                self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses_probability()
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
