@@ -1,6 +1,6 @@
 from mpr121 import MPR121
 from machine import Pin, I2C
-import utime as time
+from utime import sleep, ticks_ms
 
 class CapacitivesCircles():
     MAX_DELAY_INCR_DECR_MS = 1000
@@ -35,8 +35,8 @@ class CapacitivesCircles():
         self.inner_circle_angle = 0
         self.outer_circle_angle = 0
 
-        self.last_inner_circle_angle_timestamp_ms = time.ticks_ms()
-        self.last_outer_circle_angle_timestamp_ms = time.ticks_ms()
+        self.last_inner_circle_angle_timestamp_ms = ticks_ms()
+        self.last_outer_circle_angle_timestamp_ms = ticks_ms()
 
         self.touch_sensitivity = 0
 
@@ -129,7 +129,7 @@ class CapacitivesCircles():
                     angle = index_factor*60 + factor*60
                 if inner_circle_len> 0:
 
-                    if time.ticks_ms() - self.last_inner_circle_angle_timestamp_ms < CapacitivesCircles.MAX_DELAY_INCR_DECR_MS:
+                    if ticks_ms() - self.last_inner_circle_angle_timestamp_ms < CapacitivesCircles.MAX_DELAY_INCR_DECR_MS:
                         delta = self.last_inner_circle_angle-angle
                         # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
                         # and vice versa
@@ -142,13 +142,13 @@ class CapacitivesCircles():
                     else:
                         self.last_inner_circle_angle = angle # do this to prevent incr-decr when we touch the sensor after long time
                     self.inner_circle_angle = angle
-                    self.last_inner_circle_angle_timestamp_ms = time.ticks_ms()
+                    self.last_inner_circle_angle_timestamp_ms = ticks_ms()
 
                     inner_angle_updated = True
                 else:
 
 
-                    if time.ticks_ms() - self.last_outer_circle_angle_timestamp_ms < CapacitivesCircles.MAX_DELAY_INCR_DECR_MS:
+                    if ticks_ms() - self.last_outer_circle_angle_timestamp_ms < CapacitivesCircles.MAX_DELAY_INCR_DECR_MS:
                         delta = self.last_outer_circle_angle-angle
                         # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
                         # and vice versa
@@ -161,7 +161,7 @@ class CapacitivesCircles():
                     else:
                         self.last_outer_circle_angle = angle # do this to prevent incr-decr when we touch the sensor after long time
                     self.outer_circle_angle = angle
-                    self.last_outer_circle_angle_timestamp_ms = time.ticks_ms()
+                    self.last_outer_circle_angle_timestamp_ms = ticks_ms()
 
                     outer_angle_updated = True
 
@@ -174,6 +174,6 @@ if __name__=='__main__':
     capacitivesCircles = CapacitivesCircles(I2C(0, sda=Pin(0), scl=Pin(1)))
 
     while(True):
-        time.sleep(0.05)
+        sleep(0.05)
         data = capacitivesCircles.get_touch_circles_updates()
 

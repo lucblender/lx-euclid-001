@@ -8,3 +8,7 @@ tmp/
 error.txt
 
 lx-euclide_config.json
+
+/*.mpy
+
+/font/*.mpy

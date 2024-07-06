@@ -1,13 +1,13 @@
 from machine import Pin,SPI,PWM
 import framebuf
-import time
-import math
+from utime import sleep
+from math import radians, sin, cos
 from array import array
 
 import writer
 import gc
 from micropython import const
-import _thread
+from _thread import allocate_lock
 
 DC = 8
 CS = 9
@@ -26,7 +26,7 @@ def debug_print(txt):
         print(txt)
 
 def rgb888_to_rgb565(R,G,B): # Convert RGB888 to RGB565
-    return (((G&0b00011100)<<3) +((B&0b11111000)>>3)<<8) + (R&0b11111000)+((G&0b11100000)>>5)
+    return const((((G&0b00011100)<<3) +((B&0b11111000)>>3)<<8) + (R&0b11111000)+((G&0b11100000)>>5))
 
 def pict_to_fbuff(path,x,y):
     with open(path, 'rb') as f:
@@ -34,9 +34,9 @@ def pict_to_fbuff(path,x,y):
     return framebuf.FrameBuffer(data, x, y, framebuf.RGB565)
 
 def polar_to_cartesian(radius, theta):
-    rad_theta = math.radians(theta)
-    x = radius * math.cos(rad_theta)
-    y = radius * math.sin(rad_theta)
+    rad_theta = radians(theta)
+    x = radius * cos(rad_theta)
+    y = radius * sin(rad_theta)
     return int(x),int(y)
 
 class LCD_1inch28(framebuf.FrameBuffer):
@@ -70,6 +70,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.white =   0xffff
         self.black =   0x0000
         self.grey =    rgb888_to_rgb565(54,54,54)
+        self.touch_circle_color_highlight = rgb888_to_rgb565(255,221,0)
+        self.touch_circle_color = rgb888_to_rgb565(176,157,34)
 
         # each array has 5 colors, 4 for the circles, the 5th used when the infos concerns all the circles
         self.rythm_colors = [rgb888_to_rgb565(255,176,31),rgb888_to_rgb565(255,130,218),rgb888_to_rgb565(122,155,255),rgb888_to_rgb565(156, 255, 237), self.white]
@@ -88,7 +90,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.font_writer_font6 = None #writer.Writer(self, font6)
 
         self.__need_display = False        
-        self.need_display_lock = _thread.allocate_lock()
+        self.need_display_lock = allocate_lock()
         self.display_circle_lines = LCD_1inch28.DISPLAY_CIRCLE
 
         self.set_bl_pwm(65535)
@@ -156,11 +158,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def init_display(self):
         """Initialize dispaly"""
         self.rst(1)
-        time.sleep(0.01)
+        sleep(0.01)
         self.rst(0)
-        time.sleep(0.01)
+        sleep(0.01)
         self.rst(1)
-        time.sleep(0.05)
+        sleep(0.05)
 
         self.write_cmd(0xEF)
         self.write_cmd(0xEB)
@@ -272,9 +274,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.write_cmd(0x21)
 
         self.write_cmd(0x11)
-        time.sleep(0.12)
+        sleep(0.12)
         self.write_cmd(0x29)
-        time.sleep(0.02)
+        sleep(0.02)
 
         self.write_cmd(0x21)
 
@@ -317,7 +319,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.text(error_line,50,120+i*10,self.grey)
             i+=1
         self.show()
-        time.sleep(1.5)
+        sleep(1.5)
 
     def display_lxb_logo(self, version = None, missing_files = ""):
         #lxb_fbuf = zlib_pict_to_fbuff("helixbyte.z",89,120)
@@ -338,12 +340,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             self.blit(lxb_fbuf, 120-int(heigth/2), 120-int(width/2))
         self.show()
-        time.sleep(1.5)
+        sleep(1.5)
         if version!= None:
             txt_len = 54 # can't use stinglen since we use default font to not use memory cause we loaded lxb logo
             self.text(version,120-int(txt_len/2),200,self.grey)
             self.show()
-            time.sleep(0.5)
+            sleep(0.5)
         gc.collect()
 
     def set_need_display(self):
@@ -463,11 +465,18 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.lxEuclidConfig.menu_lock.release()
             current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[rythm_param_counter]
             highlight_color = self.rythm_colors_turing[rythm_param_counter]
-
+            
             if current_euclidean_rythm.is_turing_machine:
+                self.circle(120,120,51,self.touch_circle_color_highlight,True)
+                self.circle(120,120,51-15,self.black,True)
+
+                self.poly(0,0, array("h",[120,120,120-45,65,120+45,65]), self.black, True)
+
+                self.circle(120,120,31,self.touch_circle_color,True)
+                self.circle(120,120,31-15,self.black,True)
                 txt = str(current_euclidean_rythm.turing_probability) + "%"
                 txt_len = self.font_writer_freesans20.stringlen(txt)
-                self.font_writer_freesans20.text(txt,120-int(txt_len/2),110,highlight_color)
+                self.font_writer_freesans20.text(txt,120-int(txt_len/2),71,highlight_color)
 
             self.display_rythm_circles()
             self.display_enter_return_txt()
@@ -479,27 +488,37 @@ class LCD_1inch28(framebuf.FrameBuffer):
             
             current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[rythm_param_counter]
             highlight_color = self.rythm_colors[rythm_param_counter]
-
-            b = "{0:0=2d}".format(current_euclidean_rythm.beats)
-            p = "{0:0=2d}".format(current_euclidean_rythm.pulses)
-            o = "{0:0=2d}".format(current_euclidean_rythm.offset)
-            prob = "{0:0=2d}".format(current_euclidean_rythm.pulses_probability)
+            
+            char_height = self.font_writer_freesans20.char_height
+            
+            
+            self.circle(120,120,51,self.touch_circle_color_highlight,True)
+            self.circle(120,120,51-15,self.black,True)
+            
+            self.circle(120,120,31,self.touch_circle_color_highlight,True)
+            self.circle(120,120,31-15,self.black,True)            
+            
 
             if local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
-                self.font_writer_freesans20.text(str(b),100,95,highlight_color)
-                self.font_writer_freesans20.text(str(p),100,125,highlight_color)
-                self.font_writer_freesans20.text(str(o),132,95,self.grey)
-                self.font_writer_freesans20.text(str(prob),132,125,self.grey)
-            elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:
-                self.font_writer_freesans20.text(str(b),100,95,self.grey)
-                self.font_writer_freesans20.text(str(p),100,125,self.grey)
-                self.font_writer_freesans20.text(str(o),132,95,highlight_color)
-                self.font_writer_freesans20.text(str(prob),132,125,highlight_color)
-#             elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET:
-#                 self.font_writer_freesans20.text(str(b),100,95,self.grey)
-#                 self.font_writer_freesans20.text(str(p),100,125,self.grey)
-#                 self.font_writer_freesans20.text(str(o),132,95,highlight_color)
-#                 self.font_writer_freesans20.text(str(prob),132,125,self.grey)
+                self.poly(0,0, array("h",[120,120,120-36,65,120+36,65]), self.black, True)
+                b = str(current_euclidean_rythm.beats)            
+                b_len = self.font_writer_freesans20.stringlen(b)
+                
+                p = str(current_euclidean_rythm.pulses)
+                p_len = self.font_writer_freesans20.stringlen(p)
+                self.font_writer_freesans20.text(str(b),120-int(b_len/2),71,highlight_color)
+                self.font_writer_freesans20.text(str(p),120-int(p_len/2),90,highlight_color)
+            elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:  
+                self.poly(0,0, array("h",[120,120,120-45,65,120+45,65]), self.black, True)
+                
+                o = str(current_euclidean_rythm.offset)
+                o_len = self.font_writer_freesans20.stringlen(o)                
+                
+                prob = str(current_euclidean_rythm.pulses_probability) + "%"
+                prob_len = self.font_writer_freesans20.stringlen(prob)
+                            
+                self.font_writer_freesans20.text(str(prob),120-int(prob_len/2),71,highlight_color)
+                self.font_writer_freesans20.text(str(o),120-int(o_len/2),90,highlight_color)
             self.display_rythm_circles()
             self.display_enter_return_txt()
 
@@ -508,6 +527,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
     def display_rythm_circles(self):
         radius = 110
+        offset_radius = 20
         rythm_index = 0
         
         self.lxEuclidConfig.menu_lock.acquire()
@@ -529,6 +549,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             highlight_color = self.white
             if local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY, self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
+                offset_radius = 15
                 if rythm_index != rythm_param_counter:
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
@@ -576,7 +597,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 except Exception as e: #add this try except in the case we do a modification of rythm while trying to display it
                     pass
 
-            radius = radius - 20
+            radius = radius - offset_radius
             rythm_index = rythm_index + 1
 
     def display_enter_return_txt(self):
@@ -587,26 +608,26 @@ class LCD_1inch28(framebuf.FrameBuffer):
     # Define a function to draw an approximate pie slice
     def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
         # Calculate the number of sides for the polygon (higher value for smoother pie slice)
-        num_sides = 5  # You can adjust this value for smoother or more jagged edges
+        num_sides = 3  # You can adjust this value for smoother or more jagged edges
 
         # Calculate the angle step size between each side of the polygon
-        angle_step = math.radians((end_angle - start_angle) / num_sides)
+        angle_step = radians((end_angle - start_angle) / num_sides)
 
         # Calculate trigonometric values for start angle
-        start_rad = math.radians(start_angle)
+        start_rad = radians(start_angle)
 
         # Initialize the list of polygon points
         points = []
         # Calculate the polygon points
         for i in range(num_sides + 1):
             angle = start_rad + i * angle_step
-            x = int(center[0] + radius_start * math.cos(angle))
-            y = int(center[1] + radius_start * math.sin(angle))
+            x = int(center[0] + radius_start * cos(angle))
+            y = int(center[1] + radius_start * sin(angle))
             points.extend((x, y))
         for i in range(num_sides + 1):
             angle = start_rad + (num_sides-i) * angle_step
-            x = int(center[0] + radius_stop * math.cos(angle))
-            y = int(center[1] + radius_stop * math.sin(angle))
+            x = int(center[0] + radius_stop * cos(angle))
+            y = int(center[1] + radius_stop * sin(angle))
             points.extend((x, y))
 
         # Draw the polygon

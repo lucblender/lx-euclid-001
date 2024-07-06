@@ -1,9 +1,9 @@
 from machine import Timer
-import json
+import ujson as json
 from random import randint
 
 from utime import ticks_ms
-import _thread
+from _thread import allocate_lock
 
 from MenuNavigationMap import get_menu_navigation_map
 
@@ -27,7 +27,7 @@ class EuclideanRythmParameters:
         self.set_parameters(beats, pulses, offset, pulses_probability, is_turing_machine, turing_probability, prescaler_index, gate_length_ms, randomize_gate_length)
 
     def set_parameters_from_rythm(self, euclideanRythmParameters):
-        self.set_parameters(euclideanRythmParameters.beats, euclideanRythmParameters.pulses, euclideanRythmParameters.offset, euclideanRythmParameters.is_turing_machine, euclideanRythmParameters.turing_probability, euclideanRythmParameters.prescaler_index, euclideanRythmParameters.gate_length_ms, euclideanRythmParameters.randomize_gate_length)
+        self.set_parameters(euclideanRythmParameters.beats, euclideanRythmParameters.pulses, euclideanRythmParameters.offset, euclideanRythmParameters.pulses_probability, euclideanRythmParameters.is_turing_machine, euclideanRythmParameters.turing_probability, euclideanRythmParameters.prescaler_index, euclideanRythmParameters.gate_length_ms, euclideanRythmParameters.randomize_gate_length)
 
     def set_parameters(self, beats, pulses, offset, pulses_probability, is_turing_machine, turing_probability, prescaler_index, gate_length_ms, randomize_gate_length):
         self._is_turing_machine = is_turing_machine
@@ -208,10 +208,12 @@ class EuclideanRythm(EuclideanRythmParameters):
         elif to_return == 0:
             return 0
         else:
-            if randint(0,100) < self.pulses_probability:
-                return 0
+            if self.pulses_probability == 100:
+                return to_return
+            elif randint(0,100) < self.pulses_probability:
+                return to_return
             else:
-                return self.rythm[(self.current_step-self.offset)%len(self.rythm)]
+                return 0
 
     def set_rythm(self):
         if self.is_turing_machine:
@@ -332,10 +334,10 @@ class LxEuclidConfig:
         self.presets.append([EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100)])
         self.presets.append([EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100),EuclideanRythmParameters(8, 4, 0, 100)])
 
-        self.rythm_lock = _thread.allocate_lock()
-        self.menu_lock = _thread.allocate_lock()
-        self.state_lock = _thread.allocate_lock()
-        self.save_data_lock = _thread.allocate_lock()
+        self.rythm_lock = allocate_lock()
+        self.menu_lock = allocate_lock()
+        self.state_lock = allocate_lock()
+        self.save_data_lock = allocate_lock()
         
         self.dict_data_to_save = {}
         self.need_save_data_in_file = False
@@ -787,9 +789,9 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
                 self.state_lock.release()
-            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_probability()
-            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_probability()
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
                 self.state_lock.acquire()
