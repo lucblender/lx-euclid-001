@@ -4,6 +4,8 @@ from machine import mem32
 from ucollections import deque
 from sys import print_exception
 
+#TODO from eeprom_i2c import EEPROM, T24C64
+
 CLK_OUT = 16
 CLK_IN = 18
 RST_IN = 17
@@ -76,6 +78,10 @@ class LxHardware:
         self.gates = [self.gate_out_0, self.gate_out_1, self.gate_out_2, self.gate_out_3]
 
         self.i2c = I2C(0, sda=Pin(0), scl=Pin(1))
+        
+        #TODO preparing for eeprom EEPROM_ADDR = 0x50
+        #self.eeprom_memory = EEPROM(self.i2c, chip_size = T24C64, addr = EEPROM_ADDR)
+        
 
         self.capacitivesCircles = CapacitivesCircles(self.i2c)
 
