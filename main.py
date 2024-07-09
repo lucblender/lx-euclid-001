@@ -1,6 +1,6 @@
 from Rp2040Lcd import LCD_1inch28
 
-VERSION = "v0.0.3_dev"
+VERSION = "v0.0.4"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
                             # once used, the lxb pic buffer is thrown away
 import gc
@@ -51,10 +51,10 @@ def debug_print(txt):
 def rotary_changed(change):
     global lxEuclidConfig, enc_btn_press
     if change == Rotary.ROT_CCW:
-        #disable temporary to test if it's usable without lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_INCR)
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_INCR)
         LCD.set_need_display()
     elif change == Rotary.ROT_CW:
-         #disable temporary to test if it's usable without lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_DECR)
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_DECR)
         LCD.set_need_display()
     elif change == Rotary.SW_PRESS:
         enc_btn_press = ticks_ms()
