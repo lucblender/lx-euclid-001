@@ -212,7 +212,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.write_cmd_data(0xB6, [0x00,0x20])
 
-        self.write_cmd_data(0x36, [0x58]) #0x08 normal config 0x58 flipped config
+        self.write_cmd_data(0x36, [0x08]) #0x08 normal config 0x58 flipped config
 
         self.write_cmd_data(0x3A,[0x05])
 
