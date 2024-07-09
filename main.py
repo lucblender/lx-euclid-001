@@ -1,6 +1,6 @@
 from Rp2040Lcd import LCD_1inch28
 
-VERSION = "v0.0.4"
+VERSION = "v0.0.4_dev"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
                             # once used, the lxb pic buffer is thrown away
 import gc
@@ -127,7 +127,10 @@ def lxhardware_changed(handlerEventData):
     elif event == lxHardware.OUTER_CIRCLE_TOUCH:
         lxEuclidConfig.on_event(LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH, handlerEventData.data)
         LCD.set_need_display()
-
+    elif event == lxHardware.BTN_SWITCHES_RISE:
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_BTN_SWITCHES_RISE, handlerEventData.data)
+    elif event == lxHardware.BTN_SWITCHES_FALL:
+        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_BTN_SWITCHES_FALL, handlerEventData.data)
 #rotary.add_handler(rotary_changed)
 #lxHardware.add_handler(lxhardware_changed)
 

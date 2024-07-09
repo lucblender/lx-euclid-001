@@ -316,7 +316,11 @@ class LxEuclidConfig:
     EVENT_OUTER_CIRCLE_INCR = 9
     EVENT_OUTER_CIRCLE_DECR = 10
     EVENT_INNER_CIRCLE_TOUCH = 11
-    EVENT_OUTER_CIRCLE_TOUCH = 12
+    EVENT_OUTER_CIRCLE_TOUCH = 12    
+    
+    EVENT_BTN_SWITCHES_RISE = 13
+    EVENT_BTN_SWITCHES_FALL = 14
+    
 
     MAX_CIRCLE_DISPLAY_TIME_MS = 500
 
@@ -453,6 +457,7 @@ class LxEuclidConfig:
                 self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_LIVE:
+            # START STATE LIVE
             if event == LxEuclidConfig.EVENT_ENC_BTN:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
@@ -471,7 +476,19 @@ class LxEuclidConfig:
                 elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_RESET:
                     self.reset_steps()
                 elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
-                    self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0            
+                    self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0
+            elif event == LxEuclidConfig.EVENT_BTN_SWITCHES_FALL:
+                #TODO
+                
+                self.state_lock.acquire()
+                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE
+                self.state_lock.release()
+                self.lxHardware.set_sw_leds(data)
+                
+                self.menu_lock.acquire()
+                self.sm_rythm_param_counter  = data
+                self.menu_lock.release()
+                
             elif event in [LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH,LxEuclidConfig.EVENT_INNER_CIRCLE_DECR,LxEuclidConfig.EVENT_INNER_CIRCLE_INCR]:
                 if self.inner_rotate_action == LxEuclidConfig.CIRCLE_ACTION_ROTATE:
                     if self.inner_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
@@ -698,6 +715,7 @@ class LxEuclidConfig:
                             self.action_display_info = str(self.euclideanRythms[self.outer_action_rythm].gate_length_ms)+"ms"
                             self.highlight_color_euclid = True
 
+            # END STATE LIVE
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
             if event == LxEuclidConfig.EVENT_TAP_BTN:
                 self.state_lock.acquire()
@@ -727,6 +745,10 @@ class LxEuclidConfig:
                 self.menu_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
+            if event == LxEuclidConfig.EVENT_BTN_SWITCHES_FALL and data == self.sm_rythm_param_counter:
+                self.state_lock.acquire()
+                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
+                self.state_lock.release()                
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
@@ -761,10 +783,16 @@ class LxEuclidConfig:
 #                 self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:
+            if event == LxEuclidConfig.EVENT_BTN_SWITCHES_FALL and data == self.sm_rythm_param_counter:
+                self.save_data()
+                self.state_lock.acquire()
+                self.state = LxEuclidConfig.STATE_LIVE
+                self.lxHardware.clear_sw_leds(data)
+                self.state_lock.release()
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
                 self.save_data()
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_offset()
@@ -829,7 +857,6 @@ class LxEuclidConfig:
     def incr_steps(self):
         index = 0
         callback_param_dict = {}
-        self.lxHardware.set_clk_led()
         for euclideanRythm in self.euclideanRythms:
             did_step = euclideanRythm.incr_step()
             if euclideanRythm.get_current_step() and did_step:
@@ -844,7 +871,7 @@ class LxEuclidConfig:
         #tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
         #tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
         self.last_gate_led_event = ticks_ms()        
-        self.clear_led_needed = True
+        self.clear_led_needed = True # TODO this var is not needed anymore
         self.clear_gate_needed = True
         self.LCD.set_need_display()
         
@@ -853,9 +880,9 @@ class LxEuclidConfig:
         #if ticks_ms() -self.last_gate_led_event>=T_GATE_ON_MS and self.clear_led_needed == True:
         #    self.callback_clear_gates()
         #    self.clear_gate_needed = False
-        if ticks_ms() -self.last_gate_led_event>=T_CLK_LED_ON_MS and self.clear_gate_needed == True:
-            self.callback_clear_led()
-            self.clear_led_needed = False
+        #if ticks_ms() -self.last_gate_led_event>=T_CLK_LED_ON_MS and self.clear_gate_needed == True:
+        #    self.callback_clear_led()
+        #    self.clear_led_needed = False
 
     def callback_clear_gates(self, timer=None):
         for i in range(0,4):
@@ -868,7 +895,8 @@ class LxEuclidConfig:
                 self.euclideanRythms[i].clear_gate_needed = False
 
     def callback_clear_led(self, timer=None):
-        self.lxHardware.clear_clk_led()
+        #self.lxHardware.clear_clk_led()
+        return
 
     def reset_steps(self):
         for euclideanRythm in self.euclideanRythms:
