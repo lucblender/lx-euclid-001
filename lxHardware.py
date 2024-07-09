@@ -4,6 +4,8 @@ from machine import mem32
 from ucollections import deque
 from sys import print_exception
 
+#TODO from eeprom_i2c import EEPROM, T24C64
+
 CLK_OUT = 16
 CLK_IN = 18
 RST_IN = 17
@@ -18,7 +20,7 @@ class HandlerEventData:
     def __init__(self, event, data=None):
         self.event = event
         self.data = data
-        
+
 
 
 class LxHardware:
@@ -38,7 +40,7 @@ class LxHardware:
     OUTER_CIRCLE_TOUCH = 11
 
     def __init__(self):
-        
+
         self.btn_fall_event = HandlerEventData(LxHardware.BTN_TAP_FALL)
         self.btn_rise_event = HandlerEventData(LxHardware.BTN_TAP_RISE)
 
@@ -46,8 +48,8 @@ class LxHardware:
         self.rst_rise_event = HandlerEventData(LxHardware.RST_RISE)
 
         self.clk_fall_event = HandlerEventData(LxHardware.CLK_FALL)
-        self.clk_rise_event = HandlerEventData(LxHardware.CLK_RISE)        
-        
+        self.clk_rise_event = HandlerEventData(LxHardware.CLK_RISE)
+
         self.lxHardwareEventFifo = deque((),20)
 
         self.clk_pin = Pin(CLK_IN, Pin.IN)
@@ -75,24 +77,30 @@ class LxHardware:
 
         self.gates = [self.gate_out_0, self.gate_out_1, self.gate_out_2, self.gate_out_3]
 
-        self.capacitivesCircles = CapacitivesCircles()
+        self.i2c = I2C(0, sda=Pin(0), scl=Pin(1))
+        
+        #TODO preparing for eeprom EEPROM_ADDR = 0x50
+        #self.eeprom_memory = EEPROM(self.i2c, chip_size = T24C64, addr = EEPROM_ADDR)
+        
+
+        self.capacitivesCircles = CapacitivesCircles(self.i2c)
 
         self.handlers = []
         # need to do this trickery of sh*t to not have a memory allocation error as show
         # here https://forum.micropython.org/viewtopic.php?t=4027
-        self.callback = self.call_handlers        
+        self.callback = self.call_handlers
 
     def clk_pin_change(self, pin):
         if self.clk_pin_status == self.clk_pin.value():
             return
         self.clk_pin_status = self.clk_pin.value()
         if self.clk_pin.value():
-            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_FALL))                
+            #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_FALL))
             self.lxHardwareEventFifo.append(self.clk_fall_event)
         else:
             #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_RISE))
             self.lxHardwareEventFifo.append(self.clk_rise_event)
-            
+
     def rst_pin_change(self, pin):
         if self.rst_pin_status == self.rst_pin.value():
             return

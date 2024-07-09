@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from ucollections import OrderedDict
     
 def get_menu_navigation_map():
     my_dict =  OrderedDict()

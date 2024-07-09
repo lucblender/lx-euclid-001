@@ -30,6 +30,9 @@ class Writer():
                 if font.hmap() else 'vert', font.reverse()))
         self.screenwidth = device.width  # In pixels
         self.screenheight = device.height
+        
+        _, char_height, _ = self.font.get_ch("1")
+        self.char_height = char_height
 
     def text(self, txt, x, y,color=0x0000):
         self.set_textpos(x,y)
@@ -71,12 +74,12 @@ class Writer():
             buf[i] = 0xFF & ~ v
         fbc = framebuf.FrameBuffer(buf, char_width, char_height, self.map)
 
-        buffer = bytearray(1)
+        buffer = bytearray(3)
         palette = framebuf.FrameBuffer(buffer, 1, 1, framebuf.RGB565)
 
         # we use color 0 as transparent color in the blit... so I change color 0 to 1. We don't have full black but eh, it works
-        if color == 0:
-            color = 1
+#         if color == 0:
+#             color = 1
 
         palette.fill(color)
 
@@ -95,4 +98,3 @@ class Writer():
         else:
             _, _, char_width = self.font.get_ch(char)
         return char_width
-
