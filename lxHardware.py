@@ -189,10 +189,12 @@ class LxHardware:
         return self.btn_tap_pin.value()
 
     def set_sw_leds(self,index):
-        self.sw_leds[index].value(1)
+        if index != None:
+            self.sw_leds[index].value(1)
 
     def clear_sw_leds(self,index):
-        self.sw_leds[index].value(0)
+        if index != None:
+            self.sw_leds[index].value(0)
 
     def set_gate(self, gate_index, inverted):
         if inverted:

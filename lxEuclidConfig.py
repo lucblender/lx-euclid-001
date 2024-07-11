@@ -754,10 +754,10 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
                 self.state_lock.release()                
-            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
-                self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
-                self.state_lock.release()
+            #if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+            #    self.state_lock.acquire()
+            #    self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
+            #    self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
@@ -792,13 +792,13 @@ class LxEuclidConfig:
                 self.save_data()
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
+                self.state_lock.release()
                 self.lxHardware.clear_sw_leds(data)
-                self.state_lock.release()
-            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
-                self.save_data()
-                self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_LIVE
-                self.state_lock.release()
+            #if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+            #    self.save_data()
+            #    self.state_lock.acquire()
+            #    self.state = LxEuclidConfig.STATE_LIVE
+            #    self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_offset()
             elif event == LxEuclidConfig.EVENT_ENC_DECR:
@@ -817,11 +817,12 @@ class LxEuclidConfig:
                 self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
-            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG or (event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3):
+            if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3: #event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG or (
                 self.save_data()
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_LIVE
-                self.state_lock.release()
+                self.state = LxEuclidConfig.STATE_LIVE    
+                self.state_lock.release()            
+                self.lxHardware.clear_sw_leds(data)
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_probability()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
@@ -850,7 +851,7 @@ class LxEuclidConfig:
                 self.menu_lock.acquire()
                 self.menu_up_action()
                 self.menu_lock.release()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN or (event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3): # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
+            elif (event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3): # TODO REMOVE TAP, DOESN'T EXIST ANYMORE event == LxEuclidConfig.EVENT_TAP_BTN or 
                 self.menu_lock.acquire()
                 success = self.menu_back_pressed()
                 if success == False:
