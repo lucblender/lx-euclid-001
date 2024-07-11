@@ -318,8 +318,8 @@ class LxEuclidConfig:
     EVENT_INNER_CIRCLE_TOUCH = 11
     EVENT_OUTER_CIRCLE_TOUCH = 12    
     
-    EVENT_BTN_SWITCHES_RISE = 13
-    EVENT_BTN_SWITCHES_FALL = 14
+    EVENT_BTN_SWITCHES= 13
+    EVENT_BTN_SWITCHES_LONG = 14
     
 
     MAX_CIRCLE_DISPLAY_TIME_MS = 500
@@ -460,7 +460,7 @@ class LxEuclidConfig:
             # START STATE LIVE
             if event == LxEuclidConfig.EVENT_ENC_BTN:
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state = LxEuclidConfig.STATE_PARAMETERS
                 self.state_lock.release()
                 self.sm_rythm_param_counter  = 0
             elif event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
@@ -477,7 +477,7 @@ class LxEuclidConfig:
                     self.reset_steps()
                 elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
                     self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0
-            elif event == LxEuclidConfig.EVENT_BTN_SWITCHES_FALL:
+            elif event == LxEuclidConfig.EVENT_BTN_SWITCHES:
                 #TODO
                 
                 self.state_lock.acquire()
@@ -716,8 +716,8 @@ class LxEuclidConfig:
                             self.highlight_color_euclid = True
 
             # END STATE LIVE
-        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
-            if event == LxEuclidConfig.EVENT_TAP_BTN:
+        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT: # TODO REMOVE THIS STATE, SHOULDN'T EXIST ANYMORE
+            if event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
@@ -745,7 +745,7 @@ class LxEuclidConfig:
                 self.menu_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
-            if event == LxEuclidConfig.EVENT_BTN_SWITCHES_FALL and data == self.sm_rythm_param_counter:
+            if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rythm_param_counter:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
                 self.state_lock.release()                
@@ -761,7 +761,7 @@ class LxEuclidConfig:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN:
+            elif event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
                 self.state_lock.release()
@@ -783,7 +783,7 @@ class LxEuclidConfig:
 #                 self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:
-            if event == LxEuclidConfig.EVENT_BTN_SWITCHES_FALL and data == self.sm_rythm_param_counter:
+            if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rythm_param_counter:
                 self.save_data()
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
@@ -806,7 +806,7 @@ class LxEuclidConfig:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses_probability()
             elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR :
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses_probability()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN:
+            elif event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
                 self.state_lock.release()
@@ -821,7 +821,7 @@ class LxEuclidConfig:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_probability()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_probability()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN:
+            elif event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
                 self.state_lock.release()
@@ -845,12 +845,12 @@ class LxEuclidConfig:
                 self.menu_lock.acquire()
                 self.menu_up_action()
                 self.menu_lock.release()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN:
+            elif event == LxEuclidConfig.EVENT_TAP_BTN or (event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3): # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
                 self.menu_lock.acquire()
                 success = self.menu_back_pressed()
                 if success == False:
                     self.state_lock.acquire()
-                    self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                    self.state = LxEuclidConfig.STATE_LIVE
                     self.state_lock.release()
                 self.menu_lock.release()
 

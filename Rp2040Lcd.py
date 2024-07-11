@@ -1,6 +1,6 @@
 from machine import Pin,SPI,PWM
 import framebuf
-from utime import sleep
+from utime import sleep, ticks_ms
 from math import radians, sin, cos
 from array import array
 
@@ -360,6 +360,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         return to_return
 
     def display_rythms(self):
+        pre_tick = ticks_ms()
         self.fill(self.black)
         angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitivesCircles.outer_circle_angle
         self.draw_approx_pie_slice([120,120],110,120,angle_outer-10,angle_outer+10,self.grey)
@@ -397,7 +398,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.display_enter_return_txt()
 
         elif local_state == self.lxEuclidConfig.STATE_PARAMETERS:
-            self.display_rythm_circles()
+            #TODO Disabled during parameters self.display_rythm_circles()
             self.display_enter_return_txt()
             
             self.lxEuclidConfig.menu_lock.acquire()
@@ -524,6 +525,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.show()
         self.__need_display = False
+        print(ticks_ms()-pre_tick)
 
     def display_rythm_circles(self):
         radius = 110
@@ -601,8 +603,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
             rythm_index = rythm_index + 1
 
     def display_enter_return_txt(self):
-        self.font_writer_font6.text("tap return",40,200,self.rythm_colors[2])
-        self.font_writer_font6.text("enc enter",135,200,self.rythm_colors[2])
+        return
+        #self.font_writer_font6.text("tap return",40,200,self.rythm_colors[2])
+        #self.font_writer_font6.text("enc enter",135,200,self.rythm_colors[2])
 
     # Draw the approximate pie slice
     # Define a function to draw an approximate pie slice

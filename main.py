@@ -23,6 +23,7 @@ def print_ram(code = ""):
 MIN_TAP_DELAY_MS = 20
 MAX_TAP_DELAY_MS = 3000
 LONG_PRESS_MS = 500
+DEBOUNCE_MS = 10
 
 CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
 
@@ -31,6 +32,7 @@ last_capacitive_circles_read_ms = ticks_ms()
 
 enc_btn_press = ticks_ms()
 tap_btn_press = ticks_ms()
+sw_btns_press = [ticks_ms(),ticks_ms(),ticks_ms(),ticks_ms()]
 stop_thread = False
 wait_display_thread = True
 
@@ -57,7 +59,9 @@ def rotary_changed(change):
         lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_DECR)
         LCD.set_need_display()
     elif change == Rotary.SW_PRESS:
-        enc_btn_press = ticks_ms()
+        tmp_time = ticks_ms()
+        if(tmp_time - enc_btn_press) > DEBOUNCE_MS:
+            enc_btn_press = tmp_time
     elif change == Rotary.SW_RELEASE:
         if ticks_ms() - enc_btn_press > LONG_PRESS_MS:
             lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_BTN_LONG)
@@ -127,10 +131,19 @@ def lxhardware_changed(handlerEventData):
     elif event == lxHardware.OUTER_CIRCLE_TOUCH:
         lxEuclidConfig.on_event(LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH, handlerEventData.data)
         LCD.set_need_display()
-    elif event == lxHardware.BTN_SWITCHES_RISE:
-        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_BTN_SWITCHES_RISE, handlerEventData.data)
+    elif event == lxHardware.BTN_SWITCHES_RISE:        
+        tmp_time = ticks_ms()
+        if(tmp_time - sw_btns_press[handlerEventData.data]) > DEBOUNCE_MS:
+            sw_btns_press[handlerEventData.data] = tmp_time
     elif event == lxHardware.BTN_SWITCHES_FALL:
-        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_BTN_SWITCHES_FALL, handlerEventData.data)
+        if ticks_ms() - sw_btns_press[handlerEventData.data] > LONG_PRESS_MS:
+            lxEuclidConfig.on_event(LxEuclidConfig.EVENT_BTN_SWITCHES_LONG, handlerEventData.data)
+            LCD.set_need_display()
+        else:
+            lxEuclidConfig.on_event(LxEuclidConfig.EVENT_BTN_SWITCHES, handlerEventData.data)
+            LCD.set_need_display()
+            
+        
 #rotary.add_handler(rotary_changed)
 #lxHardware.add_handler(lxhardware_changed)
 
