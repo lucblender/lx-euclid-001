@@ -478,12 +478,17 @@ class LxEuclidConfig:
                 elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
                     self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0
             elif event == LxEuclidConfig.EVENT_BTN_SWITCHES:
-                #TODO
                 
-                self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE
-                self.state_lock.release()
-                self.lxHardware.set_sw_leds(data)
+                if self.euclideanRythms[data].is_turing_machine:
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY
+                    self.state_lock.release()
+                    self.lxHardware.set_sw_leds(data)
+                else:
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE
+                    self.state_lock.release()
+                    self.lxHardware.set_sw_leds(data)
                 
                 self.menu_lock.acquire()
                 self.sm_rythm_param_counter  = data
@@ -812,10 +817,10 @@ class LxEuclidConfig:
                 self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
-            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG or (event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3):
                 self.save_data()
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_probability()
