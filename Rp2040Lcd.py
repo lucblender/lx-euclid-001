@@ -362,9 +362,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def display_rythms(self):
         pre_tick = ticks_ms()
         self.fill(self.black)
-        angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitivesCircles.outer_circle_angle
+        angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.outer_circle_angle
         self.draw_approx_pie_slice([120,120],110,120,angle_outer-10,angle_outer+10,self.grey)
-        angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitivesCircles.inner_circle_angle
+        angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.inner_circle_angle
         self.draw_approx_pie_slice([120,120],90,100,angle_inner-10,angle_inner+10,self.grey)
         
         self.lxEuclidConfig.state_lock.acquire()
@@ -525,7 +525,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.show()
         self.__need_display = False
-        print(ticks_ms()-pre_tick)
+        #print(ticks_ms()-pre_tick)
 
     def display_rythm_circles(self):
         radius = 110

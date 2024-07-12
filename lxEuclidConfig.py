@@ -369,7 +369,7 @@ class LxEuclidConfig:
         self.menu_navigation_map["Interface"]["Tap Button"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Outer Circle"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Inner Circle"]["data_pointer"] = self
-        self.menu_navigation_map["Interface"]["Touch"]["data_pointer"] = self.lxHardware.capacitivesCircles
+        self.menu_navigation_map["Interface"]["Touch"]["data_pointer"] = self.lxHardware.capacitives_circles
 
         self.current_menu_len = len(self.menu_navigation_map)
         self.current_menu_selected = 0
@@ -512,7 +512,7 @@ class LxEuclidConfig:
                             self.action_display_info = "-"
                             self.highlight_color_euclid = True
                     else:
-                        angle_inner = 180-self.lxHardware.capacitivesCircles.inner_circle_angle
+                        angle_inner = 180-self.lxHardware.capacitives_circles.inner_circle_angle
                         degree_steps = 360 / self.euclideanRythms[self.inner_action_rythm].beats
                         self.euclideanRythms[self.inner_action_rythm].set_offset(int(angle_inner/degree_steps))
                         self.need_circle_action_display = True                               
@@ -625,7 +625,7 @@ class LxEuclidConfig:
                             self.action_display_info = "-"
                             self.highlight_color_euclid = True
                      else:
-                        angle_outer = 180-self.lxHardware.capacitivesCircles.outer_circle_angle
+                        angle_outer = 180-self.lxHardware.capacitives_circles.outer_circle_angle
                         degree_steps = 360 / self.euclideanRythms[self.outer_action_rythm].beats
                         self.euclideanRythms[self.outer_action_rythm].set_offset(int(angle_outer/degree_steps))
                         self.need_circle_action_display = True              
@@ -804,7 +804,7 @@ class LxEuclidConfig:
             elif event == LxEuclidConfig.EVENT_ENC_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_offset()
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
-                angle_inner = 180-self.lxHardware.capacitivesCircles.inner_circle_angle
+                angle_inner = 180-self.lxHardware.capacitives_circles.inner_circle_angle
                 degree_steps = 360 / self.euclideanRythms[self.sm_rythm_param_counter].beats
                 self.euclideanRythms[self.sm_rythm_param_counter].set_offset(int(angle_inner/degree_steps))
             elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
@@ -1053,7 +1053,7 @@ class LxEuclidConfig:
         interface_dict["o_c"] = outer_circle_dict
         
         touch_dict = {}
-        touch_dict["t_s"] = self.lxHardware.capacitivesCircles.touch_sensitivity     
+        touch_dict["t_s"] = self.lxHardware.capacitives_circles.touch_sensitivity     
         
         interface_dict["t"] = touch_dict
         
@@ -1190,7 +1190,7 @@ class LxEuclidConfig:
                 touch_dict = interface_dict.get("t",None)                
                 
                 if touch_dict != None:
-                    full_conf_load, self.lxHardware.capacitivesCircles.touch_sensitivity = set_val_dict(full_conf_load, self.lxHardware.capacitivesCircles.touch_sensitivity,touch_dict,"t_s")
+                    full_conf_load, self.lxHardware.capacitives_circles.touch_sensitivity = set_val_dict(full_conf_load, self.lxHardware.capacitives_circles.touch_sensitivity,touch_dict,"t_s")
                 else:
                     full_conf_load = False
             else:

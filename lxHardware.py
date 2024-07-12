@@ -1,8 +1,10 @@
 from machine import Pin
 from capacitivesCircles import *
+from cvManager import CvManager
 from machine import mem32
 from ucollections import deque
 from sys import print_exception
+from _thread import allocate_lock
 
 #TODO from eeprom_i2c import EEPROM, T24C64
 
@@ -123,12 +125,14 @@ class LxHardware:
         self.gates = [self.gate_out_0, self.gate_out_1, self.gate_out_2, self.gate_out_3]
 
         self.i2c = I2C(0, sda=Pin(0), scl=Pin(1))
+        self.i2c_lock = allocate_lock() # a lock on the i2c so both thread can use i2c devices
         
         #TODO preparing for eeprom EEPROM_ADDR = 0x50
         #self.eeprom_memory = EEPROM(self.i2c, chip_size = T24C64, addr = EEPROM_ADDR)
         
 
-        self.capacitivesCircles = CapacitivesCircles(self.i2c)
+        self.capacitives_circles = CapacitivesCircles(self.i2c)
+        self.cv_manager = CvManager(self.i2c)
 
         self.handlers = []
         # need to do this trickery of sh*t to not have a memory allocation error as show
@@ -209,7 +213,9 @@ class LxHardware:
             self.gates[gate_index].value(0)
 
     def get_touch_circles_updates(self):
-        circles_data  = self.capacitivesCircles.get_touch_circles_updates()
+        self.i2c_lock.acquire()
+        circles_data  = self.capacitives_circles.get_touch_circles_updates()
+        self.i2c_lock.release()
         if circles_data[2] == CapacitivesCircles.INNER_CIRCLE_INCR_EVENT:
             #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_INCR, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.INNER_CIRCLE_INCR, circles_data))
@@ -228,7 +234,10 @@ class LxHardware:
         elif circles_data[1] == True:
             #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
-
+    def get_cv_values(self):
+        self.i2c_lock.acquire()
+        self.cv_manager.get_percents_cvs()
+        self.i2c_lock.release()
 
     def add_handler(self, handler):
         self.handlers.append(handler)

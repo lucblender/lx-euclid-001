@@ -214,7 +214,7 @@ if __name__=='__main__':
             wait_display_thread = False
             LCD.display_programming_mode()
         else:
-            if lxHardware.capacitivesCircles.is_mpr_detected == False:
+            if lxHardware.capacitives_circles.is_mpr_detected == False:
                 LCD.display_error("No touch sensor\ndetected")
 
             if lxEuclidConfig.clk_mode == LxEuclidConfig.TAP_MODE:
@@ -223,6 +223,7 @@ if __name__=='__main__':
             wait_display_thread = False
             LCD.set_need_display()
             while True:
+                lxHardware.get_cv_values()
                 if(len(lxHardware.lxHardwareEventFifo)>0):
                     lxhardware_changed(lxHardware.lxHardwareEventFifo.popleft())
                 if(len(rotary.rotaryEventFifo)>0):
