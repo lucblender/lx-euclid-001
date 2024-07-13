@@ -55,7 +55,7 @@ class EuclideanRythmParameters:
             self.beats = 1
         if self.pulses < 1:
             self.pulses = 1
-            
+        self.__pulses_ratio = self.pulses / self.beats
         self.clear_gate_needed = False
         self.gate_length_ms = gate_length_ms
         self.last_set_gate_ticks = ticks_ms()
@@ -121,6 +121,7 @@ class EuclideanRythm(EuclideanRythmParameters):
     def incr_beats(self):
         if self.beats != 64:
             self.beats = (self.beats +1)
+            self.set_pulses_per_ratio()
             self.set_rythm()
 
     def decr_beats(self):
@@ -131,18 +132,25 @@ class EuclideanRythm(EuclideanRythmParameters):
             self.pulses = self.beats
         if self.offset > self.beats:
             self.offset = self.beats
-
+        self.set_pulses_per_ratio()
         self.set_rythm()
+        
+    def set_pulses_per_ratio(self):        
+        computed_pulses_per_ratio = round(self.beats*self.__pulses_ratio)
+        self.pulses = max(1, (min(self.beats, computed_pulses_per_ratio)))
 
     def incr_pulses(self):
         self.pulses = (self.pulses +1)
         if self.pulses > self.beats:
             self.pulses = self.beats
+        self.__pulses_ratio = self.pulses / self.beats 
         self.set_rythm()
+        
     def decr_pulses(self):
         self.pulses = (self.pulses -1)
         if self.pulses < 1:
             self.pulses = 1
+        self.__pulses_ratio = self.pulses / self.beats 
         self.set_rythm()
         
     def incr_pulses_probability(self):

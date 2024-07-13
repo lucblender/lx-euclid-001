@@ -9,9 +9,9 @@ MAX = const(1)
 class CvManager:
     ADC_ADDR = const(0x48)
     #5V ~=0 -5V ~=25200 
-    CV_5V = const(0)
-    CV_0V = const(12600)
-    CV_MINUS_5V = const(25200)
+    CV_5V = const(2000)
+    CV_0V = const(14740)
+    CV_MINUS_5V = const(27000)
     
     
     def __init__(self, i2c):
@@ -32,9 +32,11 @@ class CvManager:
     def __get_raw_cvs(self):
         for i in range(0,4):
             self.__raw_values[i] = self.adc.read(channel1=i)
+        #print(self.__raw_values)
         
     def get_percents_cvs(self):
         self.__get_raw_cvs()
         for i in range(0,4):
-            self.percent_values[i] = 100-int((self.cvs_bound[i][MAX]-self.__raw_values[i])/(self.cvs_bound[i][MAX]-self.cvs_bound[i][MIN])*100)
+            value = 100-int((self.cvs_bound[i][MAX]-self.__raw_values[i])/(self.cvs_bound[i][MAX]-self.cvs_bound[i][MIN])*100)
+            self.percent_values[i] =  max(0,(min(100,value)))
         print(self.percent_values)
