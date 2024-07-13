@@ -316,7 +316,11 @@ class LxEuclidConfig:
     EVENT_OUTER_CIRCLE_INCR = 9
     EVENT_OUTER_CIRCLE_DECR = 10
     EVENT_INNER_CIRCLE_TOUCH = 11
-    EVENT_OUTER_CIRCLE_TOUCH = 12
+    EVENT_OUTER_CIRCLE_TOUCH = 12    
+    
+    EVENT_BTN_SWITCHES= 13
+    EVENT_BTN_SWITCHES_LONG = 14
+    
 
     MAX_CIRCLE_DISPLAY_TIME_MS = 500
 
@@ -365,7 +369,7 @@ class LxEuclidConfig:
         self.menu_navigation_map["Interface"]["Tap Button"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Outer Circle"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Inner Circle"]["data_pointer"] = self
-        self.menu_navigation_map["Interface"]["Touch"]["data_pointer"] = self.lxHardware.capacitivesCircles
+        self.menu_navigation_map["Interface"]["Touch"]["data_pointer"] = self.lxHardware.capacitives_circles
 
         self.current_menu_len = len(self.menu_navigation_map)
         self.current_menu_selected = 0
@@ -453,9 +457,10 @@ class LxEuclidConfig:
                 self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_LIVE:
+            # START STATE LIVE
             if event == LxEuclidConfig.EVENT_ENC_BTN:
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state = LxEuclidConfig.STATE_PARAMETERS
                 self.state_lock.release()
                 self.sm_rythm_param_counter  = 0
             elif event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
@@ -471,7 +476,24 @@ class LxEuclidConfig:
                 elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_RESET:
                     self.reset_steps()
                 elif self.tap_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
-                    self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0            
+                    self.load_preset_index = 1 - self.load_preset_index # pass load index from 0 to 1 and 1 to 0
+            elif event == LxEuclidConfig.EVENT_BTN_SWITCHES:
+                
+                if self.euclideanRythms[data].is_turing_machine:
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY
+                    self.state_lock.release()
+                    self.lxHardware.set_sw_leds(data)
+                else:
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE
+                    self.state_lock.release()
+                    self.lxHardware.set_sw_leds(data)
+                
+                self.menu_lock.acquire()
+                self.sm_rythm_param_counter  = data
+                self.menu_lock.release()
+                
             elif event in [LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH,LxEuclidConfig.EVENT_INNER_CIRCLE_DECR,LxEuclidConfig.EVENT_INNER_CIRCLE_INCR]:
                 if self.inner_rotate_action == LxEuclidConfig.CIRCLE_ACTION_ROTATE:
                     if self.inner_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
@@ -490,7 +512,7 @@ class LxEuclidConfig:
                             self.action_display_info = "-"
                             self.highlight_color_euclid = True
                     else:
-                        angle_inner = 180-self.lxHardware.capacitivesCircles.inner_circle_angle
+                        angle_inner = 180-self.lxHardware.capacitives_circles.inner_circle_angle
                         degree_steps = 360 / self.euclideanRythms[self.inner_action_rythm].beats
                         self.euclideanRythms[self.inner_action_rythm].set_offset(int(angle_inner/degree_steps))
                         self.need_circle_action_display = True                               
@@ -603,7 +625,7 @@ class LxEuclidConfig:
                             self.action_display_info = "-"
                             self.highlight_color_euclid = True
                      else:
-                        angle_outer = 180-self.lxHardware.capacitivesCircles.outer_circle_angle
+                        angle_outer = 180-self.lxHardware.capacitives_circles.outer_circle_angle
                         degree_steps = 360 / self.euclideanRythms[self.outer_action_rythm].beats
                         self.euclideanRythms[self.outer_action_rythm].set_offset(int(angle_outer/degree_steps))
                         self.need_circle_action_display = True              
@@ -698,8 +720,9 @@ class LxEuclidConfig:
                             self.action_display_info = str(self.euclideanRythms[self.outer_action_rythm].gate_length_ms)+"ms"
                             self.highlight_color_euclid = True
 
-        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
-            if event == LxEuclidConfig.EVENT_TAP_BTN:
+            # END STATE LIVE
+        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT: # TODO REMOVE THIS STATE, SHOULDN'T EXIST ANYMORE
+            if event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
@@ -727,10 +750,14 @@ class LxEuclidConfig:
                 self.menu_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
-            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+            if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rythm_param_counter:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
-                self.state_lock.release()
+                self.state_lock.release()                
+            #if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+            #    self.state_lock.acquire()
+            #    self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
+            #    self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
@@ -739,7 +766,7 @@ class LxEuclidConfig:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN:
+            elif event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
                 self.state_lock.release()
@@ -761,39 +788,46 @@ class LxEuclidConfig:
 #                 self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:
-            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+            if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rythm_param_counter:
                 self.save_data()
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
+                self.lxHardware.clear_sw_leds(data)
+            #if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+            #    self.save_data()
+            #    self.state_lock.acquire()
+            #    self.state = LxEuclidConfig.STATE_LIVE
+            #    self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_offset()
             elif event == LxEuclidConfig.EVENT_ENC_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_offset()
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
-                angle_inner = 180-self.lxHardware.capacitivesCircles.inner_circle_angle
+                angle_inner = 180-self.lxHardware.capacitives_circles.inner_circle_angle
                 degree_steps = 360 / self.euclideanRythms[self.sm_rythm_param_counter].beats
                 self.euclideanRythms[self.sm_rythm_param_counter].set_offset(int(angle_inner/degree_steps))
             elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses_probability()
             elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR :
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses_probability()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN:
+            elif event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
                 self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
-            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+            if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3: #event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG or (
                 self.save_data()
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
-                self.state_lock.release()
+                self.state = LxEuclidConfig.STATE_LIVE    
+                self.state_lock.release()            
+                self.lxHardware.clear_sw_leds(data)
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_probability()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_probability()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN:
+            elif event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
                 self.state_lock.release()
@@ -817,19 +851,18 @@ class LxEuclidConfig:
                 self.menu_lock.acquire()
                 self.menu_up_action()
                 self.menu_lock.release()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN:
+            elif (event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3): # TODO REMOVE TAP, DOESN'T EXIST ANYMORE event == LxEuclidConfig.EVENT_TAP_BTN or 
                 self.menu_lock.acquire()
                 success = self.menu_back_pressed()
                 if success == False:
                     self.state_lock.acquire()
-                    self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                    self.state = LxEuclidConfig.STATE_LIVE
                     self.state_lock.release()
                 self.menu_lock.release()
 
     def incr_steps(self):
         index = 0
         callback_param_dict = {}
-        self.lxHardware.set_clk_led()
         for euclideanRythm in self.euclideanRythms:
             did_step = euclideanRythm.incr_step()
             if euclideanRythm.get_current_step() and did_step:
@@ -844,7 +877,7 @@ class LxEuclidConfig:
         #tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
         #tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
         self.last_gate_led_event = ticks_ms()        
-        self.clear_led_needed = True
+        self.clear_led_needed = True # TODO this var is not needed anymore
         self.clear_gate_needed = True
         self.LCD.set_need_display()
         
@@ -853,9 +886,9 @@ class LxEuclidConfig:
         #if ticks_ms() -self.last_gate_led_event>=T_GATE_ON_MS and self.clear_led_needed == True:
         #    self.callback_clear_gates()
         #    self.clear_gate_needed = False
-        if ticks_ms() -self.last_gate_led_event>=T_CLK_LED_ON_MS and self.clear_gate_needed == True:
-            self.callback_clear_led()
-            self.clear_led_needed = False
+        #if ticks_ms() -self.last_gate_led_event>=T_CLK_LED_ON_MS and self.clear_gate_needed == True:
+        #    self.callback_clear_led()
+        #    self.clear_led_needed = False
 
     def callback_clear_gates(self, timer=None):
         for i in range(0,4):
@@ -868,7 +901,8 @@ class LxEuclidConfig:
                 self.euclideanRythms[i].clear_gate_needed = False
 
     def callback_clear_led(self, timer=None):
-        self.lxHardware.clear_clk_led()
+        #self.lxHardware.clear_clk_led()
+        return
 
     def reset_steps(self):
         for euclideanRythm in self.euclideanRythms:
@@ -1019,7 +1053,7 @@ class LxEuclidConfig:
         interface_dict["o_c"] = outer_circle_dict
         
         touch_dict = {}
-        touch_dict["t_s"] = self.lxHardware.capacitivesCircles.touch_sensitivity     
+        touch_dict["t_s"] = self.lxHardware.capacitives_circles.touch_sensitivity     
         
         interface_dict["t"] = touch_dict
         
@@ -1156,7 +1190,7 @@ class LxEuclidConfig:
                 touch_dict = interface_dict.get("t",None)                
                 
                 if touch_dict != None:
-                    full_conf_load, self.lxHardware.capacitivesCircles.touch_sensitivity = set_val_dict(full_conf_load, self.lxHardware.capacitivesCircles.touch_sensitivity,touch_dict,"t_s")
+                    full_conf_load, self.lxHardware.capacitives_circles.touch_sensitivity = set_val_dict(full_conf_load, self.lxHardware.capacitives_circles.touch_sensitivity,touch_dict,"t_s")
                 else:
                     full_conf_load = False
             else:
