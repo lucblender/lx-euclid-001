@@ -382,21 +382,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 else:
                     color = self.rythm_colors_turing[self.lxEuclidConfig.action_display_index]
                 self.font_writer_freesans20.text(txt,120-int(txt_len/2),110, color)
-        elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
-            
-            self.lxEuclidConfig.menu_lock.acquire()
-            rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
-            self.lxEuclidConfig.menu_lock.release()           
-
-            if rythm_param_counter== 4:
-                if self.parameter_selected != None:
-                    self.blit(self.parameter_selected, 100, 100)
-            else:
-                if self.parameter_unselected != None:
-                    self.blit(self.parameter_unselected, 100, 100)
-
-            self.display_rythm_circles()
-            self.display_enter_return_txt()
 
         elif local_state == self.lxEuclidConfig.STATE_PARAMETERS:
             #TODO Disabled during parameters self.display_rythm_circles()
@@ -551,7 +536,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 beat_color_hightlight = self.rythm_colors_highlight[rythm_index]
 
             highlight_color = self.white
-            if local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY, self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
+            if local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY, self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
                 offset_radius = 15
                 if rythm_index != rythm_param_counter:
                     beat_color = self.grey

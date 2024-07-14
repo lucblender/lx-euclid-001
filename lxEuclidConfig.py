@@ -2,6 +2,7 @@ from machine import Timer
 import ujson as json
 from random import randint
 from micropython import const
+from cvManager import CvData
 
 from utime import ticks_ms
 from _thread import allocate_lock
@@ -13,7 +14,7 @@ JSON_CONFIG_FILE_NAME = "lx-euclide_config.json"
 T_CLK_LED_ON_MS = const(10)
 T_GATE_ON_MS = const(10)
 
-MAX_BEATS = const(64)
+MAX_BEATS = const(32)
 
 def set_val_dict(full_conf_load, var, local_dict, key):
     if key in local_dict:
@@ -329,10 +330,9 @@ class LxEuclidConfig:
     STATE_INIT = 0
     STATE_LIVE = 1
     STATE_PARAMETERS = 2
-    STATE_RYTHM_PARAM_SELECT = 3
-    STATE_RYTHM_PARAM_PROBABILITY = 4
-    STATE_RYTHM_PARAM_INNER_BEAT_PULSE = 5
-    STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY = 6
+    STATE_RYTHM_PARAM_PROBABILITY = 3
+    STATE_RYTHM_PARAM_INNER_BEAT_PULSE = 4
+    STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY = 5
     
     EVENT_INIT = 0
     EVENT_ENC_BTN = 1
@@ -758,25 +758,6 @@ class LxEuclidConfig:
                             self.highlight_color_euclid = True
 
             # END STATE LIVE
-        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_SELECT: # TODO REMOVE THIS STATE, SHOULDN'T EXIST ANYMORE
-            if event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
-                self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_LIVE
-                self.state_lock.release()
-            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
-                if self.sm_rythm_param_counter == MAIN_MENU_PARAMETER_INDEX:
-                    self.state_lock.acquire()
-                    self.state = LxEuclidConfig.STATE_PARAMETERS
-                    self.state_lock.release()
-                else:
-                    if self.euclideanRythms[self.sm_rythm_param_counter].is_turing_machine:
-                        self.state_lock.acquire()
-                        self.state = LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY
-                        self.state_lock.release()
-                    else:
-                        self.state_lock.acquire()
-                        self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE
-                        self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.menu_lock.acquire()
                 self.sm_rythm_param_counter  = (self.sm_rythm_param_counter+1)%5
@@ -803,10 +784,6 @@ class LxEuclidConfig:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
-                self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
-                self.state_lock.release()
 
 #         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE:
 #             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
@@ -848,10 +825,6 @@ class LxEuclidConfig:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses_probability()
             elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR :
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses_probability()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
-                self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
-                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
             if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3: #event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG or (
@@ -864,10 +837,6 @@ class LxEuclidConfig:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_probability()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_probability()
-            elif event == LxEuclidConfig.EVENT_TAP_BTN: # TODO REMOVE TAP, DOESN'T EXIST ANYMORE
-                self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
-                self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_PARAMETERS:
             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
@@ -877,7 +846,7 @@ class LxEuclidConfig:
                     success = self.menu_back_pressed()
                     if success == False:
                         self.state_lock.acquire()
-                        self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
+                        self.state = LxEuclidConfig.STATE_LIVE
                         self.state_lock.release()
                 self.menu_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
@@ -1270,6 +1239,22 @@ class LxEuclidConfig:
     def reload_rythms(self):
         for euclideanRythm in self.euclideanRythms:
             euclideanRythm.set_rythm()
+            
+            
+    def update_cvs_parameters(self, cv_channel):
+        if self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action!=CvData.CV_ACTION_NONE:
+            rhythm_channel = self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action_rythm
+            percent_value = self.lxHardware.cv_manager.percent_values[cv_channel]
+            if self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action==CvData.CV_ACTION_BEATS:
+                self.euclideanRythms[rhythm_channel].set_beats_in_percent(percent_value)
+            elif self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action==CvData.CV_ACTION_PULSES:
+                self.euclideanRythms[rhythm_channel].set_pulses_in_percent(percent_value)
+            elif self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action==CvData.CV_ACTION_ROTATION:
+                self.euclideanRythms[rhythm_channel].set_offset_in_percent(percent_value)
+            elif self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action==CvData.CV_ACTION_PROBABILITY:
+                self.euclideanRythms[rhythm_channel].set_pulses_probability_in_percent(percent_value)
+            
+
 
     def get_current_data_pointer(self):
         tmp_menu_selected = self.menu_navigation_map

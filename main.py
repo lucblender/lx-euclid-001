@@ -226,14 +226,10 @@ if __name__=='__main__':
             wait_display_thread = False
             LCD.set_need_display()
             while True:
-                a = lxHardware.update_cv_values()
                 
-                if(a):
-                    print(lxHardware.cv_manager.percent_values)
-                #lxEuclidConfig.euclideanRythms[0].set_pulses_in_percent(lxHardware.cv_manager.percent_values[0])
-                #lxEuclidConfig.euclideanRythms[0].set_offset_in_percent(lxHardware.cv_manager.percent_values[0])
-                #lxEuclidConfig.euclideanRythms[0].set_beats_in_percent(lxHardware.cv_manager.percent_values[0])
-                #lxEuclidConfig.euclideanRythms[0].set_pulses_probability_in_percent(lxHardware.cv_manager.percent_values[0])
+                has_cvs_changed = lxHardware.update_cv_values()
+                if(has_cvs_changed!=None):
+                    lxEuclidConfig.update_cvs_parameters(has_cvs_changed)
                     
                 if(len(lxHardware.lxHardwareEventFifo)>0):
                     lxhardware_changed(lxHardware.lxHardwareEventFifo.popleft())

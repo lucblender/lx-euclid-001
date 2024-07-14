@@ -58,7 +58,7 @@ class CvManager:
         
     # will return true if data has changed            
     def update_cvs_read_non_blocking(self):
-        to_return = False
+        to_return = None
         return_value = self.adc.read_non_blocking(channel1=self.current_channel_measure,rate=6) #launch a measure
         if return_value != None:
             
@@ -67,7 +67,7 @@ class CvManager:
             self.__raw_values[self.current_channel_measure] = return_value
             self.__compute_percent_cv(self.current_channel_measure)
             if(old_percent_values != self.percent_values[self.current_channel_measure]):                
-                to_return = True
+                to_return = self.current_channel_measure
             self.current_channel_measure = (self.current_channel_measure +1)%4
         return to_return       
 

@@ -234,8 +234,7 @@ class LxHardware:
         elif circles_data[1] == True:
             #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
-    
-        
+
     def update_cv_values(self):
         self.i2c_lock.acquire()
         to_return = self.cv_manager.update_cvs_read_non_blocking()
