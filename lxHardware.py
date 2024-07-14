@@ -235,16 +235,12 @@ class LxHardware:
             #micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
     
-    #Shoudldn't be used, keep it for now for testing, delete asap   
-    def __get_cv_values(self):
-        self.i2c_lock.acquire()
-        self.cv_manager.get_percents_cvs()
-        self.i2c_lock.release()
         
     def update_cv_values(self):
         self.i2c_lock.acquire()
-        self.cv_manager.update_cvs_read_non_blocking()
+        to_return = self.cv_manager.update_cvs_read_non_blocking()
         self.i2c_lock.release()
+        return to_return
 
     def add_handler(self, handler):
         self.handlers.append(handler)

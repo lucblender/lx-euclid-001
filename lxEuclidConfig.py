@@ -391,10 +391,17 @@ class LxEuclidConfig:
         self.menu_navigation_map["Outputs"]["Out 1"]["data_pointer"] = self.euclideanRythms[1]
         self.menu_navigation_map["Outputs"]["Out 2"]["data_pointer"] = self.euclideanRythms[2]
         self.menu_navigation_map["Outputs"]["Out 3"]["data_pointer"] = self.euclideanRythms[3]
+
+        self.menu_navigation_map["CVs"]["CV 0"]["data_pointer"] = self.lxHardware.cv_manager.cvs_data[0]
+        self.menu_navigation_map["CVs"]["CV 1"]["data_pointer"] = self.lxHardware.cv_manager.cvs_data[1]
+        self.menu_navigation_map["CVs"]["CV 2"]["data_pointer"] = self.lxHardware.cv_manager.cvs_data[2]
+        self.menu_navigation_map["CVs"]["CV 3"]["data_pointer"] = self.lxHardware.cv_manager.cvs_data[3]
+        
         self.menu_navigation_map["Clock"]["data_pointer"] = self
         self.menu_navigation_map["Reset"]["data_pointer"] = self
         self.menu_navigation_map["Display"]["data_pointer"] = self.LCD
         self.menu_navigation_map["Presets"]["data_pointer"] = self
+        
         self.menu_navigation_map["Interface"]["Encoder"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Tap Button"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Outer Circle"]["data_pointer"] = self

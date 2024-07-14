@@ -5,114 +5,53 @@ def get_menu_navigation_map():
  
     outputs = OrderedDict()
 
-    out0 = OrderedDict()
-    out0["data_pointer"] = None
-    out0["Inverted output"] = {
+    out = OrderedDict()
+    out["data_pointer"] = None
+    out["Inverted output"] = {
                                 "values": ["False", "True"],
                                 "attribute_name": "inverted_output"
                             }
-    out0["Is Turing Machine"] = {
+    out["Is Turing Machine"] = {
                                 "values": ["False", "True"],
                                 "attribute_name": "is_turing_machine"
                             }
-    out0["Prescaler"] = {
+    out["Prescaler"] = {
                         "values": ["1", "2","3","4","8","16"],
                         "attribute_name": "prescaler_index"
                     }
-    out0["Gate Length"] = {
+    out["Gate Length"] = {
                             "min": 10,
                             "max": 2000,
                             "steps": 10,
                             "attribute_name": "gate_length_ms"
                         }
-    out0["Rand Gate Length"] = {
+    out["Rand Gate Length"] = {
                                 "values": ["False", "True"],
                                 "attribute_name": "randomize_gate_length"
                             }
 
-
-    out1 = OrderedDict()
-    out1["data_pointer"] = None
-    out1["Inverted output"] = {
-                                "values": ["False", "True"],
-                                "attribute_name": "inverted_output"
-                            }
-    out1["Is Turing Machine"] = {
-                                "values": ["False", "True"],
-                                "attribute_name": "is_turing_machine"
-                            }
-    out1["Prescaler"] = {
-                        "values": ["1", "2","3","4","8","16"],
-                        "attribute_name": "prescaler_index"
-                    }
-    out1["Gate Length"] = {
-                            "min": 10,
-                            "max": 2000,
-                            "steps": 10,
-                            "attribute_name": "gate_length_ms"
-                        }
-    out1["Rand Gate Length"] = {
-                                "values": ["False", "True"],
-                                "attribute_name": "randomize_gate_length"
-                            }
-
-
-    out2 = OrderedDict()
-    out2["data_pointer"] = None
-    out2["Inverted output"] = {
-                                "values": ["False", "True"],
-                                "attribute_name": "inverted_output"
-                            }
-    out2["Is Turing Machine"] = {
-                                "values": ["False", "True"],
-                                "attribute_name": "is_turing_machine"
-                            }
-    out2["Prescaler"] = {
-                        "values": ["1", "2","3","4","8","16"],
-                        "attribute_name": "prescaler_index"
-                    }
-    out2["Gate Length"] = {
-                            "min": 10,
-                            "max": 2000,
-                            "steps": 10,
-                            "attribute_name": "gate_length_ms"
-                        }
-    out2["Rand Gate Length"] = {
-                                "values": ["False", "True"],
-                                "attribute_name": "randomize_gate_length"
-                            }
-
-
-    out3 = OrderedDict()
-    out3["data_pointer"] = None
-    out3["Inverted output"] = {
-                                "values": ["False", "True"],
-                                "attribute_name": "inverted_output"
-                            }
-    out3["Is Turing Machine"] = {
-                                "values": ["False", "True"],
-                                "attribute_name": "is_turing_machine"
-                            }
-    out3["Prescaler"] = {
-                        "values": ["1", "2","3","4","8","16"],
-                        "attribute_name": "prescaler_index"
-                    }
-    out3["Gate Length"] = {
-                            "min": 10,
-                            "max": 2000,
-                            "steps": 10,
-                            "attribute_name": "gate_length_ms"
-                        }
-    out3["Rand Gate Length"] = {
-                                "values": ["False", "True"],
-                                "attribute_name": "randomize_gate_length"
-                            }
-
-    outputs["Out 0"] = out0
-    outputs["Out 1"] = out1
-    outputs["Out 2"] = out2
-    outputs["Out 3"] = out3
+    outputs["Out 0"] = out
+    outputs["Out 1"] = out.copy()
+    outputs["Out 2"] = out.copy()
+    outputs["Out 3"] = out.copy()
     my_dict["Outputs"] = outputs
+    
+    cv_dict = {"data_pointer": None,
+                                     "Live action": {
+                                        "values": ["None", "beats", "pulses", "rotation", "probability"],
+                                        "attribute_name": "cv_action"
+                                        },
+                                     "Action Rythm": {
+                                        "values": ["1", "2", "3", "4"],
+                                        "attribute_name": "cv_action_rythm"
+                                        },
+                                    }
+    cv = OrderedDict()
+    cv["CV 0"] = cv_dict
+    cv["CV 1"] = cv_dict.copy()
+    cv["CV 2"] = cv_dict.copy()
+    cv["CV 3"] = cv_dict.copy()
+    my_dict["CVs"] = cv
 
     my_dict["Clock"] = OrderedDict({"data_pointer": None,
                                     "Clock source": {
@@ -149,8 +88,8 @@ def get_menu_navigation_map():
                                 "values": ["Low", "Medium", "High"],
                                 "attribute_name": "touch_sensitivity"
                                 },
-                            } 
-    interface_dict["Inner Circle"] = {"data_pointer": None,
+                            }
+    circle_dict = {"data_pointer": None,
                                      "Live action": {
                                         "values": ["None", "Rotate Rythm", "Incr/Decr Pulses", "Incr/Decr Probability", "Incr/Decr Gate Length"],
                                         "attribute_name": "inner_rotate_action"
@@ -159,17 +98,9 @@ def get_menu_navigation_map():
                                         "values": ["1", "2", "3", "4", "all"],
                                         "attribute_name": "inner_action_rythm"
                                         },
-                                    }
-    interface_dict["Outer Circle"] = {"data_pointer": None,
-                                     "Live action": {
-                                        "values": ["None", "Rotate Rythm", "Incr/Decr Pulses", "Incr/Decr Probability", "Incr/Decr Gate Length"],
-                                        "attribute_name": "outer_rotate_action"
-                                        },
-                                     "Action Rythm": {
-                                        "values": ["1", "2", "3", "4", "all"],
-                                        "attribute_name": "outer_action_rythm"
-                                        },
-                                    }
+                                    } 
+    interface_dict["Inner Circle"] = circle_dict
+    interface_dict["Outer Circle"] = circle_dict.copy()
 
     my_dict["Interface"] = interface_dict
 

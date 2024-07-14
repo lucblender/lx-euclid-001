@@ -203,6 +203,8 @@ def append_error(error):
     error_file.write("\n")
     error_file.close()
 
+gc.collect()
+print_ram()
 start_new_thread(display_thread, ())
                   
 if __name__=='__main__':
@@ -223,23 +225,16 @@ if __name__=='__main__':
 
             wait_display_thread = False
             LCD.set_need_display()
-            tmp = [0,0,0,0]
             while True:
-                lxHardware.update_cv_values()
+                a = lxHardware.update_cv_values()
                 
-                a = lxHardware.cv_manager.percent_values
-                has_changed = False
-                for i in range(0,4):
-                    if a[i] != tmp[i]:
-                        has_changed = True
-                    tmp[i] = a[i] 
-                if(has_changed):
+                if(a):
                     print(lxHardware.cv_manager.percent_values)
-                    
                 #lxEuclidConfig.euclideanRythms[0].set_pulses_in_percent(lxHardware.cv_manager.percent_values[0])
                 #lxEuclidConfig.euclideanRythms[0].set_offset_in_percent(lxHardware.cv_manager.percent_values[0])
                 #lxEuclidConfig.euclideanRythms[0].set_beats_in_percent(lxHardware.cv_manager.percent_values[0])
                 #lxEuclidConfig.euclideanRythms[0].set_pulses_probability_in_percent(lxHardware.cv_manager.percent_values[0])
+                    
                 if(len(lxHardware.lxHardwareEventFifo)>0):
                     lxhardware_changed(lxHardware.lxHardwareEventFifo.popleft())
                 if(len(rotary.rotaryEventFifo)>0):
