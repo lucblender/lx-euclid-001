@@ -159,7 +159,7 @@ class ADS1115:
                                  _MODE_SINGLE | _OS_SINGLE | _GAINS[self.gain] |
                                  _CHANNELS[(channel1, channel2)]))
             self.in_read_non_blocking = True
-        else:         
+        else:
             if self._read_register(_REGISTER_CONFIG) & _OS_NOTBUSY:
                 res = self._read_register(_REGISTER_CONVERT)
                 self.in_read_non_blocking  = False

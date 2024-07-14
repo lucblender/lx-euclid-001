@@ -30,33 +30,38 @@ Edit by SunFounder 2021-12-28:
 from micropython import const
 import ustruct
 
-MPR121_TOUCH_STATUS = const(0x00) # (0x00~0x01) Touch status
+MPR121_TOUCH_STATUS = const(0x00)  # (0x00~0x01) Touch status
 # (0x02~0x03) Out-of-range status
-MPR121_ELECTRODE_FILTERED_DATA = const(0x04) # (0x04~0x1D) Electrode filtered data
-MPR121_BASELINE_VALUE = const(0x1E) # (0x1E~0x2A) Baseline value
+# (0x04~0x1D) Electrode filtered data
+MPR121_ELECTRODE_FILTERED_DATA = const(0x04)
+MPR121_BASELINE_VALUE = const(0x1E)  # (0x1E~0x2A) Baseline value
 # (0x2B~0x40) Baseline Filtering Control
-MPR121_MAX_HALF_DELTA_RISING = const(0x2B) # Max half delta (rising)
-MPR121_NOISE_HALF_DELTA_RISING = const(0x2C) # Noise half delta (rising)
-MPR121_NOISE_COUNT_LIMIT_RISING = const(0x2D) # Noise count limit (rising)
-MPR121_FILTER_DELAY_COUNT_RISING = const(0x2E) # Filter delay count (rising)
-MPR121_MAX_HALF_DELTA_FALLING = const(0x2F) # Max half delta (falling)
-MPR121_NOISE_HALF_DELTA_FALLING = const(0x30) # Noise half delta (falling)
-MPR121_NOISE_COUNT_LIMIT_FALLING = const(0x31) # Noise count limit (falling)
-MPR121_FILTER_DELAY_COUNT_FALLING = const(0x32) # Filter delay count (falling)
+MPR121_MAX_HALF_DELTA_RISING = const(0x2B)  # Max half delta (rising)
+MPR121_NOISE_HALF_DELTA_RISING = const(0x2C)  # Noise half delta (rising)
+MPR121_NOISE_COUNT_LIMIT_RISING = const(0x2D)  # Noise count limit (rising)
+MPR121_FILTER_DELAY_COUNT_RISING = const(0x2E)  # Filter delay count (rising)
+MPR121_MAX_HALF_DELTA_FALLING = const(0x2F)  # Max half delta (falling)
+MPR121_NOISE_HALF_DELTA_FALLING = const(0x30)  # Noise half delta (falling)
+MPR121_NOISE_COUNT_LIMIT_FALLING = const(0x31)  # Noise count limit (falling)
+MPR121_FILTER_DELAY_COUNT_FALLING = const(0x32)  # Filter delay count (falling)
 # There is no max half delta for touched
-MPR121_NOISE_HALF_DELTA_TOUCHED = const(0x33) # Noise half delta (touched)
-MPR121_NOISE_COUNT_LIMIT_TOUCHED = const(0x34) # Noise count limit (touched)
-MPR121_FILTER_DELAY_COUNT_TOUCHED = const(0x35) # Filter delay count (touched)
+MPR121_NOISE_HALF_DELTA_TOUCHED = const(0x33)  # Noise half delta (touched)
+MPR121_NOISE_COUNT_LIMIT_TOUCHED = const(0x34)  # Noise count limit (touched)
+MPR121_FILTER_DELAY_COUNT_TOUCHED = const(0x35)  # Filter delay count (touched)
 # (0x41~0x5A) Touch / release threshold
-MPR121_TOUCH_THRESHOLD = const(0x41) # Touch threshold (0th, += 2 for each electrode up to 11th)
-MPR121_RELEASE_THRESHOLD = const(0x42) # Release threshold (0th, += 2 for each electrode up to 11th)
-MPR121_DEBOUNCE = const(0x5B) # Debounce
+# Touch threshold (0th, += 2 for each electrode up to 11th)
+MPR121_TOUCH_THRESHOLD = const(0x41)
+# Release threshold (0th, += 2 for each electrode up to 11th)
+MPR121_RELEASE_THRESHOLD = const(0x42)
+MPR121_DEBOUNCE = const(0x5B)  # Debounce
 # (0x5C~0x5D) Filter and global CDC CDT configuration
-MPR121_CONFIG1 = const(0x5C) # FFI (first filter iterations), CDC (charge/discharge current)
-MPR121_CONFIG2 = const(0x5D) # CDT (charge/discharge time), SFI (second filter iterations), ESI (electrode sample interval)
+# FFI (first filter iterations), CDC (charge/discharge current)
+MPR121_CONFIG1 = const(0x5C)
+# CDT (charge/discharge time), SFI (second filter iterations), ESI (electrode sample interval)
+MPR121_CONFIG2 = const(0x5D)
 # (0x5F~0x6B) Electrode charge current
 # (0x6C~0x72) Electrode charge time
-MPR121_ELECTRODE_CONFIG = const(0x5E) # Electrode configuration register
+MPR121_ELECTRODE_CONFIG = const(0x5E)  # Electrode configuration register
 # (0x73~0x7A) GPIO
 # (0x73) GPIO control 0
 # (0x74) GPIO control 1
@@ -71,7 +76,8 @@ MPR121_ELECTRODE_CONFIG = const(0x5E) # Electrode configuration register
 # (0x7D) Auto-config upper-side limit
 # (0x7E) Auto-config lower-side limit
 # (0x7F) Auto-config target level
-MPR121_SOFT_RESET = const(0x80) # Soft reset
+MPR121_SOFT_RESET = const(0x80)  # Soft reset
+
 
 class MPR121:
     """Driver for the MPR121 capacitive touch keypad and breakout board."""
@@ -174,7 +180,7 @@ class MPR121:
 
     def all_filtered_data(self):
         """Returns all electrodes filtered data"""
-        return ustruct.unpack("<HHHHHHHHHHHH", self.i2c.readfrom_mem(0x5a,0x04,24))
+        return ustruct.unpack("<HHHHHHHHHHHH", self.i2c.readfrom_mem(0x5a, 0x04, 24))
 
     def baseline_data(self, electrode):
         """Returns baseline data value for the specified electrode (0-11)"""
