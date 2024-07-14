@@ -132,6 +132,7 @@ class ADS1115:
         self.address = address
         self.gain = gain
         self.temp2 = bytearray(2)
+        self.in_read_non_blocking = False
 
     def _write_register(self, register, value):
         self.temp2[0] = value >> 8
@@ -164,6 +165,23 @@ class ADS1115:
             time.sleep_ms(1)
         res = self._read_register(_REGISTER_CONVERT)
         return res if res < 32768 else res - 65536
+    
+    def read_non_blocking(self, rate=4, channel1=0, channel2=None):
+        """Read voltage between a channel and GND.
+           Time depends on conversion rate."""
+        if self.in_read_non_blocking == False:
+            self._write_register(_REGISTER_CONFIG, (_CQUE_NONE | _CLAT_NONLAT |
+                                 _CPOL_ACTVLOW | _CMODE_TRAD | _RATES[rate] |
+                                 _MODE_SINGLE | _OS_SINGLE | _GAINS[self.gain] |
+                                 _CHANNELS[(channel1, channel2)]))
+            self.in_read_non_blocking = True
+        else:         
+            if self._read_register(_REGISTER_CONFIG) & _OS_NOTBUSY:
+                res = self._read_register(_REGISTER_CONVERT)
+                self.in_read_non_blocking  = False
+                return res if res < 32768 else res - 65536
+            else:
+                return None
 
     def read_rev(self):
         """Read voltage between a channel and GND. and then start

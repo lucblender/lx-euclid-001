@@ -10,11 +10,11 @@ from lxEuclidConfig import LxEuclidConfig
 from lxHardware import LxHardware
 from rotary import Rotary
 from utime import sleep, ticks_ms
-from machine import mem32
+from machine import mem32, Pin
 from sys import print_exception
 from io import StringIO
 from _thread import start_new_thread
-
+from ads1x15 import ADS1115
 #from machine import Timer
 
 def print_ram(code = ""):
@@ -204,6 +204,7 @@ def append_error(error):
     error_file.close()
 
 start_new_thread(display_thread, ())
+                  
 if __name__=='__main__':
     try:
         gc.collect()
@@ -222,8 +223,23 @@ if __name__=='__main__':
 
             wait_display_thread = False
             LCD.set_need_display()
+            tmp = [0,0,0,0]
             while True:
-                lxHardware.get_cv_values()
+                lxHardware.update_cv_values()
+                
+                a = lxHardware.cv_manager.percent_values
+                has_changed = False
+                for i in range(0,4):
+                    if a[i] != tmp[i]:
+                        has_changed = True
+                    tmp[i] = a[i] 
+                if(has_changed):
+                    print(lxHardware.cv_manager.percent_values)
+                    
+                #lxEuclidConfig.euclideanRythms[0].set_pulses_in_percent(lxHardware.cv_manager.percent_values[0])
+                #lxEuclidConfig.euclideanRythms[0].set_offset_in_percent(lxHardware.cv_manager.percent_values[0])
+                #lxEuclidConfig.euclideanRythms[0].set_beats_in_percent(lxHardware.cv_manager.percent_values[0])
+                #lxEuclidConfig.euclideanRythms[0].set_pulses_probability_in_percent(lxHardware.cv_manager.percent_values[0])
                 if(len(lxHardware.lxHardwareEventFifo)>0):
                     lxhardware_changed(lxHardware.lxHardwareEventFifo.popleft())
                 if(len(rotary.rotaryEventFifo)>0):
@@ -242,3 +258,4 @@ if __name__=='__main__':
         print("quit")
     except Exception as e:
         append_error(e)
+

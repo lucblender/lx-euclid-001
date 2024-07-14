@@ -1,6 +1,7 @@
 from machine import Timer
 import ujson as json
 from random import randint
+from micropython import const
 
 from utime import ticks_ms
 from _thread import allocate_lock
@@ -9,8 +10,10 @@ from MenuNavigationMap import get_menu_navigation_map
 
 JSON_CONFIG_FILE_NAME = "lx-euclide_config.json"
 
-T_CLK_LED_ON_MS = 10
-T_GATE_ON_MS = 10
+T_CLK_LED_ON_MS = const(10)
+T_GATE_ON_MS = const(10)
+
+MAX_BEATS = const(64)
 
 def set_val_dict(full_conf_load, var, local_dict, key):
     if key in local_dict:
@@ -116,10 +119,13 @@ class EuclideanRythm(EuclideanRythmParameters):
         self.offset = (self.offset + 1)%self.beats
 
     def decr_offset(self,):
-        self.offset = (self.offset - 1)%self.beats
+        self.offset = (self.offset - 1)%self.beats        
+        
+    def set_offset_in_percent(self, percent):
+        self.offset  = int(self.beats*percent/100)
 
     def incr_beats(self):
-        if self.beats != 64:
+        if self.beats != MAX_BEATS:
             self.beats = (self.beats +1)
             self.set_pulses_per_ratio()
             self.set_rythm()
@@ -135,9 +141,22 @@ class EuclideanRythm(EuclideanRythmParameters):
         self.set_pulses_per_ratio()
         self.set_rythm()
         
+    def set_beats_in_percent(self,percent):
+        temp_beats = int(percent*MAX_BEATS/100)
+        self.beats = max(1,min(temp_beats,MAX_BEATS))   
+        if self.offset > self.beats:
+            self.offset = self.beats
+        self.set_pulses_per_ratio()
+        self.set_rythm()
+        
     def set_pulses_per_ratio(self):        
         computed_pulses_per_ratio = round(self.beats*self.__pulses_ratio)
         self.pulses = max(1, (min(self.beats, computed_pulses_per_ratio)))
+        
+    def set_pulses_in_percent(self, percent):
+        self.__pulses_ratio = percent/100
+        self.set_pulses_per_ratio()
+        self.set_rythm()
 
     def incr_pulses(self):
         self.pulses = (self.pulses +1)
@@ -152,7 +171,7 @@ class EuclideanRythm(EuclideanRythmParameters):
             self.pulses = 1
         self.__pulses_ratio = self.pulses / self.beats 
         self.set_rythm()
-        
+                
     def incr_pulses_probability(self):
         if self.pulses_probability != 100:
             self.pulses_probability = self.pulses_probability +5
@@ -160,7 +179,10 @@ class EuclideanRythm(EuclideanRythmParameters):
     def decr_pulses_probability(self):
         if self.pulses_probability != 0:
             self.pulses_probability = self.pulses_probability -5
-
+            
+    def set_pulses_probability_in_percent(self,percent):
+        self.pulses_probability = int(percent/5)*5
+        
     def incr_step(self):
         to_return = False
         if self.prescaler_rythm_counter == 0:
