@@ -7,6 +7,9 @@ from time import ticks_ms
 MIN = const(0)
 MAX = const(1)
 
+LOW_PERCENTAGE_RISING_THRESHOLD = const(25)
+RISING_DIFFERENCE_THRESHOLD = const(50)
+
 
 class CvData:
     CV_ACTION_NONE = const(0)
@@ -47,19 +50,17 @@ class CvManager:
         self.__raw_values = [0, 0, 0, 0]
         self.percent_values = [0, 0, 0, 0]
 
-        self.cvs_data = [CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=CvData.CV_RHYTHM_1, cvs_bound=[CvData.CV_MINUS_5V, CvData.CV_5V]),
+        self.cvs_data = [CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=CvData.CV_RHYTHM_1, cvs_bound=[CvData.CV_0V, CvData.CV_5V]),
                          CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=CvData.CV_RHYTHM_1, cvs_bound=[
                                 CvData.CV_MINUS_5V, CvData.CV_5V]),
                          CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=CvData.CV_RHYTHM_1, cvs_bound=[
                                 CvData.CV_MINUS_5V, CvData.CV_5V]),
                          CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=CvData.CV_RHYTHM_1, cvs_bound=[CvData.CV_MINUS_5V, CvData.CV_5V])]
 
-        self.cvs_bound = [[CV_MINUS_5V, CV_5V], [CV_MINUS_5V, CV_5V], [
-            CV_MINUS_5V, CV_5V], [CV_MINUS_5V, CV_5V]]
         self.current_channel_measure = 0
         self.in_measure = False
 
-    # will return true if data has changed
+    # will return [changing_channel, rising_edge_detected] if data has changed else, None
     def update_cvs_read_non_blocking(self):
         to_return = None
         return_value = self.adc.read_non_blocking(
@@ -71,9 +72,15 @@ class CvManager:
             self.__raw_values[self.current_channel_measure] = return_value
             self.__compute_percent_cv(self.current_channel_measure)
             if (old_percent_values != self.percent_values[self.current_channel_measure]):
-                to_return = self.current_channel_measure
+                rising_edge_detected = False
+                if old_percent_values<LOW_PERCENTAGE_RISING_THRESHOLD and (self.percent_values[self.current_channel_measure]-old_percent_values)>=RISING_DIFFERENCE_THRESHOLD:
+                    rising_edge_detected = True                    
+                to_return = [self.current_channel_measure, rising_edge_detected]
+                if rising_edge_detected:
+                    print(to_return)
             self.current_channel_measure = (
                 self.current_channel_measure + 1) % 4
+                
         return to_return
 
     def __compute_percent_cv(self, channel):

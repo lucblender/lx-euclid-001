@@ -61,7 +61,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.rst = Pin(RST, Pin.OUT)
 
         self.cs(1)
-        self.spi = SPI(1, 100_000_000, polarity=0, phase=0,
+        self.spi = SPI(1, 200_000_000, polarity=0, phase=0,
                        sck=Pin(SCK), mosi=Pin(MOSI), miso=None)
         self.dc = Pin(DC, Pin.OUT)
         self.dc(1)
@@ -302,6 +302,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.write_cmd(0x29)
 
     def show(self):
+        a = ticks_ms()
         self.write_cmd_data(0x2A, [0x00, 0x00, 0x00, 0xef])
 
         self.write_cmd_data(0x2B, [0x00, 0x00, 0x00, 0xEF])
@@ -313,6 +314,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.cs(0)
         self.spi.write(self.buffer)
         self.cs(1)
+        print("show", ticks_ms()-a)
 
     def write_cmd_data(self, cmd, datas):
         self.write_cmd(cmd)
@@ -377,6 +379,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def display_rythms(self):
         pre_tick = ticks_ms()
         self.fill(self.black)
+        print("fill black", ticks_ms()-pre_tick) 
         angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.outer_circle_angle
         self.draw_approx_pie_slice(
             [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.grey)
@@ -398,7 +401,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 else:
                     color = self.rythm_colors_turing[self.lxEuclidConfig.action_display_index]
                 self.font_writer_freesans20.text(
-                    txt, 120-int(txt_len/2), 110, color)
+                    txt, 120-int(txt_len/2), 110, color)      
 
         elif local_state == self.lxEuclidConfig.STATE_PARAMETERS:
             # TODO Disabled during parameters self.display_rythm_circles()
@@ -540,9 +543,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.show()
         self.__need_display = False
-        print(ticks_ms()-pre_tick)
+        print("display rhthms", ticks_ms()-pre_tick)
 
     def display_rythm_circles(self):
+        pre_tick = ticks_ms()
         radius = 110
         offset_radius = 20
         rythm_index = 0
@@ -619,6 +623,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             radius = radius - offset_radius
             rythm_index = rythm_index + 1
+            
+        print("display_rythm_circles", ticks_ms()-pre_tick)
 
     def display_enter_return_txt(self):
         return
@@ -628,6 +634,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
     # Draw the approximate pie slice
     # Define a function to draw an approximate pie slice
     def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
+        a = ticks_ms()
         # Calculate the number of sides for the polygon (higher value for smoother pie slice)
         num_sides = 3  # You can adjust this value for smoother or more jagged edges
 
@@ -650,3 +657,4 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         # Draw the polygon
         self.poly(0, 0, array("h", points), color, True)
+        print("draw_approx_pie_slice", ticks_ms()-a)

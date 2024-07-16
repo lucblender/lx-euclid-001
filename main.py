@@ -1,3 +1,5 @@
+from machine import freq
+machine.freq(250_000_000,250_000_000)
 from Rp2040Lcd import LCD_1inch28
 
 VERSION = "v0.0.4_dev"
@@ -17,8 +19,10 @@ from _thread import start_new_thread
 from ads1x15 import ADS1115
 #from machine import Timer
 
-def print_ram(code = ""):
-    print(code, "free ram: ", gc.mem_free(), ", alloc ram: ",gc.mem_alloc())
+
+def print_ram(code=""):
+    print(code, "free ram: ", gc.mem_free(), ", alloc ram: ", gc.mem_alloc())
+
 
 MIN_TAP_DELAY_MS = 20
 MAX_TAP_DELAY_MS = 3000

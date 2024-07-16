@@ -1320,7 +1320,9 @@ class LxEuclidConfig:
         for euclideanRythm in self.euclideanRythms:
             euclideanRythm.set_rythm()
 
-    def update_cvs_parameters(self, cv_channel):
+    def update_cvs_parameters(self, cv_data):
+        cv_channel = cv_data[0]
+        rising_edge_detected = cv_data[1]
         if self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action != CvData.CV_ACTION_NONE:
             rhythm_channel = self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action_rythm
             percent_value = self.lxHardware.cv_manager.percent_values[cv_channel]
