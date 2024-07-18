@@ -765,17 +765,22 @@ class LxEuclidConfig:
             did_step = euclideanRythm.incr_step()
             if euclideanRythm.get_current_step() and did_step:                
                 if euclideanRythm.randomize_gate_length == True:
-                    euclideanRythm.randomized_gate_length_ms = randint(
-                        int(euclideanRythm.gate_length_ms/2), euclideanRythm.gate_length_ms)
-                    self.lxHardware.set_gate(index,euclideanRythm.randomized_gate_length_ms)
+                    self.lxHardware.set_gate(self.computation_index, euclideanRythm.randomized_gate_length_ms)
                 else:
-                    self.lxHardware.set_gate(self.computation_index,euclideanRythm.gate_length_ms)
+                    self.lxHardware.set_gate(self.computation_index, euclideanRythm.gate_length_ms)
             self.computation_index = self.computation_index + 1
         # tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
         # tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
         self.last_gate_led_event = ticks_ms()
         self.clear_led_needed = True  # TODO this var is not needed anymore
         self.LCD.set_need_display()
+    
+    
+    def random_gate_length_update(self):
+        for euclideanRythm in self.euclideanRythms:
+            if euclideanRythm.randomize_gate_length == True:
+                    euclideanRythm.randomized_gate_length_ms = randint(
+                        int(euclideanRythm.gate_length_ms/2), euclideanRythm.gate_length_ms)
 
     def reset_steps(self):
         for euclideanRythm in self.euclideanRythms:

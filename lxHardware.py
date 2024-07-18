@@ -52,6 +52,7 @@ class LxHardware:
     RST_RISE = const(0)
     BTN_TAP_RISE = const(1)
     BTN_TAP_FALL = const(2)
+    CLK_RISE = const(3)
 
     INNER_CIRCLE_INCR = const(6)
     INNER_CIRCLE_DECR = const(7)
@@ -68,6 +69,7 @@ class LxHardware:
         # when using interrupt we can't create memory in the handler so creating event before
         self.btn_fall_event = HandlerEventData(LxHardware.BTN_TAP_FALL)
         self.btn_rise_event = HandlerEventData(LxHardware.BTN_TAP_RISE)
+        self.clk_rise_event = HandlerEventData(LxHardware.CLK_RISE)
 
         self.rst_rise_event = HandlerEventData(LxHardware.RST_RISE)
 
@@ -166,6 +168,7 @@ class LxHardware:
                 if self.lxEuclidConfig!=None:
                     if self.lxEuclidConfig.clk_mode ==  self.lxEuclidConfig.CLK_IN:
                         self.lxEuclidConfig.incr_steps()
+            self.lxHardwareEventFifo.append(self.clk_rise_event)        
         except Exception as e:
             print(e)
 

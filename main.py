@@ -81,6 +81,8 @@ def rotary_changed(change):
 def lxhardware_changed(handlerEventData):
     global tap_btn_press
     event = handlerEventData.event
+    if event == lxHardware.CLK_RISE:
+        lxEuclidConfig.random_gate_length_update()
     if event == lxHardware.RST_RISE:
         lxEuclidConfig.reset_steps()
         LCD.set_need_display()
