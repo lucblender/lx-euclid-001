@@ -84,13 +84,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
         # each array has 5 colors, 4 for the circles, the 5th used when the infos concerns all the circles
         self.rythm_colors = [rgb888_to_rgb565(255, 136, 31), rgb888_to_rgb565(
             255, 130, 218), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(156, 255, 237), self.white]
-        self.rythm_colors_turing = [rgb888_to_rgb565(237, 69, 86), rgb888_to_rgb565(
-            209, 52, 68), rgb888_to_rgb565(176, 33, 48), rgb888_to_rgb565(122, 13, 24), self.white]
 
         self.rythm_colors_highlight = [rgb888_to_rgb565(253, 168, 94), rgb888_to_rgb565(
             250, 180, 229), rgb888_to_rgb565(176, 196, 255), rgb888_to_rgb565(195, 250, 240), self.white]
-        self.rythm_colors_turing_highlight = [rgb888_to_rgb565(250, 135, 147), rgb888_to_rgb565(237, 69, 86), rgb888_to_rgb565(
-            209, 52, 68), rgb888_to_rgb565(176, 33, 48), rgb888_to_rgb565(122, 13, 24), self.white]
 
         self.fill(self.white)
         self.show()
@@ -314,7 +310,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.cs(0)
         self.spi.write(self.buffer)
         self.cs(1)
-        print("show", ticks_ms()-a)
+        #print("show", ticks_ms()-a)
 
     def write_cmd_data(self, cmd, datas):
         self.write_cmd(cmd)
@@ -379,7 +375,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def display_rythms(self):
         pre_tick = ticks_ms()
         self.fill(self.black)
-        print("fill black", ticks_ms()-pre_tick) 
+        #print("fill black", ticks_ms()-pre_tick) 
         angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.outer_circle_angle
         self.draw_approx_pie_slice(
             [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.grey)
@@ -398,8 +394,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 txt_len = self.font_writer_freesans20.stringlen(txt)
                 if self.lxEuclidConfig.highlight_color_euclid:
                     color = self.rythm_colors[self.lxEuclidConfig.action_display_index]
-                else:
-                    color = self.rythm_colors_turing[self.lxEuclidConfig.action_display_index]
                 self.font_writer_freesans20.text(
                     txt, 120-int(txt_len/2), 110, color)      
 
@@ -471,30 +465,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 max_scrollbar_size = 1
             self.fill_rect(scrollbar_x, scrollbar_y+int(max_scrollbar_size_float *
                            current_menu_selected), scrollbar_width, max_scrollbar_size, self.white)
-        elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
-            self.lxEuclidConfig.menu_lock.acquire()
-            rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
-            self.lxEuclidConfig.menu_lock.release()
-            current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[rythm_param_counter]
-            highlight_color = self.rythm_colors_turing[rythm_param_counter]
-
-            if current_euclidean_rythm.is_turing_machine:
-                self.circle(
-                    120, 120, 51, self.touch_circle_color_highlight, True)
-                self.circle(120, 120, 51-15, self.black, True)
-
-                self.poly(0, 0, array(
-                    "h", [120, 120, 120-45, 65, 120+45, 65]), self.black, True)
-
-                self.circle(120, 120, 31, self.touch_circle_color, True)
-                self.circle(120, 120, 31-15, self.black, True)
-                txt = str(current_euclidean_rythm.turing_probability) + "%"
-                txt_len = self.font_writer_freesans20.stringlen(txt)
-                self.font_writer_freesans20.text(
-                    txt, 120-int(txt_len/2), 71, highlight_color)
-
-            self.display_rythm_circles()
-            self.display_enter_return_txt()
         elif local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 
             self.lxEuclidConfig.menu_lock.acquire()
@@ -543,7 +513,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.show()
         self.__need_display = False
-        print("display rhthms", ticks_ms()-pre_tick)
+        #print("display rhthms", ticks_ms()-pre_tick)
 
     def display_rythm_circles(self):
         pre_tick = ticks_ms()
@@ -561,15 +531,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         for euclidieanRythm in self.lxEuclidConfig.euclideanRythms:
 
-            if euclidieanRythm.is_turing_machine:
-                beat_color = self.rythm_colors_turing[rythm_index]
-                beat_color_hightlight = self.rythm_colors_turing_highlight[rythm_index]
-            else:
-                beat_color = self.rythm_colors[rythm_index]
-                beat_color_hightlight = self.rythm_colors_highlight[rythm_index]
+            beat_color = self.rythm_colors[rythm_index]
+            beat_color_hightlight = self.rythm_colors_highlight[rythm_index]
 
             highlight_color = self.white
-            if local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY, self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
+            if local_state in [self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
                 offset_radius = 15
                 if rythm_index != rythm_param_counter:
                     beat_color = self.grey
@@ -624,7 +590,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             radius = radius - offset_radius
             rythm_index = rythm_index + 1
             
-        print("display_rythm_circles", ticks_ms()-pre_tick)
+        #print("display_rythm_circles", ticks_ms()-pre_tick)
 
     def display_enter_return_txt(self):
         return
@@ -657,4 +623,4 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         # Draw the polygon
         self.poly(0, 0, array("h", points), color, True)
-        print("draw_approx_pie_slice", ticks_ms()-a)
+        #print("draw_approx_pie_slice", ticks_ms()-a)

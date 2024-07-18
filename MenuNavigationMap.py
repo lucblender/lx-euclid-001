@@ -8,14 +8,6 @@ def get_menu_navigation_map():
 
     out = OrderedDict()
     out["data_pointer"] = None
-    out["Inverted output"] = {
-        "values": ["False", "True"],
-        "attribute_name": "inverted_output"
-    }
-    out["Is Turing Machine"] = {
-        "values": ["False", "True"],
-        "attribute_name": "is_turing_machine"
-    }
     out["Prescaler"] = {
         "values": ["1", "2", "3", "4", "8", "16"],
         "attribute_name": "prescaler_index"
@@ -58,19 +50,8 @@ def get_menu_navigation_map():
                                     "Clock source": {
                                         "values": ["Tap btn", "Clock input"],
                                         "attribute_name": "clk_mode"
-                                    },
-                                    "Clock polarity": {
-                                        "values": ["Rising edge", "Falling edge", "Both edges"],
-                                        "attribute_name": "clk_polarity"
-                                    }
-                                    })
+                                    }})
 
-    my_dict["Reset"] = OrderedDict({"data_pointer": None,
-                                    "Reset polarity": {
-                                        "values": ["Rising edge", "Falling edge", "Both edges"],
-                                        "attribute_name": "rst_polarity"
-                                    }
-                                    })
     interface_dict = OrderedDict()
     interface_dict["Encoder"] = {"data_pointer": None,
                                  "Long Press": {
@@ -92,7 +73,7 @@ def get_menu_navigation_map():
                                }
     circle_dict = {"data_pointer": None,
                    "Live action": {
-                       "values": ["None", "Rotate Rythm", "Incr/Decr Pulses", "Incr/Decr Probability", "Incr/Decr Gate Length"],
+                       "values": ["None", "Rotate Rythm", "Incr/Decr Pulses", "Incr/Decr Gate Length"],
                        "attribute_name": "inner_rotate_action"
                    },
                    "Action Rythm": {

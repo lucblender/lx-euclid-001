@@ -5,27 +5,28 @@ from machine import mem32
 from ucollections import deque
 from sys import print_exception
 from _thread import allocate_lock
+from micropython import const
 
 # TODO from eeprom_i2c import EEPROM, T24C64
 
-CLK_IN = 18
-RST_IN = 17
-BTN_TAP_IN = 19
+CLK_IN = const(18)
+RST_IN = const(17)
+BTN_TAP_IN = const(19)
 
-SW0 = 19
-SW1 = 7
-SW2 = 23
-SW3 = 24
+SW0 = const(19)
+SW1 = const(7)
+SW2 = const(23)
+SW3 = const(24)
 
-SW_LED0 = 13
-SW_LED1 = 14
-SW_LED2 = 15
-SW_LED3 = 16
+SW_LED0 = const(13)
+SW_LED1 = const(14)
+SW_LED2 = const(15)
+SW_LED3 = const(16)
 
-GATE_OUT_0 = 2
-GATE_OUT_1 = 3
-GATE_OUT_2 = 4
-GATE_OUT_3 = 5
+GATE_OUT_0 = const(2)
+GATE_OUT_1 = const(3)
+GATE_OUT_2 = const(4)
+GATE_OUT_3 = const(5)
 
 
 class HandlerEventData:
@@ -36,22 +37,20 @@ class HandlerEventData:
 
 class LxHardware:
 
-    CLK_RISE = 0
-    CLK_FALL = 1
-    RST_RISE = 2
-    RST_FALL = 3
-    BTN_TAP_RISE = 4
-    BTN_TAP_FALL = 5
+    CLK_RISE = const(0)
+    RST_RISE = const(1)
+    BTN_TAP_RISE = const(2)
+    BTN_TAP_FALL = const(3)
 
-    INNER_CIRCLE_INCR = 6
-    INNER_CIRCLE_DECR = 7
-    OUTER_CIRCLE_INCR = 8
-    OUTER_CIRCLE_DECR = 9
-    INNER_CIRCLE_TOUCH = 10
-    OUTER_CIRCLE_TOUCH = 11
+    INNER_CIRCLE_INCR = const(6)
+    INNER_CIRCLE_DECR = const(7)
+    OUTER_CIRCLE_INCR = const(8)
+    OUTER_CIRCLE_DECR = const(9)
+    INNER_CIRCLE_TOUCH = const(10)
+    OUTER_CIRCLE_TOUCH = const(11)
 
-    BTN_SWITCHES_RISE = 12
-    BTN_SWITCHES_FALL = 13
+    BTN_SWITCHES_RISE = const(12)
+    BTN_SWITCHES_FALL = const(13)
 
     def __init__(self):
 
@@ -59,10 +58,8 @@ class LxHardware:
         self.btn_fall_event = HandlerEventData(LxHardware.BTN_TAP_FALL)
         self.btn_rise_event = HandlerEventData(LxHardware.BTN_TAP_RISE)
 
-        self.rst_fall_event = HandlerEventData(LxHardware.RST_FALL)
         self.rst_rise_event = HandlerEventData(LxHardware.RST_RISE)
 
-        self.clk_fall_event = HandlerEventData(LxHardware.CLK_FALL)
         self.clk_rise_event = HandlerEventData(LxHardware.CLK_RISE)
 
         self.btn_switches_rise_event = []
@@ -152,10 +149,7 @@ class LxHardware:
         if self.clk_pin_status == self.clk_pin.value():
             return
         self.clk_pin_status = self.clk_pin.value()
-        if self.clk_pin.value():
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_FALL))
-            self.lxHardwareEventFifo.append(self.clk_fall_event)
-        else:
+        if not self.clk_pin.value():
             # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_RISE))
             self.lxHardwareEventFifo.append(self.clk_rise_event)
 
@@ -163,10 +157,7 @@ class LxHardware:
         if self.rst_pin_status == self.rst_pin.value():
             return
         self.rst_pin_status = self.rst_pin.value()
-        if self.rst_pin.value():
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_FALL))
-            self.lxHardwareEventFifo.append(self.rst_fall_event)
-        else:
+        if not self.rst_pin.value():
             # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_RISE))
             self.lxHardwareEventFifo.append(self.rst_rise_event)
 
@@ -210,17 +201,11 @@ class LxHardware:
         if index != None:
             self.sw_leds[index].value(0)
 
-    def set_gate(self, gate_index, inverted):
-        if inverted:
-            self.gates[gate_index].value(0)
-        else:
-            self.gates[gate_index].value(1)
+    def set_gate(self, gate_index, ):
+        self.gates[gate_index].value(1)
 
-    def clear_gate(self, gate_index, inverted):
-        if inverted:
-            self.gates[gate_index].value(1)
-        else:
-            self.gates[gate_index].value(0)
+    def clear_gate(self, gate_index):
+        self.gates[gate_index].value(0)
 
     def get_touch_circles_updates(self):
         self.i2c_lock.acquire()

@@ -91,13 +91,10 @@ def lxhardware_changed(handlerEventData):
                 global_incr_steps()
 
     elif event == lxHardware.RST_RISE:
-        if lxEuclidConfig.rst_polarity in [LxEuclidConfig.RST_RISING_EDGE, LxEuclidConfig.RST_BOTH_EDGES]:
-            lxEuclidConfig.reset_steps()
-            LCD.set_need_display()
+        lxEuclidConfig.reset_steps()
+        LCD.set_need_display()
     elif event == lxHardware.RST_FALL:
-        if lxEuclidConfig.rst_polarity in [LxEuclidConfig.RST_FALLING_EDGE, LxEuclidConfig.RST_BOTH_EDGES]:
-            lxEuclidConfig.reset_steps()
-            LCD.set_need_display()
+        pass
     elif event == lxHardware.BTN_TAP_RISE:
         tap_btn_press = ticks_ms()
     elif event == lxHardware.BTN_TAP_FALL:
