@@ -63,7 +63,6 @@ class EuclideanRythmParameters:
         self.__pulses_ratio = self.pulses / self.beats
         self.clear_gate_needed = False
         self.gate_length_ms = gate_length_ms
-        self.last_set_gate_ticks = ticks_ms()
         self.randomize_gate_length = randomize_gate_length
         self.randomized_gate_length_ms = gate_length_ms
 
@@ -391,10 +390,11 @@ class LxEuclidConfig:
         self.last_set_need_circle_action_display_ms = ticks_ms()
         self.last_gate_led_event = ticks_ms()
         self.clear_led_needed = False
-        self.clear_gate_needed = False
         self.action_display_index = 0
         self.action_display_info = ""
         self.highlight_color_euclid = True
+        
+        self.computation_index = 0 #used in interrupt function that can't create memory
 
         try:
             config_file = open(JSON_CONFIG_FILE_NAME, "r")
@@ -696,10 +696,6 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
                 self.state_lock.release()
-            # if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
-            #    self.state_lock.acquire()
-            #    self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
-            #    self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
@@ -709,21 +705,6 @@ class LxEuclidConfig:
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
 
-#         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_PULSE:
-#             if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
-#                 self.state_lock.acquire()
-#                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET
-#                 self.state_lock.release()
-#             elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
-#                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
-#             elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
-#                 self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
-#             elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
-#                 self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
-#             elif event == LxEuclidConfig.EVENT_TAP_BTN:
-#                 self.state_lock.acquire()
-#                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_SELECT
-#                 self.state_lock.release()
 
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:
             if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rythm_param_counter:
@@ -732,11 +713,6 @@ class LxEuclidConfig:
                 self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
                 self.lxHardware.clear_sw_leds(data)
-            # if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
-            #    self.save_data()
-            #    self.state_lock.acquire()
-            #    self.state = LxEuclidConfig.STATE_LIVE
-            #    self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_ENC_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_offset()
             elif event == LxEuclidConfig.EVENT_ENC_DECR:
@@ -782,51 +758,24 @@ class LxEuclidConfig:
                     self.state = LxEuclidConfig.STATE_LIVE
                     self.state_lock.release()
                 self.menu_lock.release()
-
+    # this function can be called by an interrupt, this is why it cannot allocate any memory
     def incr_steps(self):
-        index = 0
-        callback_param_dict = {}
+        self.computation_index = 0
         for euclideanRythm in self.euclideanRythms:
             did_step = euclideanRythm.incr_step()
-            if euclideanRythm.get_current_step() and did_step:
-                self.lxHardware.set_gate(index)
+            if euclideanRythm.get_current_step() and did_step:                
                 if euclideanRythm.randomize_gate_length == True:
                     euclideanRythm.randomized_gate_length_ms = randint(
                         int(euclideanRythm.gate_length_ms/2), euclideanRythm.gate_length_ms)
-
-                euclideanRythm.clear_gate_needed = True
-                euclideanRythm.last_set_gate_ticks = ticks_ms()
-                callback_param_dict[index] = index
-            index = index + 1
+                    self.lxHardware.set_gate(index,euclideanRythm.randomized_gate_length_ms)
+                else:
+                    self.lxHardware.set_gate(self.computation_index,euclideanRythm.gate_length_ms)
+            self.computation_index = self.computation_index + 1
         # tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
         # tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
         self.last_gate_led_event = ticks_ms()
         self.clear_led_needed = True  # TODO this var is not needed anymore
-        self.clear_gate_needed = True
         self.LCD.set_need_display()
-
-    def test_if_clear_gates_led(self):
-        self.callback_clear_gates()
-        # if ticks_ms() -self.last_gate_led_event>=T_GATE_ON_MS and self.clear_led_needed == True:
-        #    self.callback_clear_gates()
-        #    self.clear_gate_needed = False
-        # if ticks_ms() -self.last_gate_led_event>=T_CLK_LED_ON_MS and self.clear_gate_needed == True:
-        #    self.callback_clear_led()
-        #    self.clear_led_needed = False
-
-    def callback_clear_gates(self, timer=None):
-        for i in range(0, 4):
-            if self.euclideanRythms[i].randomize_gate_length == True:
-                gate_length_ms = self.euclideanRythms[i].randomized_gate_length_ms
-            else:
-                gate_length_ms = self.euclideanRythms[i].gate_length_ms
-            if ticks_ms() - self.euclideanRythms[i].last_set_gate_ticks >= gate_length_ms and self.euclideanRythms[i].clear_gate_needed == True:
-                self.lxHardware.clear_gate(i)
-                self.euclideanRythms[i].clear_gate_needed = False
-
-    def callback_clear_led(self, timer=None):
-        # self.lxHardware.clear_clk_led()
-        return
 
     def reset_steps(self):
         for euclideanRythm in self.euclideanRythms:
@@ -995,6 +944,7 @@ class LxEuclidConfig:
         self.save_data_lock.release()
 
     def test_save_data_in_file(self):
+        return
         self.save_data_lock.acquire()
         if self.need_save_data_in_file:
             self.need_save_data_in_file = False

@@ -6,6 +6,7 @@ from ucollections import deque
 from sys import print_exception
 from _thread import allocate_lock
 from micropython import const
+import rp2
 
 # TODO from eeprom_i2c import EEPROM, T24C64
 
@@ -29,6 +30,17 @@ GATE_OUT_2 = const(4)
 GATE_OUT_3 = const(5)
 
 
+@rp2.asm_pio(set_init=rp2.PIO.OUT_LOW, out_init=rp2.PIO.OUT_LOW, out_shiftdir=rp2.PIO.SHIFT_LEFT, autopull=True, pull_thresh=24)
+def timed_10th_ms_pulse():
+    label("wait")
+    out(x, 16)
+    jmp(not_x, "wait")
+    set(pins, 1) 
+    label("delay_high")
+    nop()    
+    jmp(x_dec, "delay_high")    
+    set(pins, 0) 
+
 class HandlerEventData:
     def __init__(self, event, data=None):
         self.event = event
@@ -37,10 +49,9 @@ class HandlerEventData:
 
 class LxHardware:
 
-    CLK_RISE = const(0)
-    RST_RISE = const(1)
-    BTN_TAP_RISE = const(2)
-    BTN_TAP_FALL = const(3)
+    RST_RISE = const(0)
+    BTN_TAP_RISE = const(1)
+    BTN_TAP_FALL = const(2)
 
     INNER_CIRCLE_INCR = const(6)
     INNER_CIRCLE_DECR = const(7)
@@ -59,8 +70,6 @@ class LxHardware:
         self.btn_rise_event = HandlerEventData(LxHardware.BTN_TAP_RISE)
 
         self.rst_rise_event = HandlerEventData(LxHardware.RST_RISE)
-
-        self.clk_rise_event = HandlerEventData(LxHardware.CLK_RISE)
 
         self.btn_switches_rise_event = []
         self.btn_switches_fall_event = []
@@ -117,18 +126,17 @@ class LxHardware:
         for sw_led in self.sw_leds:
             sw_led.value(0)
 
-        self.gate_out_0 = Pin(GATE_OUT_0, Pin.OUT)
-        self.gate_out_1 = Pin(GATE_OUT_1, Pin.OUT)
-        self.gate_out_2 = Pin(GATE_OUT_2, Pin.OUT)
-        self.gate_out_3 = Pin(GATE_OUT_3, Pin.OUT)
+        self.sm0 = rp2.StateMachine(0, timed_10th_ms_pulse, freq=20_000, set_base=Pin(GATE_OUT_0), out_base=Pin(GATE_OUT_0))
+        self.sm1 = rp2.StateMachine(1, timed_10th_ms_pulse, freq=20_000, set_base=Pin(GATE_OUT_1), out_base=Pin(GATE_OUT_1))
+        self.sm2 = rp2.StateMachine(2, timed_10th_ms_pulse, freq=20_000, set_base=Pin(GATE_OUT_2), out_base=Pin(GATE_OUT_2))
+        self.sm3 = rp2.StateMachine(3, timed_10th_ms_pulse, freq=20_000, set_base=Pin(GATE_OUT_3), out_base=Pin(GATE_OUT_3))
 
-        self.gate_out_0.value(0)
-        self.gate_out_1.value(0)
-        self.gate_out_2.value(0)
-        self.gate_out_3.value(0)
-
-        self.gates = [self.gate_out_0, self.gate_out_1,
-                      self.gate_out_2, self.gate_out_3]
+        self.sms = [self.sm0, self.sm1, self.sm2, self.sm3]
+        
+        self.sm0.active(1)
+        self.sm1.active(1)
+        self.sm2.active(1)
+        self.sm3.active(1)
 
         self.i2c = I2C(0, sda=Pin(0), scl=Pin(1))
         # a lock on the i2c so both thread can use i2c devices
@@ -144,14 +152,22 @@ class LxHardware:
         # need to do this trickery of sh*t to not have a memory allocation error as show
         # here https://forum.micropython.org/viewtopic.php?t=4027
         self.callback = self.call_handlers
+        self.lxEuclidConfig = None
 
+    def set_lxEuclidConfig(self, lxEuclidConfig):
+        self.lxEuclidConfig = lxEuclidConfig
+        
     def clk_pin_change(self, pin):
-        if self.clk_pin_status == self.clk_pin.value():
-            return
-        self.clk_pin_status = self.clk_pin.value()
-        if not self.clk_pin.value():
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.CLK_RISE))
-            self.lxHardwareEventFifo.append(self.clk_rise_event)
+        try:
+            if self.clk_pin_status == self.clk_pin.value():
+                return
+            self.clk_pin_status = self.clk_pin.value()
+            if not self.clk_pin.value():
+                if self.lxEuclidConfig!=None:
+                    if self.lxEuclidConfig.clk_mode ==  self.lxEuclidConfig.CLK_IN:
+                        self.lxEuclidConfig.incr_steps()
+        except Exception as e:
+            print(e)
 
     def rst_pin_change(self, pin):
         if self.rst_pin_status == self.rst_pin.value():
@@ -201,11 +217,14 @@ class LxHardware:
         if index != None:
             self.sw_leds[index].value(0)
 
-    def set_gate(self, gate_index, ):
-        self.gates[gate_index].value(1)
+    def set_gate(self, gate_index, time_tenth_ms):
+        time = time_tenth_ms * 10
+        self.sms[gate_index].put(time)
+        #self.gates[gate_index].value(1)
 
     def clear_gate(self, gate_index):
-        self.gates[gate_index].value(0)
+        pass
+        #self.gates[gate_index].value(0)
 
     def get_touch_circles_updates(self):
         self.i2c_lock.acquire()

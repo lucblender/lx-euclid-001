@@ -352,13 +352,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
             lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin", heigth, width)
 
             self.blit(lxb_fbuf, 120-int(heigth/2), 120-int(width/2))
-        self.show()
+        self.show()        
         sleep(1.5)
         if version != None:
             txt_len = 54  # can't use stinglen since we use default font to not use memory cause we loaded lxb logo
             self.text(version, 120-int(txt_len/2), 200, self.grey)
             self.show()
             sleep(0.5)
+            
+        self.fill(self.black)
         gc.collect()
 
     def set_need_display(self):
@@ -374,14 +376,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
     def display_rythms(self):
         pre_tick = ticks_ms()
-        self.fill(self.black)
         #print("fill black", ticks_ms()-pre_tick) 
-        angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.outer_circle_angle
-        self.draw_approx_pie_slice(
-            [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.grey)
-        angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.inner_circle_angle
-        self.draw_approx_pie_slice(
-            [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.grey)
+       
+        # uncomment to get a pie-slice visualisation of the touch
+        #angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.outer_circle_angle
+        #self.draw_approx_pie_slice(
+        #    [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.grey)
+        #angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.inner_circle_angle
+        #self.draw_approx_pie_slice(
+        #    [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.grey)
 
         self.lxEuclidConfig.state_lock.acquire()
         local_state = self.lxEuclidConfig.state
@@ -511,7 +514,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.display_rythm_circles()
             self.display_enter_return_txt()
 
-        self.show()
+        self.show()        
+        self.fill(self.black)
         self.__need_display = False
         #print("display rhthms", ticks_ms()-pre_tick)
 
@@ -596,7 +600,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         return
         # self.font_writer_font6.text("tap return",40,200,self.rythm_colors[2])
         # self.font_writer_font6.text("enc enter",135,200,self.rythm_colors[2])
-
+"""
     # Draw the approximate pie slice
     # Define a function to draw an approximate pie slice
     def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
@@ -624,3 +628,4 @@ class LCD_1inch28(framebuf.FrameBuffer):
         # Draw the polygon
         self.poly(0, 0, array("h", points), color, True)
         #print("draw_approx_pie_slice", ticks_ms()-a)
+"""
