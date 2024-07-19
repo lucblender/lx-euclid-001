@@ -168,7 +168,8 @@ class ADS1115:
             if write_status == True:
                 self.in_read_non_blocking = True
         else:
-            if self._read_register(_REGISTER_CONFIG) & _OS_NOTBUSY:
+            config_register = self._read_register(_REGISTER_CONFIG) 
+            if config_register != None and config_register & _OS_NOTBUSY:
                 res = self._read_register(_REGISTER_CONVERT)
                 if res != None:
                     self.in_read_non_blocking  = False
