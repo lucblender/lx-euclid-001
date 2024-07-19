@@ -274,48 +274,46 @@ MAIN_MENU_PARAMETER_INDEX = 4
 
 
 class LxEuclidConfig:
-    TAP_MODE = 0
-    CLK_IN = 1
+    TAP_MODE = const(0)
+    CLK_IN = const(1)
 
-    LONG_PRESS_ACTION_NONE = 0
-    LONG_PRESS_ACTION_RESET = 1
-    LONG_PRESS_ACTION_SWITCH_PRESET = 2
+    LONG_PRESS_ACTION_NONE = const(0)
+    LONG_PRESS_ACTION_RESET = const(1)
+    LONG_PRESS_ACTION_SWITCH_PRESET = const(2)
 
-    CIRCLE_ACTION_NONE = 0
-    CIRCLE_ACTION_ROTATE = 1
-    CIRCLE_ACTION_PULSES = 2
-    CIRCLE_ACTION_GATE_LENGTH = 3
+    CIRCLE_ACTION_NONE = const(0)
+    CIRCLE_ACTION_ROTATE = const(1)
+    CIRCLE_ACTION_PULSES = const(2)
+    CIRCLE_ACTION_GATE_LENGTH = const(3)
 
-    CIRCLE_RYTHM_1 = 0
-    CIRCLE_RYTHM_2 = 1
-    CIRCLE_RYTHM_3 = 2
-    CIRCLE_RYTHM_4 = 3
-    CIRCLE_RYTHM_ALL = 4
+    CIRCLE_RYTHM_1 = const(0)
+    CIRCLE_RYTHM_2 = const(1)
+    CIRCLE_RYTHM_3 = const(2)
+    CIRCLE_RYTHM_4 = const(3)
+    CIRCLE_RYTHM_ALL = const(4)
 
-    STATE_INIT = 0
-    STATE_LIVE = 1
-    STATE_PARAMETERS = 2
-    STATE_RYTHM_PARAM_INNER_BEAT_PULSE = 3
-    STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY = 4
+    STATE_INIT = const(0)
+    STATE_LIVE = const(1)
+    STATE_PARAMETERS = const(2)
+    STATE_RYTHM_PARAM_INNER_BEAT_PULSE = const(3)
+    STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(4)
 
-    EVENT_INIT = 0
-    EVENT_ENC_BTN = 1
-    EVENT_ENC_BTN_LONG = 2
-    EVENT_ENC_INCR = 3
-    EVENT_ENC_DECR = 4
-    EVENT_TAP_BTN = 5
-    EVENT_TAP_BTN_LONG = 6
-    EVENT_INNER_CIRCLE_INCR = 7
-    EVENT_INNER_CIRCLE_DECR = 8
-    EVENT_OUTER_CIRCLE_INCR = 9
-    EVENT_OUTER_CIRCLE_DECR = 10
-    EVENT_INNER_CIRCLE_TOUCH = 11
-    EVENT_OUTER_CIRCLE_TOUCH = 12
+    EVENT_INIT = const(0)
+    EVENT_MENU_BTN = const(1)
+    EVENT_MENU_BTN_LONG = const(2)
+    EVENT_TAP_BTN = const(3)
+    EVENT_TAP_BTN_LONG = const(4)
+    EVENT_INNER_CIRCLE_INCR = const(5)
+    EVENT_INNER_CIRCLE_DECR = const(6)
+    EVENT_OUTER_CIRCLE_INCR = const(7)
+    EVENT_OUTER_CIRCLE_DECR = const(8)
+    EVENT_INNER_CIRCLE_TOUCH = const(9)
+    EVENT_OUTER_CIRCLE_TOUCH = const(10)
 
-    EVENT_BTN_SWITCHES = 13
-    EVENT_BTN_SWITCHES_LONG = 14
+    EVENT_BTN_SWITCHES = const(13)
+    EVENT_BTN_SWITCHES_LONG = const(14)
 
-    MAX_CIRCLE_DISPLAY_TIME_MS = 500
+    MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
 
     def __init__(self, lxHardware, LCD):
         self.lxHardware = lxHardware
@@ -364,7 +362,7 @@ class LxEuclidConfig:
         self.menu_navigation_map["Display"]["data_pointer"] = self.LCD
         self.menu_navigation_map["Presets"]["data_pointer"] = self
 
-        self.menu_navigation_map["Interface"]["Encoder"]["data_pointer"] = self
+        self.menu_navigation_map["Interface"]["Menu Button"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Tap Button"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Outer Circle"]["data_pointer"] = self
         self.menu_navigation_map["Interface"]["Inner Circle"]["data_pointer"] = self
@@ -378,7 +376,7 @@ class LxEuclidConfig:
         self._save_preset_index = 0
         self._load_preset_index = 0
 
-        self.encoder_long_press_action = LxEuclidConfig.LONG_PRESS_ACTION_RESET
+        self.menu_btn_long_press_action = LxEuclidConfig.LONG_PRESS_ACTION_RESET
         self.tap_long_press_action = LxEuclidConfig.LONG_PRESS_ACTION_NONE
 
         self.inner_rotate_action = LxEuclidConfig.CIRCLE_ACTION_NONE
@@ -457,17 +455,18 @@ class LxEuclidConfig:
 
         elif self.state == LxEuclidConfig.STATE_LIVE:
             # START STATE LIVE
-            if event == LxEuclidConfig.EVENT_ENC_BTN:
+            if event == LxEuclidConfig.EVENT_MENU_BTN:
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_PARAMETERS
+                self.state = LxEuclidConfig.STATE_PARAMETERS                                    
+                self.lxHardware.set_sw_leds(3)
                 self.state_lock.release()
                 self.sm_rythm_param_counter = 0
-            elif event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
-                if self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_NONE:
+            elif event == LxEuclidConfig.EVENT_MENU_BTN_LONG:
+                if self.menu_btn_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_NONE:
                     pass
-                elif self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_RESET:
+                elif self.menu_btn_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_RESET:
                     self.reset_steps()
-                elif self.encoder_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
+                elif self.menu_btn_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_SWITCH_PRESET:
                     # pass load index from 0 to 1 and 1 to 0
                     self.load_preset_index = 1 - self.load_preset_index
             elif event == LxEuclidConfig.EVENT_TAP_BTN_LONG:
@@ -680,12 +679,12 @@ class LxEuclidConfig:
                             self.highlight_color_euclid = True
 
             # END STATE LIVE
-            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+            elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.menu_lock.acquire()
                 self.sm_rythm_param_counter = (
                     self.sm_rythm_param_counter+1) % 5
                 self.menu_lock.release()
-            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+            elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.menu_lock.acquire()
                 self.sm_rythm_param_counter = (
                     self.sm_rythm_param_counter-1) % 5
@@ -696,9 +695,9 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
                 self.state_lock.release()
-            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
+            elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
-            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
+            elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
                 self.euclideanRythms[self.sm_rythm_param_counter].decr_beats()
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
@@ -713,10 +712,6 @@ class LxEuclidConfig:
                 self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
                 self.lxHardware.clear_sw_leds(data)
-            elif event == LxEuclidConfig.EVENT_ENC_INCR:
-                self.euclideanRythms[self.sm_rythm_param_counter].incr_offset()
-            elif event == LxEuclidConfig.EVENT_ENC_DECR:
-                self.euclideanRythms[self.sm_rythm_param_counter].decr_offset()
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 angle_inner = 180-self.lxHardware.capacitives_circles.inner_circle_angle
                 degree_steps = 360 / \
@@ -731,21 +726,22 @@ class LxEuclidConfig:
                 )
 
         elif self.state == LxEuclidConfig.STATE_PARAMETERS:
-            if event == LxEuclidConfig.EVENT_ENC_BTN or event == LxEuclidConfig.EVENT_ENC_BTN_LONG:
+            if event == LxEuclidConfig.EVENT_MENU_BTN or event == LxEuclidConfig.EVENT_MENU_BTN_LONG:
                 self.menu_lock.acquire()
                 parameter_set = self.menu_enter_pressed()
                 if parameter_set:
                     success = self.menu_back_pressed()
                     if success == False:
                         self.state_lock.acquire()
-                        self.state = LxEuclidConfig.STATE_LIVE
+                        self.state = LxEuclidConfig.STATE_LIVE                        
+                        self.lxHardware.clear_sw_leds(3)
                         self.state_lock.release()
                 self.menu_lock.release()
-            elif event == LxEuclidConfig.EVENT_ENC_INCR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
+            elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.menu_lock.acquire()
                 self.menu_down_action()
                 self.menu_lock.release()
-            elif event == LxEuclidConfig.EVENT_ENC_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
+            elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.menu_lock.acquire()
                 self.menu_up_action()
                 self.menu_lock.release()
@@ -755,7 +751,8 @@ class LxEuclidConfig:
                 success = self.menu_back_pressed()
                 if success == False:
                     self.state_lock.acquire()
-                    self.state = LxEuclidConfig.STATE_LIVE
+                    self.state = LxEuclidConfig.STATE_LIVE                    
+                    self.lxHardware.clear_sw_leds(3)
                     self.state_lock.release()
                 self.menu_lock.release()
     # this function can be called by an interrupt, this is why it cannot allocate any memory
@@ -908,11 +905,11 @@ class LxEuclidConfig:
         dict_data["pr"] = presets_list
 
         interface_dict = {}
-        encoder_dict = {}
+        menu_btn_dict = {}
         tap_btn_dict = {}
-        encoder_dict["e_l_p_a"] = self.encoder_long_press_action
+        menu_btn_dict["m_l_p_a"] = self.menu_btn_long_press_action
         tap_btn_dict["t_l_p_a"] = self.tap_long_press_action
-        interface_dict["e"] = encoder_dict
+        interface_dict["m"] = menu_btn_dict
         interface_dict["t_b"] = tap_btn_dict
 
         inner_circle_dict = {}
@@ -949,7 +946,6 @@ class LxEuclidConfig:
         self.save_data_lock.release()
 
     def test_save_data_in_file(self):
-        return
         self.save_data_lock.acquire()
         if self.need_save_data_in_file:
             self.need_save_data_in_file = False
@@ -1047,10 +1043,10 @@ class LxEuclidConfig:
                 else:
                     full_conf_load = False
 
-                encoder_dict = interface_dict.get("e", None)
-                if encoder_dict != None:
-                    full_conf_load, self.encoder_long_press_action = set_val_dict(
-                        full_conf_load, self.encoder_long_press_action, encoder_dict, "e_l_p_a")
+                menu_btn_dict = interface_dict.get("m", None)
+                if menu_btn_dict != None:
+                    full_conf_load, self.menu_btn_long_press_action = set_val_dict(
+                        full_conf_load, self.menu_btn_long_press_action, menu_btn_dict, "m_l_p_a")
                 else:
                     full_conf_load = False
 

@@ -14,6 +14,8 @@ CLK_IN = const(18)
 RST_IN = const(17)
 BTN_TAP_IN = const(19)
 
+BTN_MENU = const(22)
+
 SW0 = const(19)
 SW1 = const(7)
 SW2 = const(23)
@@ -53,6 +55,8 @@ class LxHardware:
     BTN_TAP_RISE = const(1)
     BTN_TAP_FALL = const(2)
     CLK_RISE = const(3)
+    BTN_MENU_RISE = const(4)
+    BTN_MENU_FALL = const(5)
 
     INNER_CIRCLE_INCR = const(6)
     INNER_CIRCLE_DECR = const(7)
@@ -70,6 +74,9 @@ class LxHardware:
         self.btn_fall_event = HandlerEventData(LxHardware.BTN_TAP_FALL)
         self.btn_rise_event = HandlerEventData(LxHardware.BTN_TAP_RISE)
         self.clk_rise_event = HandlerEventData(LxHardware.CLK_RISE)
+        
+        self.btn_menu_fall_event = HandlerEventData(LxHardware.BTN_MENU_FALL)
+        self.btn_menu_rise_event = HandlerEventData(LxHardware.BTN_MENU_RISE)
 
         self.rst_rise_event = HandlerEventData(LxHardware.RST_RISE)
 
@@ -87,9 +94,12 @@ class LxHardware:
         self.clk_pin = Pin(CLK_IN, Pin.IN)
         self.rst_pin = Pin(RST_IN, Pin.IN)
         self.btn_tap_pin = Pin(BTN_TAP_IN, Pin.IN, Pin.PULL_UP)
+        self.btn_menu_pin = Pin(BTN_MENU, Pin.IN, Pin.PULL_UP)
+        
         self.clk_pin_status = self.clk_pin.value()
         self.rst_pin_status = self.rst_pin.value()
-        self.btn_tap_pin_status = self.btn_tap_pin.value()
+        self.btn_tap_pin_status = self.btn_tap_pin.value()        
+        self.btn_menu_pin_status = self.btn_menu_pin.value()
 
         self.clk_pin.irq(handler=self.clk_pin_change,
                          trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
@@ -97,18 +107,21 @@ class LxHardware:
                          trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
         self.btn_tap_pin.irq(handler=self.btn_tap_pin_change,
                              trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+        
+        self.btn_menu_pin.irq(handler=self.btn_menu_pin_change,
+                        trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
 
         sw_0_pin = Pin(SW0, Pin.IN, Pin.PULL_UP)
         sw_1_pin = Pin(SW1, Pin.IN, Pin.PULL_UP)
         sw_2_pin = Pin(SW2, Pin.IN, Pin.PULL_UP)
         sw_3_pin = Pin(SW3, Pin.IN, Pin.PULL_UP)
 
-        self.sw_pins = [sw_0_pin, sw_1_pin, sw_2_pin, sw_3_pin]
+        self.btn_menu_pins = [sw_0_pin, sw_1_pin, sw_2_pin, sw_3_pin]
 
-        self.sw_pins_status = []
+        self.btn_menu_pins_status = []
 
-        for sw_pin in self.sw_pins:
-            self.sw_pins_status.append(sw_pin.value())
+        for sw_pin in self.btn_menu_pins:
+            self.btn_menu_pins_status.append(sw_pin.value())
 
         sw_0_pin.irq(handler=self.btn_channel_change,
                      trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
@@ -195,11 +208,11 @@ class LxHardware:
 
     def btn_channel_change(self, pin):
         index = 0
-        for sw_pin in self.sw_pins:
+        for sw_pin in self.btn_menu_pins:
             if pin == sw_pin:
-                if self.sw_pins_status[index] == sw_pin.value():
+                if self.btn_menu_pins_status[index] == sw_pin.value():
                     return
-                self.sw_pins_status[index] = sw_pin.value()
+                self.btn_menu_pins_status[index] = sw_pin.value()
                 if sw_pin.value():
                     self.lxHardwareEventFifo.append(
                         self.btn_switches_fall_event[index])
@@ -208,6 +221,15 @@ class LxHardware:
                         self.btn_switches_rise_event[index])
                 break
             index += 1
+            
+    def btn_menu_pin_change(self, pin):
+        if self.btn_menu_pin_status == self.btn_menu_pin.value():
+            return
+        self.btn_menu_pin_status = self.btn_menu_pin.value()
+        if self.btn_menu_pin.value():
+            self.lxHardwareEventFifo.append(self.btn_menu_fall_event)
+        else:
+            self.lxHardwareEventFifo.append(self.btn_menu_rise_event)
 
     def get_btn_tap_pin_value(self):
         return self.btn_tap_pin.value()

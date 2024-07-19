@@ -53,7 +53,7 @@ def get_menu_navigation_map():
                                     }})
 
     interface_dict = OrderedDict()
-    interface_dict["Encoder"] = {"data_pointer": None,
+    interface_dict["Menu Button"] = {"data_pointer": None,
                                  "Long Press": {
                                      "values": ["None", "Reset", "Switch Preset"],
                                      "attribute_name": "encoder_long_press_action"
