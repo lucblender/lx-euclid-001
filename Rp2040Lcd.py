@@ -96,6 +96,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.__need_display = False
         self.need_display_lock = allocate_lock()
+        
+        self.beats_coords = [[0,[0,]],[0,[0,]],[0,[0,]],[0,[0,]]]
+        self.param_beats_coords = [[0,[0,]],[0,[0,]],[0,[0,]],[0,[0,]]]
 
         self.set_bl_pwm(65535)
 
@@ -531,7 +534,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.lxEuclidConfig.state_lock.acquire()
         local_state = self.lxEuclidConfig.state
         self.lxEuclidConfig.state_lock.release()
-
+        local_beat_coord = self.beats_coords
         for euclidieanRythm in self.lxEuclidConfig.euclideanRythms:
 
             beat_color = self.rythm_colors[rythm_index]
@@ -539,7 +542,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             highlight_color = self.white
             if local_state in [self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
-                offset_radius = 15
+                offset_radius = 15                
+                local_beat_coord = self.param_beats_coords
                 if rythm_index != rythm_param_counter:
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
@@ -552,16 +556,20 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             coord = None
             coords = []
-            points = []
             a = ticks_ms()
-            for index in range(0, len_euclidiean_rythm):
-                try:
-                    coord = polar_to_cartesian(radius, index*degree_step-90)
-                    coords.append(coord)
-                    points.extend(coord)
-                except:  # add this try except in the case we do a modification of rythm while trying to display it
-                    #print("miss in for index in range(0, len_euclidiean_rythm):")
-                    pass
+            if local_beat_coord[rythm_index][0] == len_euclidiean_rythm:
+                coords = local_beat_coord[rythm_index][1]
+            else:                
+                for index in range(0, len_euclidiean_rythm):
+                    try:
+                        coord = polar_to_cartesian(radius, index*degree_step-90)
+                        coords.append(coord)
+                    except:  # add this try except in the case we do a modification of rythm while trying to display it
+                        #print("miss in for index in range(0, len_euclidiean_rythm):")
+                        pass
+                local_beat_coord[rythm_index][0] = len_euclidiean_rythm
+                local_beat_coord[rythm_index][1] = coords.copy()
+                
             debug_print("time polar_cart", ticks_ms()-a)
             
 
