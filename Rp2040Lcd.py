@@ -18,13 +18,13 @@ BL = 25
 
 Vbat_Pin = 29
 
-DEBUG = False
+DEBUG = True
 
 sin_table = [0.0, 0.01745241, 0.0348995, 0.05233596, 0.06975647, 0.08715573, 0.1045285, 0.1218693, 0.1391731, 0.1564345, 0.1736482, 0.190809, 0.2079117, 0.2249511, 0.2419219, 0.2588191, 0.2756374, 0.2923717, 0.309017, 0.3255682, 0.3420201, 0.3583679, 0.3746066, 0.3907311, 0.4067367, 0.4226183, 0.4383711, 0.4539905, 0.4694715, 0.4848096, 0.5, 0.5150381, 0.5299192, 0.5446391, 0.5591929, 0.5735765, 0.5877852, 0.601815, 0.6156615, 0.6293204, 0.6427876, 0.656059, 0.6691306, 0.6819983, 0.6946584, 0.7071068, 0.7193398, 0.7313537, 0.7431449, 0.7547095, 0.7660445, 0.777146, 0.7880107, 0.7986355, 0.809017, 0.8191521, 0.8290376, 0.8386705, 0.8480481, 0.8571673, 0.8660254, 0.8746197, 0.8829475, 0.8910066, 0.8987941, 0.9063078, 0.9135455, 0.9205048, 0.9271839, 0.9335804, 0.9396926, 0.9455186, 0.9510566, 0.9563047, 0.9612617, 0.9659258, 0.9702957, 0.9743701, 0.9781476, 0.9816272, 0.9848078, 0.9876884, 0.990268, 0.9925462, 0.9945219, 0.9961947, 0.9975641, 0.9986295, 0.9993908, 0.9998477, 1.0, 0.9998477, 0.9993908, 0.9986295, 0.9975641, 0.9961947, 0.9945219, 0.9925462, 0.990268, 0.9876884, 0.9848078, 0.9816272, 0.9781476, 0.9743701, 0.9702957, 0.9659258, 0.9612617, 0.9563047, 0.9510566, 0.9455186, 0.9396926, 0.9335804, 0.9271839, 0.9205048, 0.9135455, 0.9063078, 0.8987941, 0.8910066, 0.8829475, 0.8746197, 0.8660254, 0.8571673, 0.848048, 0.8386705, 0.8290376, 0.819152, 0.809017, 0.7986355, 0.7880107, 0.7771461, 0.7660444, 0.7547096, 0.7431448, 0.7313537, 0.7193398, 0.7071068, 0.6946585, 0.6819983, 0.6691306, 0.656059, 0.6427876, 0.6293205, 0.6156614, 0.6018151, 0.5877852, 0.5735765, 0.559193, 0.544639, 0.5299193, 0.515038, 0.5, 0.4848095, 0.4694715, 0.4539906, 0.4383711, 0.4226183, 0.4067366, 0.3907311, 0.3746067, 0.3583679, 0.3420202, 0.3255681, 0.309017, 0.2923718, 0.2756374, 0.2588191, 0.2419219, 0.2249511, 0.2079116, 0.190809, 0.1736483, 0.1564344, 0.1391732, 0.1218693, 0.1045285, 0.08715588, 0.06975647, 0.05233605, 0.03489945, 0.01745246, -8.742278e-08, -0.01745239, -0.03489939, -0.05233598, -0.0697564, -0.08715581, -0.1045284, -
              0.1218692, -0.1391731, -0.1564344, -0.1736482, -0.190809, -0.2079118, -0.2249511, -0.2419218, -0.2588191, -0.2756373, -0.2923718, -0.309017, -0.3255681, -0.3420202, -0.3583679, -0.3746066, -0.3907311, -0.4067365, -0.4226183, -0.4383711, -0.4539906, -0.4694715, -0.4848097, -0.5, -0.515038, -0.5299192, -0.544639, -0.5591929, -0.5735764, -0.5877851, -0.601815, -0.6156614, -0.6293204, -0.6427876, -0.6560591, -0.6691306, -0.6819983, -0.6946584, -0.7071068, -0.7193398, -0.7313537, -0.7431448, -0.7547096, -0.7660446, -0.777146, -0.7880107, -0.7986354, -0.8090168, -0.8191521, -0.8290376, -0.8386705, -0.848048, -0.8571671, -0.8660254, -0.8746197, -0.8829475, -0.8910065, -0.8987941, -0.9063078, -0.9135455, -0.9205048, -0.9271838, -0.9335805, -0.9396927, -0.9455186, -0.9510565, -0.9563046, -0.9612617, -0.9659258, -0.9702957, -0.9743701, -0.9781476, -0.9816273, -0.9848078, -0.9876883, -0.990268, -0.9925462, -0.9945219, -0.9961947, -0.997564, -0.9986295, -0.9993908, -0.9998477, -1.0, -0.9998477, -0.9993908, -0.9986295, -0.997564, -0.9961947, -0.9945219, -0.9925462, -0.990268, -0.9876883, -0.9848078, -0.9816273, -0.9781476, -0.97437, -0.9702957, -0.9659258, -0.9612617, -0.9563048, -0.9510565, -0.9455186, -0.9396926, -0.9335805, -0.9271839, -0.9205048, -0.9135454, -0.9063078, -0.8987941, -0.8910067, -0.8829475, -0.8746197, -0.8660254, -0.8571674, -0.848048, -0.8386705, -0.8290376, -0.8191521, -0.8090171, -0.7986354, -0.7880107, -0.777146, -0.7660445, -0.7547097, -0.7431448, -0.7313537, -0.7193398, -0.7071069, -0.6946585, -0.6819983, -0.6691306, -0.6560591, -0.6427877, -0.6293206, -0.6156614, -0.601815, -0.5877853, -0.5735765, -0.5591931, -0.5446389, -0.5299192, -0.5150381, -0.5000002, -0.4848094, -0.4694715, -0.4539905, -0.4383712, -0.4226184, -0.4067365, -0.3907311, -0.3746066, -0.3583681, -0.3420204, -0.325568, -0.3090169, -0.2923717, -0.2756375, -0.2588193, -0.2419218, -0.224951, -0.2079118, -0.1908092, -0.1736485, -0.1564344, -0.1391731, -0.1218694, -0.1045287, -0.08715603, -0.06975638, -0.05233597, -0.0348996, -0.01745261]
 
 
-def debug_print(txt):
+def debug_print(*txt):
     if DEBUG:
         print(txt)
 
@@ -47,9 +47,6 @@ def polar_to_cartesian(radius, theta):
 
 
 class LCD_1inch28(framebuf.FrameBuffer):
-
-    DISPLAY_CIRCLE = 0
-    DISPLAY_LINES = 1
 
     def __init__(self, version=None):
 
@@ -99,7 +96,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.__need_display = False
         self.need_display_lock = allocate_lock()
-        self.display_circle_lines = LCD_1inch28.DISPLAY_CIRCLE
 
         self.set_bl_pwm(65535)
 
@@ -310,7 +306,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.cs(0)
         self.spi.write(self.buffer)
         self.cs(1)
-        #print("show", ticks_ms()-a)
+        debug_print("show", ticks_ms()-a)
 
     def write_cmd_data(self, cmd, datas):
         self.write_cmd(cmd)
@@ -376,7 +372,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
     def display_rythms(self):
         pre_tick = ticks_ms()
-        #print("fill black", ticks_ms()-pre_tick) 
        
         # uncomment to get a pie-slice visualisation of the touch
         #angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.outer_circle_angle
@@ -514,10 +509,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.display_rythm_circles()
             self.display_enter_return_txt()
 
-        self.show()        
+        self.show()
+        
+        debug_print("after show", ticks_ms()-pre_tick) 
         self.fill(self.black)
+        debug_print("fill black", ticks_ms()-pre_tick) 
         self.__need_display = False
-        #print("display rhthms", ticks_ms()-pre_tick)
+        debug_print("display rhthms", ticks_ms()-pre_tick)
+        debug_print(" ")
 
     def display_rythm_circles(self):
         pre_tick = ticks_ms()
@@ -546,8 +545,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     beat_color_hightlight = self.grey
                     highlight_color = self.grey
 
-            if self.display_circle_lines == LCD_1inch28.DISPLAY_CIRCLE:
-                self.circle(120, 120, radius, beat_color, False)
+            self.circle(120, 120, radius, beat_color, False)
 
             len_euclidiean_rythm = len(euclidieanRythm.rythm)
             degree_step = 360/len_euclidiean_rythm
@@ -555,17 +553,17 @@ class LCD_1inch28(framebuf.FrameBuffer):
             coord = None
             coords = []
             points = []
-
+            a = ticks_ms()
             for index in range(0, len_euclidiean_rythm):
                 try:
                     coord = polar_to_cartesian(radius, index*degree_step-90)
                     coords.append(coord)
                     points.extend(coord)
                 except:  # add this try except in the case we do a modification of rythm while trying to display it
+                    #print("miss in for index in range(0, len_euclidiean_rythm):")
                     pass
-
-            if self.display_circle_lines == LCD_1inch28.DISPLAY_LINES:
-                self.poly(120, 120, array("h", points), beat_color, False)
+            debug_print("time polar_cart", ticks_ms()-a)
+            
 
             for index in range(0, len_euclidiean_rythm):
                 try:
@@ -589,12 +587,13 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                     last_coord = coord
                 except Exception as e:  # add this try except in the case we do a modification of rythm while trying to display it
+                    #print("miss in 2nd for index in range(0, len_euclidiean_rythm):")
                     pass
 
             radius = radius - offset_radius
             rythm_index = rythm_index + 1
             
-        #print("display_rythm_circles", ticks_ms()-pre_tick)
+        debug_print("display_rythm_circles", ticks_ms()-pre_tick)
 
     def display_enter_return_txt(self):
         return
@@ -627,5 +626,5 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         # Draw the polygon
         self.poly(0, 0, array("h", points), color, True)
-        #print("draw_approx_pie_slice", ticks_ms()-a)
+        debug_print("draw_approx_pie_slice", ticks_ms()-a)
 """

@@ -359,7 +359,6 @@ class LxEuclidConfig:
         self.menu_navigation_map["CVs"]["CV 3"]["data_pointer"] = self.lxHardware.cv_manager.cvs_data[3]
 
         self.menu_navigation_map["Clock"]["data_pointer"] = self
-        self.menu_navigation_map["Display"]["data_pointer"] = self.LCD
         self.menu_navigation_map["Presets"]["data_pointer"] = self
 
         self.menu_navigation_map["Interface"]["Menu Button"]["data_pointer"] = self
@@ -934,11 +933,8 @@ class LxEuclidConfig:
         clk_dict = {}
         clk_dict["c_m"] = self.clk_mode
         rst_dict = {}
-        display_dict = {}
-        display_dict["d_c_l"] = self.LCD.display_circle_lines
         dict_data["clk"] = clk_dict
         dict_data["rst"] = rst_dict
-        dict_data["d"] = display_dict
 
         self.save_data_lock.acquire()
         self.dict_data_to_save = dict_data
@@ -1085,13 +1081,6 @@ class LxEuclidConfig:
             else:
                 full_conf_load = False
 
-            display_dict = dict_data.get("d", None)
-            if display_dict != None:
-                full_conf_load, self.LCD.display_circle_lines = set_val_dict(
-                    full_conf_load, self.LCD.display_circle_lines, display_dict, "d_c_l")
-            else:
-                full_conf_load = False
-
             if full_conf_load:
                 print("Full configuration was loaded")
             else:
@@ -1111,9 +1100,11 @@ class LxEuclidConfig:
             euclideanRythm.set_rythm()
 
     def update_cvs_parameters(self, cv_data):
+        to_return = False
         cv_channel = cv_data[0]
         rising_edge_detected = cv_data[1]
         if self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action != CvData.CV_ACTION_NONE:
+            to_return = True
             rhythm_channel = self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action_rythm
             percent_value = self.lxHardware.cv_manager.percent_values[cv_channel]
             if self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action == CvData.CV_ACTION_BEATS:
@@ -1128,6 +1119,7 @@ class LxEuclidConfig:
             elif self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action == CvData.CV_ACTION_PROBABILITY:
                 self.euclideanRythms[rhythm_channel].set_pulses_probability_in_percent(
                     percent_value)
+        return to_return
 
     def get_current_data_pointer(self):
         tmp_menu_selected = self.menu_navigation_map

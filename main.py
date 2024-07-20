@@ -10,7 +10,6 @@ import gc
 
 from lxEuclidConfig import LxEuclidConfig
 from lxHardware import LxHardware
-from rotary import Rotary
 from utime import sleep, ticks_ms
 from machine import mem32, Pin
 from sys import print_exception
@@ -34,13 +33,12 @@ CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
 last_timer_launch_ms = ticks_ms()
 last_capacitive_circles_read_ms = ticks_ms()
 
-enc_btn_press = ticks_ms()
+btn_menu_press = ticks_ms()
 tap_btn_press = ticks_ms()
 sw_btns_press = [ticks_ms(),ticks_ms(),ticks_ms(),ticks_ms()]
 stop_thread = False
 wait_display_thread = True
 
-rotary = Rotary(20, 21, 22)
 lxHardware = LxHardware()
 lxEuclidConfig = LxEuclidConfig(lxHardware, LCD)
 
@@ -58,28 +56,8 @@ def debug_print(txt):
     if DEBUG:
         print(txt)
 
-def rotary_changed(change):
-    global lxEuclidConfig, enc_btn_press
-    if change == Rotary.ROT_CCW:
-        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_INCR)
-        LCD.set_need_display()
-    elif change == Rotary.ROT_CW:
-        lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_DECR)
-        LCD.set_need_display()
-    elif change == Rotary.SW_PRESS:
-        tmp_time = ticks_ms()
-        if(tmp_time - enc_btn_press) > DEBOUNCE_MS:
-            enc_btn_press = tmp_time
-    elif change == Rotary.SW_RELEASE:
-        if ticks_ms() - enc_btn_press > LONG_PRESS_MS:
-            lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_BTN_LONG)
-            LCD.set_need_display()
-        else:
-            lxEuclidConfig.on_event(LxEuclidConfig.EVENT_ENC_BTN)
-            LCD.set_need_display()
-
 def lxhardware_changed(handlerEventData):
-    global tap_btn_press
+    global tap_btn_press, btn_menu_press
     event = handlerEventData.event
     if event == lxHardware.CLK_RISE:
         lxEuclidConfig.random_gate_length_update()
@@ -136,11 +114,20 @@ def lxhardware_changed(handlerEventData):
             LCD.set_need_display()
         else:
             lxEuclidConfig.on_event(LxEuclidConfig.EVENT_BTN_SWITCHES, handlerEventData.data)
+            LCD.set_need_display()            
+    elif event == lxHardware.BTN_MENU_RISE:
+        tmp_time = ticks_ms()
+        if(tmp_time - btn_menu_press) > DEBOUNCE_MS:
+            btn_menu_press = tmp_time
+    elif event == lxHardware.BTN_MENU_FALL:
+        if ticks_ms() - btn_menu_press > LONG_PRESS_MS:
+            lxEuclidConfig.on_event(LxEuclidConfig.EVENT_MENU_BTN_LONG)
+            LCD.set_need_display()
+        else:
+            lxEuclidConfig.on_event(LxEuclidConfig.EVENT_MENU_BTN)
             LCD.set_need_display()
                     
-#rotary.add_handler(rotary_changed)
 #lxHardware.add_handler(lxhardware_changed)
-
 
 def is_usb_connected():
     SIE_STATUS=const(0x50110000+0x50)
@@ -157,17 +144,21 @@ def display_thread():
     while wait_display_thread:
         sleep(0.1)
     while not stop_thread:
-        if not in_lxhardware_changed:
-            lxEuclidConfig.test_save_data_in_file()
-            if LCD.get_need_display() == True:
-                #gc.collect()
-                LCD.display_rythms()
-                #gc.collect()
-            if ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
-                #gc.collect()
-                lxHardware.get_touch_circles_updates()
-                last_capacitive_circles_read_ms = ticks_ms()
-                #gc.collect()
+#         try:
+            if not in_lxhardware_changed:
+                lxEuclidConfig.test_save_data_in_file()
+                if LCD.get_need_display() == True:
+                    gc.collect()
+                    LCD.display_rythms()
+                    gc.collect()
+                if ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
+                    #gc.collect()
+                    lxHardware.get_touch_circles_updates()
+                    last_capacitive_circles_read_ms = ticks_ms()
+                    #gc.collect()
+#         except Exception as e:
+#             print("error in display_thread")
+#             append_error(e)
 
 
 def tap_incr_steps(timer=None):
@@ -226,9 +217,9 @@ if __name__=='__main__':
                 else:
                     has_cvs_changed = lxHardware.update_cv_values()
                     if(has_cvs_changed!=None):
-                        lxEuclidConfig.update_cvs_parameters(has_cvs_changed)
-                if(len(rotary.rotaryEventFifo)>0):
-                    rotary_changed(rotary.rotaryEventFifo.popleft())
+                        need_lcd_update = lxEuclidConfig.update_cvs_parameters(has_cvs_changed)
+                        if need_lcd_update:                            
+                            LCD.set_need_display()
 
                 if lxEuclidConfig.clk_mode ==  LxEuclidConfig.TAP_MODE:
                     # due to some micropython bug  (https://forum.micropython.org/viewtopic.php?f=21&t=12639)
