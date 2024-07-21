@@ -34,7 +34,8 @@ class BlockDevice:
     # Handle special cases of a slice. Always return a pair of positive indices.
     def _do_slice(self, addr):
         if not (addr.step is None or addr.step == 1):
-            raise NotImplementedError("only slices with step=1 (aka None) are supported")
+            raise NotImplementedError(
+                "only slices with step=1 (aka None) are supported")
         start = addr.start if addr.start is not None else 0
         stop = addr.stop if addr.stop is not None else self._a_bytes
         start = start if start >= 0 else self._a_bytes + start
@@ -106,7 +107,8 @@ class EepromDevice(BlockDevice):
             r = (16, 32, 64, 128)  # Legal page sizes + 256
             for x in r:
                 self[x] = 255  # Write single bytes, don't invoke page write
-            self[0:129] = b"\0" * 129  # Zero 129 bytes attempting to use 256 byte pages
+            # Zero 129 bytes attempting to use 256 byte pages
+            self[0:129] = b"\0" * 129
             try:
                 ps = next(z for z in r if self[z])
             except StopIteration:
@@ -153,10 +155,11 @@ class FlashDevice(BlockDevice):
                 boff += nr
             # addr now >= self._acache: read from cache.
             sa = addr - self._acache  # Offset into cache
-            nr = min(nbytes, self._acache + self.sec_size - addr)  # No of bytes to read from cache
-            mvb[boff : boff + nr] = self._mvd[sa : sa + nr]
+            # No of bytes to read from cache
+            nr = min(nbytes, self._acache + self.sec_size - addr)
+            mvb[boff: boff + nr] = self._mvd[sa: sa + nr]
             if nbytes - nr:  # Get any remaining data from chip
-                self.rdchip(addr + nr, mvb[boff + nr :])
+                self.rdchip(addr + nr, mvb[boff + nr:])
         return mvb
 
     def sync(self):
@@ -176,8 +179,9 @@ class FlashDevice(BlockDevice):
                 self.sync()  # Erase sector and write out old data
                 self._fill_cache(addr)  # Cache sector which includes addr
             offs = addr & self._cache_mask  # Offset into cache
-            npage = min(nbytes, self.sec_size - offs)  # No. of bytes in current sector
-            self._mvd[offs : offs + npage] = mvb[boff : boff + npage]
+            # No. of bytes in current sector
+            npage = min(nbytes, self.sec_size - offs)
+            self._mvd[offs: offs + npage] = mvb[boff: boff + npage]
             self._dirty = True  # Cache contents do not match those of chip
             nbytes -= npage
             boff += npage

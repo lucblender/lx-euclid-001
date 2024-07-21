@@ -20,6 +20,8 @@ T24C32 = const(4096)  # 4KiB 32Kbits
 
 # Logical EEPROM device consists of 1-8 physical chips. Chips must all be the
 # same size, and must have contiguous addresses.
+
+
 class EEPROM(EepromDevice):
     def __init__(
         self,
@@ -35,7 +37,8 @@ class EEPROM(EepromDevice):
         if chip_size not in (T24C32, T24C64, T24C128, T24C256, T24C512) and verbose:
             print("Warning: possible unsupported chip. Size:", chip_size)
         # Get no. of EEPROM chips
-        nchips, min_chip_address = self.scan(verbose, chip_size, addr, max_chips_count)
+        nchips, min_chip_address = self.scan(
+            verbose, chip_size, addr, max_chips_count)
         self._min_chip_address = min_chip_address
         self._i2c_addr = 0  # I2C address of current chip
         self._buf1 = bytearray(1)
@@ -47,7 +50,8 @@ class EEPROM(EepromDevice):
     # Check for a valid hardware configuration
     def scan(self, verbose, chip_size, addr, max_chips_count):
         devices = self._i2c.scan()  # All devices on I2C bus
-        eeproms = [d for d in devices if addr <= d < addr + max_chips_count]  # EEPROM chips
+        eeproms = [d for d in devices if addr <= d <
+                   addr + max_chips_count]  # EEPROM chips
         nchips = len(eeproms)
         if nchips == 0:
             raise RuntimeError("EEPROM not found.")
@@ -77,7 +81,8 @@ class EEPROM(EepromDevice):
     def _getaddr(self, addr, nbytes):  # Set up _addrbuf and _i2c_addr
         if addr >= self._a_bytes:
             raise RuntimeError("EEPROM Address is out of range")
-        ca, la = divmod(addr, self._c_bytes)  # ca == chip no, la == offset into chip
+        # ca == chip no, la == offset into chip
+        ca, la = divmod(addr, self._c_bytes)
         self._addrbuf[0] = (la >> 8) & 0xFF
         self._addrbuf[1] = la & 0xFF
         self._i2c_addr = self._min_chip_address + ca
@@ -96,9 +101,11 @@ class EEPROM(EepromDevice):
             vaddr = self._addrbuf[1:] if self._onebyte else self._addrbuf
             if read:
                 self._i2c.writeto(self._i2c_addr, vaddr)
-                self._i2c.readfrom_into(self._i2c_addr, mvb[start : start + npage])
+                self._i2c.readfrom_into(
+                    self._i2c_addr, mvb[start: start + npage])
             else:
-                self._i2c.writevto(self._i2c_addr, (vaddr, buf[start : start + npage]))
+                self._i2c.writevto(
+                    self._i2c_addr, (vaddr, buf[start: start + npage]))
                 self._wait_rdy()
             nbytes -= npage
             start += npage

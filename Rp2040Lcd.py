@@ -1,7 +1,6 @@
-from machine import Pin,SPI,PWM
+from machine import Pin, SPI, PWM
 import framebuf
 from utime import sleep, ticks_ms
-from math import radians, sin, cos
 from array import array
 
 import writer
@@ -21,41 +20,50 @@ Vbat_Pin = 29
 
 DEBUG = False
 
-def debug_print(txt):
+sin_table = [0.0, 0.01745241, 0.0348995, 0.05233596, 0.06975647, 0.08715573, 0.1045285, 0.1218693, 0.1391731, 0.1564345, 0.1736482, 0.190809, 0.2079117, 0.2249511, 0.2419219, 0.2588191, 0.2756374, 0.2923717, 0.309017, 0.3255682, 0.3420201, 0.3583679, 0.3746066, 0.3907311, 0.4067367, 0.4226183, 0.4383711, 0.4539905, 0.4694715, 0.4848096, 0.5, 0.5150381, 0.5299192, 0.5446391, 0.5591929, 0.5735765, 0.5877852, 0.601815, 0.6156615, 0.6293204, 0.6427876, 0.656059, 0.6691306, 0.6819983, 0.6946584, 0.7071068, 0.7193398, 0.7313537, 0.7431449, 0.7547095, 0.7660445, 0.777146, 0.7880107, 0.7986355, 0.809017, 0.8191521, 0.8290376, 0.8386705, 0.8480481, 0.8571673, 0.8660254, 0.8746197, 0.8829475, 0.8910066, 0.8987941, 0.9063078, 0.9135455, 0.9205048, 0.9271839, 0.9335804, 0.9396926, 0.9455186, 0.9510566, 0.9563047, 0.9612617, 0.9659258, 0.9702957, 0.9743701, 0.9781476, 0.9816272, 0.9848078, 0.9876884, 0.990268, 0.9925462, 0.9945219, 0.9961947, 0.9975641, 0.9986295, 0.9993908, 0.9998477, 1.0, 0.9998477, 0.9993908, 0.9986295, 0.9975641, 0.9961947, 0.9945219, 0.9925462, 0.990268, 0.9876884, 0.9848078, 0.9816272, 0.9781476, 0.9743701, 0.9702957, 0.9659258, 0.9612617, 0.9563047, 0.9510566, 0.9455186, 0.9396926, 0.9335804, 0.9271839, 0.9205048, 0.9135455, 0.9063078, 0.8987941, 0.8910066, 0.8829475, 0.8746197, 0.8660254, 0.8571673, 0.848048, 0.8386705, 0.8290376, 0.819152, 0.809017, 0.7986355, 0.7880107, 0.7771461, 0.7660444, 0.7547096, 0.7431448, 0.7313537, 0.7193398, 0.7071068, 0.6946585, 0.6819983, 0.6691306, 0.656059, 0.6427876, 0.6293205, 0.6156614, 0.6018151, 0.5877852, 0.5735765, 0.559193, 0.544639, 0.5299193, 0.515038, 0.5, 0.4848095, 0.4694715, 0.4539906, 0.4383711, 0.4226183, 0.4067366, 0.3907311, 0.3746067, 0.3583679, 0.3420202, 0.3255681, 0.309017, 0.2923718, 0.2756374, 0.2588191, 0.2419219, 0.2249511, 0.2079116, 0.190809, 0.1736483, 0.1564344, 0.1391732, 0.1218693, 0.1045285, 0.08715588, 0.06975647, 0.05233605, 0.03489945, 0.01745246, -8.742278e-08, -0.01745239, -0.03489939, -0.05233598, -0.0697564, -0.08715581, -0.1045284, -
+             0.1218692, -0.1391731, -0.1564344, -0.1736482, -0.190809, -0.2079118, -0.2249511, -0.2419218, -0.2588191, -0.2756373, -0.2923718, -0.309017, -0.3255681, -0.3420202, -0.3583679, -0.3746066, -0.3907311, -0.4067365, -0.4226183, -0.4383711, -0.4539906, -0.4694715, -0.4848097, -0.5, -0.515038, -0.5299192, -0.544639, -0.5591929, -0.5735764, -0.5877851, -0.601815, -0.6156614, -0.6293204, -0.6427876, -0.6560591, -0.6691306, -0.6819983, -0.6946584, -0.7071068, -0.7193398, -0.7313537, -0.7431448, -0.7547096, -0.7660446, -0.777146, -0.7880107, -0.7986354, -0.8090168, -0.8191521, -0.8290376, -0.8386705, -0.848048, -0.8571671, -0.8660254, -0.8746197, -0.8829475, -0.8910065, -0.8987941, -0.9063078, -0.9135455, -0.9205048, -0.9271838, -0.9335805, -0.9396927, -0.9455186, -0.9510565, -0.9563046, -0.9612617, -0.9659258, -0.9702957, -0.9743701, -0.9781476, -0.9816273, -0.9848078, -0.9876883, -0.990268, -0.9925462, -0.9945219, -0.9961947, -0.997564, -0.9986295, -0.9993908, -0.9998477, -1.0, -0.9998477, -0.9993908, -0.9986295, -0.997564, -0.9961947, -0.9945219, -0.9925462, -0.990268, -0.9876883, -0.9848078, -0.9816273, -0.9781476, -0.97437, -0.9702957, -0.9659258, -0.9612617, -0.9563048, -0.9510565, -0.9455186, -0.9396926, -0.9335805, -0.9271839, -0.9205048, -0.9135454, -0.9063078, -0.8987941, -0.8910067, -0.8829475, -0.8746197, -0.8660254, -0.8571674, -0.848048, -0.8386705, -0.8290376, -0.8191521, -0.8090171, -0.7986354, -0.7880107, -0.777146, -0.7660445, -0.7547097, -0.7431448, -0.7313537, -0.7193398, -0.7071069, -0.6946585, -0.6819983, -0.6691306, -0.6560591, -0.6427877, -0.6293206, -0.6156614, -0.601815, -0.5877853, -0.5735765, -0.5591931, -0.5446389, -0.5299192, -0.5150381, -0.5000002, -0.4848094, -0.4694715, -0.4539905, -0.4383712, -0.4226184, -0.4067365, -0.3907311, -0.3746066, -0.3583681, -0.3420204, -0.325568, -0.3090169, -0.2923717, -0.2756375, -0.2588193, -0.2419218, -0.224951, -0.2079118, -0.1908092, -0.1736485, -0.1564344, -0.1391731, -0.1218694, -0.1045287, -0.08715603, -0.06975638, -0.05233597, -0.0348996, -0.01745261]
+
+
+def debug_print(*txt):
     if DEBUG:
         print(txt)
 
-def rgb888_to_rgb565(R,G,B): # Convert RGB888 to RGB565
-    return const((((G&0b00011100)<<3) +((B&0b11111000)>>3)<<8) + (R&0b11111000)+((G&0b11100000)>>5))
 
-def pict_to_fbuff(path,x,y):
+def rgb888_to_rgb565(R, G, B):  # Convert RGB888 to RGB565
+    return const((((G & 0b00011100) << 3) + ((B & 0b11111000) >> 3) << 8) + (R & 0b11111000)+((G & 0b11100000) >> 5))
+
+
+def pict_to_fbuff(path, x, y):
     with open(path, 'rb') as f:
         data = bytearray(f.read())
     return framebuf.FrameBuffer(data, x, y, framebuf.RGB565)
 
+
 def polar_to_cartesian(radius, theta):
-    rad_theta = radians(theta)
-    x = radius * cos(rad_theta)
-    y = radius * sin(rad_theta)
-    return int(x),int(y)
+    # rad_theta = radians(theta)
+    x = radius * sin_table[int(90+theta) % 360]
+    y = radius * sin_table[int(theta)]
+    return int(x), int(y)
+
 
 class LCD_1inch28(framebuf.FrameBuffer):
+    
+    OFFSET_RADIUS_LIVE = const(20)
+    OFFSET_RADIUS_PARAM = const(15)
 
-    DISPLAY_CIRCLE = 0
-    DISPLAY_LINES = 1
-
-    def __init__(self, version = None):
+    def __init__(self, version=None):
 
         self.lxEuclidConfig = None
         self.width = 240
         self.height = 240
 
-        self.cs = Pin(CS,Pin.OUT)
-        self.rst = Pin(RST,Pin.OUT)
+        self.cs = Pin(CS, Pin.OUT)
+        self.rst = Pin(RST, Pin.OUT)
 
         self.cs(1)
-        self.spi = SPI(1,100_000_000,polarity=0, phase=0,sck=Pin(SCK),mosi=Pin(MOSI),miso=None)
-        self.dc = Pin(DC,Pin.OUT)
+        self.spi = SPI(1, 200_000_000, polarity=0, phase=0,
+                       sck=Pin(SCK), mosi=Pin(MOSI), miso=None)
+        self.dc = Pin(DC, Pin.OUT)
         self.dc(1)
 
         self.buffer = bytearray(self.height * self.width * 2)
@@ -64,21 +72,21 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.init_display()
         gc.collect()
 
-        self.blue  =   0x07E0
-        self.green =   0x001f
-        self.red   =   0xf800
-        self.white =   0xffff
-        self.black =   0x0000
-        self.grey =    rgb888_to_rgb565(54,54,54)
-        self.touch_circle_color_highlight = rgb888_to_rgb565(255,221,0)
-        self.touch_circle_color = rgb888_to_rgb565(176,157,34)
+        self.blue = 0x07E0
+        self.green = 0x001f
+        self.red = 0xf800
+        self.white = 0xffff
+        self.black = 0x0000
+        self.grey = rgb888_to_rgb565(54, 54, 54)
+        self.touch_circle_color_highlight = rgb888_to_rgb565(255, 221, 0)
+        self.touch_circle_color = rgb888_to_rgb565(176, 157, 34)
 
         # each array has 5 colors, 4 for the circles, the 5th used when the infos concerns all the circles
-        self.rythm_colors = [rgb888_to_rgb565(255,176,31),rgb888_to_rgb565(255,130,218),rgb888_to_rgb565(122,155,255),rgb888_to_rgb565(156, 255, 237), self.white]
-        self.rythm_colors_turing = [rgb888_to_rgb565(237,69,86),rgb888_to_rgb565(209, 52, 68),rgb888_to_rgb565(176, 33, 48),rgb888_to_rgb565(122, 13, 24), self.white]
+        self.rythm_colors = [rgb888_to_rgb565(255, 136, 31), rgb888_to_rgb565(
+            255, 130, 218), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(156, 255, 237), self.white]
 
-        self.rythm_colors_highlight = [rgb888_to_rgb565(250, 203, 115),rgb888_to_rgb565(250, 180, 229),rgb888_to_rgb565(176, 196, 255),rgb888_to_rgb565(195, 250, 240), self.white]
-        self.rythm_colors_turing_highlight = [rgb888_to_rgb565(250, 135, 147),rgb888_to_rgb565(237,69,86),rgb888_to_rgb565(209, 52, 68),rgb888_to_rgb565(176, 33, 48),rgb888_to_rgb565(122, 13, 24), self.white]
+        self.rythm_colors_highlight = [rgb888_to_rgb565(253, 168, 94), rgb888_to_rgb565(
+            250, 180, 229), rgb888_to_rgb565(176, 196, 255), rgb888_to_rgb565(195, 250, 240), self.white]
 
         self.fill(self.white)
         self.show()
@@ -86,47 +94,49 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.pwm = PWM(Pin(BL))
         self.pwm.freq(5000)
 
-        self.font_writer_freesans20 = None #writer.Writer(self, freesans20)
-        self.font_writer_font6 = None #writer.Writer(self, font6)
+        self.font_writer_freesans20 = None  # writer.Writer(self, freesans20)
+        self.font_writer_font6 = None  # writer.Writer(self, font6)
 
-        self.__need_display = False        
+        self.__need_display = False
         self.need_display_lock = allocate_lock()
-        self.display_circle_lines = LCD_1inch28.DISPLAY_CIRCLE
+        
+        self.beats_coords = [[0,[0,]],[0,[0,]],[0,[0,]],[0,[0,]]]
+        self.param_beats_coords = [[0,[0,]],[0,[0,]],[0,[0,]],[0,[0,]]]
 
         self.set_bl_pwm(65535)
-        
+
         missing_files = ""
-        
+
         try:
-            open("helixbyte_r5g6b5.bin","r")
+            open("helixbyte_r5g6b5.bin", "r")
         except:
             missing_files += "helixbyte_r5g6b5.bin\n"
-        
+
         try:
-            open("parameter_selected.bin","r")
+            open("parameter_selected.bin", "r")
         except:
             missing_files += "parameter_selected.bin\n"
-        
+
         try:
-            open("parameter_unselected.bin","r")
+            open("parameter_unselected.bin", "r")
         except:
             missing_files += "parameter_unselected.bin\n"
-        
+
         self.display_lxb_logo(version, missing_files)
         gc.collect()
-        
+
         try:
-            self.parameter_selected = pict_to_fbuff("parameter_selected.bin",40,40)
+            self.parameter_selected = pict_to_fbuff(
+                "parameter_selected.bin", 40, 40)
         except:
             self.parameter_selected = None
-        
+
         try:
-            self.parameter_unselected = pict_to_fbuff("parameter_unselected.bin",40,40)
+            self.parameter_unselected = pict_to_fbuff(
+                "parameter_unselected.bin", 40, 40)
         except:
             self.parameter_unselected = None
 
-        
-        
         gc.collect()
         self.load_fonts()
         gc.collect()
@@ -153,8 +163,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.cs(0)
         self.spi.write(bytearray([buf]))
         self.cs(1)
-    def set_bl_pwm(self,duty):
-        self.pwm.duty_u16(duty)#max 65535
+
+    def set_bl_pwm(self, duty):
+        self.pwm.duty_u16(duty)  # max 65535
+
     def init_display(self):
         """Initialize dispaly"""
         self.rst(1)
@@ -207,68 +219,71 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.write_cmd(0x8E)
         self.write_data(0xFF)
 
-        self.write_cmd_data(0x8F,[0xFF])
+        self.write_cmd_data(0x8F, [0xFF])
 
+        self.write_cmd_data(0xB6, [0x00, 0x20])
 
-        self.write_cmd_data(0xB6, [0x00,0x20])
+        # 0x08 normal config 0x58 flipped config
+        self.write_cmd_data(0x36, [0x08])
 
-        self.write_cmd_data(0x36, [0x08]) #0x08 normal config 0x58 flipped config
+        self.write_cmd_data(0x3A, [0x05])
 
-        self.write_cmd_data(0x3A,[0x05])
-
-        self.write_cmd_data(0x90,[0x08,0x08,0x08,0x08])
+        self.write_cmd_data(0x90, [0x08, 0x08, 0x08, 0x08])
 
         self.write_cmd_data(0xBD, [0x06])
 
-        self.write_cmd_data(0xBC,[0x00])
+        self.write_cmd_data(0xBC, [0x00])
 
-        self.write_cmd_data(0xFF, [0x60,0x01,0x04])
+        self.write_cmd_data(0xFF, [0x60, 0x01, 0x04])
 
-        self.write_cmd_data(0xC3,[0x13])
-        
-        self.write_cmd_data(0xC4,[0x13])
+        self.write_cmd_data(0xC3, [0x13])
 
-        self.write_cmd_data(0xC9,[0x22])
+        self.write_cmd_data(0xC4, [0x13])
 
-        self.write_cmd_data(0xBE,[0x11])
+        self.write_cmd_data(0xC9, [0x22])
 
-        self.write_cmd_data(0xE1,[0x10,0x0E])
+        self.write_cmd_data(0xBE, [0x11])
 
-        self.write_cmd_data(0xDF,[0x21,0x0c,0x02])
+        self.write_cmd_data(0xE1, [0x10, 0x0E])
 
-        self.write_cmd_data(0xF0,[0x45,0x09,0x08,0x08,0x26,0x2A])
+        self.write_cmd_data(0xDF, [0x21, 0x0c, 0x02])
 
-        self.write_cmd_data(0xF1,[0x43,0x70,0x72,0x36,0x37,0x6F])
+        self.write_cmd_data(0xF0, [0x45, 0x09, 0x08, 0x08, 0x26, 0x2A])
 
+        self.write_cmd_data(0xF1, [0x43, 0x70, 0x72, 0x36, 0x37, 0x6F])
 
-        self.write_cmd_data(0xF2,[0x45,0x09,0x08,0x08,0x26,0x2A])
+        self.write_cmd_data(0xF2, [0x45, 0x09, 0x08, 0x08, 0x26, 0x2A])
 
-        self.write_cmd_data(0xF3,[0x43,0x70,0x72,0x36,0x37,0x6F])
+        self.write_cmd_data(0xF3, [0x43, 0x70, 0x72, 0x36, 0x37, 0x6F])
 
-        self.write_cmd_data(0xED,[0x1B,0x0B])
+        self.write_cmd_data(0xED, [0x1B, 0x0B])
 
-        self.write_cmd_data(0xAE,[0x77])
+        self.write_cmd_data(0xAE, [0x77])
 
-        self.write_cmd_data(0xCD,[0x63])
+        self.write_cmd_data(0xCD, [0x63])
 
+        self.write_cmd_data(
+            0x70, [0x07, 0x07, 0x04, 0x0E, 0x0F, 0x09, 0x07, 0x08, 0x03])
 
-        self.write_cmd_data(0x70,[0x07,0x07,0x04,0x0E,0x0F,0x09,0x07,0x08,0x03])
+        self.write_cmd_data(0xE8, [0x34])
 
-        self.write_cmd_data(0xE8,[0x34])
+        self.write_cmd_data(
+            0x62, [0x18, 0x0D, 0x71, 0xED, 0x70, 0x70, 0x18, 0x0F, 0x71, 0xEF, 0x70, 0x70])
 
-        self.write_cmd_data(0x62,[0x18,0x0D,0x71,0xED,0x70,0x70,0x18,0x0F,0x71,0xEF,0x70,0x70])
+        self.write_cmd_data(
+            0x63, [0x18, 0x11, 0x71, 0xF1, 0x70, 0x70, 0x18, 0x13, 0x71, 0xF3, 0x70, 0x70])
 
-        self.write_cmd_data(0x63,[0x18,0x11,0x71,0xF1,0x70,0x70,0x18,0x13,0x71,0xF3,0x70,0x70])
+        self.write_cmd_data(0x64, [0x28, 0x29, 0xF1, 0x01, 0xF1, 0x00, 0x07])
 
-        self.write_cmd_data(0x64,[0x28,0x29,0xF1,0x01,0xF1,0x00,0x07])
+        self.write_cmd_data(
+            0x66, [0x3C, 0x00, 0xCD, 0x67, 0x45, 0x45, 0x10, 0x00, 0x00, 0x00])
 
-        self.write_cmd_data(0x66,[0x3C,0x00,0xCD,0x67,0x45,0x45,0x10,0x00,0x00,0x00])
+        self.write_cmd_data(
+            0x67, [0x00, 0x3C, 0x00, 0x00, 0x00, 0x01, 0x54, 0x10, 0x32, 0x98])
 
-        self.write_cmd_data(0x67,[0x00,0x3C,0x00,0x00,0x00,0x01,0x54,0x10,0x32,0x98])
+        self.write_cmd_data(0x74, [0x10, 0x85, 0x80, 0x00, 0x00, 0x4E, 0x00])
 
-        self.write_cmd_data(0x74,[0x10,0x85,0x80,0x00,0x00,0x4E,0x00])
-
-        self.write_cmd_data(0x98,[0x3e,0x07])
+        self.write_cmd_data(0x98, [0x3e, 0x07])
 
         self.write_cmd(0x35)
         self.write_cmd(0x21)
@@ -285,9 +300,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.write_cmd(0x29)
 
     def show(self):
-        self.write_cmd_data(0x2A,[0x00,0x00,0x00,0xef])
+        a = ticks_ms()
+        self.write_cmd_data(0x2A, [0x00, 0x00, 0x00, 0xef])
 
-        self.write_cmd_data(0x2B,[0x00,0x00,0x00,0xEF])
+        self.write_cmd_data(0x2B, [0x00, 0x00, 0x00, 0xEF])
 
         self.write_cmd(0x2C)
 
@@ -296,56 +312,57 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.cs(0)
         self.spi.write(self.buffer)
         self.cs(1)
-        
+        debug_print("show", ticks_ms()-a)
+
     def write_cmd_data(self, cmd, datas):
         self.write_cmd(cmd)
         for data in datas:
             self.write_data(data)
-        
 
-    def circle(self,x,y,radius,color,filled):
-        self.ellipse(x,y,radius,radius,color,filled)
+    def circle(self, x, y, radius, color, filled):
+        self.ellipse(x, y, radius, radius, color, filled)
 
     def display_programming_mode(self):
         self.fill(self.white)
-        self.text("Programming mode",30,60,self.black)
+        self.text("Programming mode", 30, 60, self.black)
         self.show()
-        
+
     def display_error(self, error_message):
         self.fill(self.white)
         error_message = error_message.split("\n")
         i = 0
         for error_line in error_message:
-            self.text(error_line,50,120+i*10,self.grey)
-            i+=1
+            self.text(error_line, 50, 120+i*10, self.grey)
+            i += 1
         self.show()
         sleep(1.5)
 
-    def display_lxb_logo(self, version = None, missing_files = ""):
-        #lxb_fbuf = zlib_pict_to_fbuff("helixbyte.z",89,120)
+    def display_lxb_logo(self, version=None, missing_files=""):
+        # lxb_fbuf = zlib_pict_to_fbuff("helixbyte.z",89,120)
         gc.collect()
-        
+
         if missing_files != "":
             missing_files = "missing files:\n"+missing_files
             missing_files = missing_files.split("\n")
             i = 0
             for missing_file in missing_files:
-                self.text(missing_file,50,120+i*10,self.grey)
-                i+=1
+                self.text(missing_file, 50, 120+i*10, self.grey)
+                i += 1
         else:
             width = 100
             heigth = 74
-            lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin",heigth,width)
-
+            lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin", heigth, width)
 
             self.blit(lxb_fbuf, 120-int(heigth/2), 120-int(width/2))
-        self.show()
+        self.show()        
         sleep(1.5)
-        if version!= None:
-            txt_len = 54 # can't use stinglen since we use default font to not use memory cause we loaded lxb logo
-            self.text(version,120-int(txt_len/2),200,self.grey)
+        if version != None:
+            txt_len = 54  # can't use stinglen since we use default font to not use memory cause we loaded lxb logo
+            self.text(version, 120-int(txt_len/2), 200, self.grey)
             self.show()
             sleep(0.5)
+            
+        self.fill(self.black)
         gc.collect()
 
     def set_need_display(self):
@@ -361,48 +378,35 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
     def display_rythms(self):
         pre_tick = ticks_ms()
-        self.fill(self.black)
-        angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.outer_circle_angle
-        self.draw_approx_pie_slice([120,120],110,120,angle_outer-10,angle_outer+10,self.grey)
-        angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.inner_circle_angle
-        self.draw_approx_pie_slice([120,120],90,100,angle_inner-10,angle_inner+10,self.grey)
-        
+       
+        # uncomment to get a pie-slice visualisation of the touch
+        #angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.outer_circle_angle
+        #self.draw_approx_pie_slice(
+        #    [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.grey)
+        #angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.inner_circle_angle
+        #self.draw_approx_pie_slice(
+        #    [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.grey)
+
         self.lxEuclidConfig.state_lock.acquire()
         local_state = self.lxEuclidConfig.state
-        self.lxEuclidConfig.state_lock.release()        
-        
+        self.lxEuclidConfig.state_lock.release()
+
         if local_state == self.lxEuclidConfig.STATE_LIVE:
             self.display_rythm_circles()
             if self.lxEuclidConfig.need_circle_action_display == True:
-                txt = self.lxEuclidConfig.action_display_info 
+                txt = self.lxEuclidConfig.action_display_info
                 txt_len = self.font_writer_freesans20.stringlen(txt)
                 if self.lxEuclidConfig.highlight_color_euclid:
                     color = self.rythm_colors[self.lxEuclidConfig.action_display_index]
-                else:
-                    color = self.rythm_colors_turing[self.lxEuclidConfig.action_display_index]
-                self.font_writer_freesans20.text(txt,120-int(txt_len/2),110, color)
-        elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT:
-            
-            self.lxEuclidConfig.menu_lock.acquire()
-            rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
-            self.lxEuclidConfig.menu_lock.release()           
-
-            if rythm_param_counter== 4:
-                if self.parameter_selected != None:
-                    self.blit(self.parameter_selected, 100, 100)
-            else:
-                if self.parameter_unselected != None:
-                    self.blit(self.parameter_unselected, 100, 100)
-
-            self.display_rythm_circles()
-            self.display_enter_return_txt()
+                self.font_writer_freesans20.text(
+                    txt, 120-int(txt_len/2), 110, color)      
 
         elif local_state == self.lxEuclidConfig.STATE_PARAMETERS:
-            #TODO Disabled during parameters self.display_rythm_circles()
+            # TODO Disabled during parameters self.display_rythm_circles()
             self.display_enter_return_txt()
-            
+
             self.lxEuclidConfig.menu_lock.acquire()
-            #get all data from lxEuclidConfig in local variables
+            # get all data from lxEuclidConfig in local variables
             current_keys, in_last_sub_menu, _ = self.lxEuclidConfig.get_current_menu_keys()
             current_menu_len = len(current_keys)
             current_menu_selected = self.lxEuclidConfig.current_menu_selected
@@ -419,7 +423,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
             for sub_path in menu_path:
                 path = path + sub_path + "/"
             path_len = self.font_writer_font6.stringlen(path)
-            self.font_writer_font6.text(path,120-int(path_len/2),130+origin_y,self.rythm_colors[0])
+            self.font_writer_font6.text(
+                path, 120-int(path_len/2), 130+origin_y, self.rythm_colors[0])
 
             offset_menu_text = 25
 
@@ -427,7 +432,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             range_high = current_menu_selected + 2
 
             general_index = 0
-            for menu_index in range(range_low,range_high):
+            for menu_index in range(range_low, range_high):
                 if menu_index >= 0 and menu_index < current_menu_len:
                     if menu_index == current_menu_selected:
 
@@ -436,203 +441,201 @@ class LCD_1inch28(framebuf.FrameBuffer):
                             txt = "-"+txt+"-"
                         txt = "> "+txt+" <"
                         txt_len = self.font_writer_freesans20.stringlen(txt)
-                        self.font_writer_freesans20.text(txt,120-int(txt_len/2),origin_y+9+offset_menu_text*general_index, self.white)
+                        self.font_writer_freesans20.text(
+                            txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, self.white)
                     else:
 
                         txt = current_keys[menu_index]
                         if in_last_sub_menu and current_menu_value == menu_index:
                             txt = "-"+txt+"-"
                         txt_len = self.font_writer_freesans20.stringlen(txt)
-                        self.font_writer_freesans20.text(txt,120-int(txt_len/2),origin_y+9+offset_menu_text*general_index,self.rythm_colors[3])
+                        self.font_writer_freesans20.text(
+                            txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, self.rythm_colors[3])
 
                 general_index = general_index+1
 
-            #side scrollbar
+            # side scrollbar
             scrollbar_x = 220
             scrollbar_y = 75
             scrollbar_height = 90
             scrollbar_width = 6
 
-            self.rect(scrollbar_x,scrollbar_y, scrollbar_width, scrollbar_height, self.white)
+            self.rect(scrollbar_x, scrollbar_y, scrollbar_width,
+                      scrollbar_height, self.white)
 
             max_scrollbar_size_float = scrollbar_height / current_menu_len
             max_scrollbar_size = int(max_scrollbar_size_float)
             if max_scrollbar_size == 0:
                 max_scrollbar_size = 1
-            self.fill_rect(scrollbar_x,scrollbar_y+int(max_scrollbar_size_float*current_menu_selected ), scrollbar_width, max_scrollbar_size, self.white)
-        elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY:
-            self.lxEuclidConfig.menu_lock.acquire()
-            rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
-            self.lxEuclidConfig.menu_lock.release()
-            current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[rythm_param_counter]
-            highlight_color = self.rythm_colors_turing[rythm_param_counter]
-            
-            if current_euclidean_rythm.is_turing_machine:
-                self.circle(120,120,51,self.touch_circle_color_highlight,True)
-                self.circle(120,120,51-15,self.black,True)
-
-                self.poly(0,0, array("h",[120,120,120-45,65,120+45,65]), self.black, True)
-
-                self.circle(120,120,31,self.touch_circle_color,True)
-                self.circle(120,120,31-15,self.black,True)
-                txt = str(current_euclidean_rythm.turing_probability) + "%"
-                txt_len = self.font_writer_freesans20.stringlen(txt)
-                self.font_writer_freesans20.text(txt,120-int(txt_len/2),71,highlight_color)
-
-            self.display_rythm_circles()
-            self.display_enter_return_txt()
+            self.fill_rect(scrollbar_x, scrollbar_y+int(max_scrollbar_size_float *
+                           current_menu_selected), scrollbar_width, max_scrollbar_size, self.white)
         elif local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
-            
+
             self.lxEuclidConfig.menu_lock.acquire()
             rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
             self.lxEuclidConfig.menu_lock.release()
-            
+
             current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[rythm_param_counter]
             highlight_color = self.rythm_colors[rythm_param_counter]
-            
+
             char_height = self.font_writer_freesans20.char_height
-            
-            
-            self.circle(120,120,51,self.touch_circle_color_highlight,True)
-            self.circle(120,120,51-15,self.black,True)
-            
-            self.circle(120,120,31,self.touch_circle_color_highlight,True)
-            self.circle(120,120,31-15,self.black,True)            
-            
+
+            self.circle(120, 120, 51, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 51-15, self.black, True)
+
+            self.circle(120, 120, 31, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 31-15, self.black, True)
 
             if local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
-                self.poly(0,0, array("h",[120,120,120-36,65,120+36,65]), self.black, True)
-                b = str(current_euclidean_rythm.beats)            
+                self.poly(0, 0, array(
+                    "h", [120, 120, 120-36, 65, 120+36, 65]), self.black, True)
+                b = str(current_euclidean_rythm.beats)
                 b_len = self.font_writer_freesans20.stringlen(b)
-                
+
                 p = str(current_euclidean_rythm.pulses)
                 p_len = self.font_writer_freesans20.stringlen(p)
-                self.font_writer_freesans20.text(str(b),120-int(b_len/2),71,highlight_color)
-                self.font_writer_freesans20.text(str(p),120-int(p_len/2),90,highlight_color)
-            elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:  
-                self.poly(0,0, array("h",[120,120,120-45,65,120+45,65]), self.black, True)
-                
+                self.font_writer_freesans20.text(
+                    str(b), 120-int(b_len/2), 71, highlight_color)
+                self.font_writer_freesans20.text(
+                    str(p), 120-int(p_len/2), 90, highlight_color)
+            elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:
+                self.poly(0, 0, array(
+                    "h", [120, 120, 120-45, 65, 120+45, 65]), self.black, True)
+
                 o = str(current_euclidean_rythm.offset)
-                o_len = self.font_writer_freesans20.stringlen(o)                
-                
+                o_len = self.font_writer_freesans20.stringlen(o)
+
                 prob = str(current_euclidean_rythm.pulses_probability) + "%"
                 prob_len = self.font_writer_freesans20.stringlen(prob)
-                            
-                self.font_writer_freesans20.text(str(prob),120-int(prob_len/2),71,highlight_color)
-                self.font_writer_freesans20.text(str(o),120-int(o_len/2),90,highlight_color)
+
+                self.font_writer_freesans20.text(
+                    str(prob), 120-int(prob_len/2), 71, highlight_color)
+                self.font_writer_freesans20.text(
+                    str(o), 120-int(o_len/2), 90, highlight_color)
             self.display_rythm_circles()
             self.display_enter_return_txt()
 
         self.show()
+        
+        debug_print("after show", ticks_ms()-pre_tick) 
+        self.fill(self.black)
+        debug_print("fill black", ticks_ms()-pre_tick) 
         self.__need_display = False
-        #print(ticks_ms()-pre_tick)
+        debug_print("display rhthms", ticks_ms()-pre_tick)
+        debug_print(" ")
 
     def display_rythm_circles(self):
+        pre_tick = ticks_ms()
         radius = 110
-        offset_radius = 20
+        offset_radius = self.OFFSET_RADIUS_LIVE
         rythm_index = 0
-        
+
         self.lxEuclidConfig.menu_lock.acquire()
         rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
-        self.lxEuclidConfig.menu_lock.release()        
-        
+        self.lxEuclidConfig.menu_lock.release()
+
         self.lxEuclidConfig.state_lock.acquire()
         local_state = self.lxEuclidConfig.state
         self.lxEuclidConfig.state_lock.release()
-
+        local_beat_coord = self.beats_coords
         for euclidieanRythm in self.lxEuclidConfig.euclideanRythms:
 
-            if euclidieanRythm.is_turing_machine:
-                beat_color = self.rythm_colors_turing[rythm_index]
-                beat_color_hightlight = self.rythm_colors_turing_highlight[rythm_index]
-            else:
-                beat_color = self.rythm_colors[rythm_index]
-                beat_color_hightlight = self.rythm_colors_highlight[rythm_index]
+            beat_color = self.rythm_colors[rythm_index]
+            beat_color_hightlight = self.rythm_colors_highlight[rythm_index]
 
             highlight_color = self.white
-            if local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_PROBABILITY, self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_SELECT, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
-                offset_radius = 15
+            if local_state in [self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
+                offset_radius = OFFSET_RADIUS_PARAM                
+                local_beat_coord = self.param_beats_coords
                 if rythm_index != rythm_param_counter:
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
                     highlight_color = self.grey
 
-
-            if self.display_circle_lines == LCD_1inch28.DISPLAY_CIRCLE:
-                self.circle(120,120,radius,beat_color,False)
-
+            self.circle(120, 120, radius, beat_color, False)
+            
             len_euclidiean_rythm = len(euclidieanRythm.rythm)
             degree_step = 360/len_euclidiean_rythm
 
             coord = None
             coords = []
-            points = []
-            
-            for index in range(0,len_euclidiean_rythm):
-                try:
-                    coord = polar_to_cartesian(radius, index*degree_step-90)
-                    coords.append(coord)
-                    points.extend(coord)
-                except: #add this try except in the case we do a modification of rythm while trying to display it
-                    pass
+            if local_beat_coord[rythm_index][0] == len_euclidiean_rythm:
+                coords = local_beat_coord[rythm_index][1]
+            else:                
+                for index in range(0, len_euclidiean_rythm):
+                    try:
+                        coord = polar_to_cartesian(radius, index*degree_step-90)
+                        coords.append(coord)
+                    except:  # add this try except in the case we do a modification of rythm while trying to display it
+                        #print("miss in for index in range(0, len_euclidiean_rythm):")
+                        pass
+                local_beat_coord[rythm_index][0] = len_euclidiean_rythm
+                local_beat_coord[rythm_index][1] = coords.copy()
                 
-            if self.display_circle_lines == LCD_1inch28.DISPLAY_LINES:
-                self.poly(120,120, array("h",points), beat_color, False)
+            
 
-            for index in range(0,len_euclidiean_rythm):
+            a = ticks_ms()
+            for index in range(0, len_euclidiean_rythm):
                 try:
                     coord = coords[index]
 
                     final_beat_color = beat_color
 
                     if index == euclidieanRythm.current_step:
-                         self.circle(coord[0]+120,coord[1]+120,10,highlight_color,True)
-                         final_beat_color = beat_color_hightlight
+                        self.circle(coord[0]+120, coord[1] +
+                                    120, 10, highlight_color, True)
+                        final_beat_color = beat_color_hightlight
 
-                    filled = euclidieanRythm.rythm[(index-euclidieanRythm.offset)%len_euclidiean_rythm]
+                    filled = euclidieanRythm.rythm[(
+                        index-euclidieanRythm.offset) % len_euclidiean_rythm]
 
-                    self.circle(coord[0]+120,coord[1]+120,8,final_beat_color,filled)
+                    self.circle(coord[0]+120, coord[1]+120,
+                                8, final_beat_color, filled)
                     if filled == 0:
-                        self.circle(coord[0]+120,coord[1]+120,7,self.black,True)
+                        self.circle(coord[0]+120, coord[1] +
+                                    120, 7, self.black, True)
 
                     last_coord = coord
-                except Exception as e: #add this try except in the case we do a modification of rythm while trying to display it
+                except Exception as e:  # add this try except in the case we do a modification of rythm while trying to display it
+                    #print("miss in 2nd for index in range(0, len_euclidiean_rythm):")
                     pass
 
             radius = radius - offset_radius
             rythm_index = rythm_index + 1
+            
+            debug_print("display rhythm", ticks_ms()-a)
+        debug_print("display_rythm_circles", ticks_ms()-pre_tick)
 
     def display_enter_return_txt(self):
         return
-        #self.font_writer_font6.text("tap return",40,200,self.rythm_colors[2])
-        #self.font_writer_font6.text("enc enter",135,200,self.rythm_colors[2])
-
+        # self.font_writer_font6.text("tap return",40,200,self.rythm_colors[2])
+        # self.font_writer_font6.text("enc enter",135,200,self.rythm_colors[2])
+"""
     # Draw the approximate pie slice
     # Define a function to draw an approximate pie slice
     def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
+        a = ticks_ms()
         # Calculate the number of sides for the polygon (higher value for smoother pie slice)
         num_sides = 3  # You can adjust this value for smoother or more jagged edges
 
         # Calculate the angle step size between each side of the polygon
-        angle_step = radians((end_angle - start_angle) / num_sides)
-
-        # Calculate trigonometric values for start angle
-        start_rad = radians(start_angle)
+        angle_step = (end_angle - start_angle) / num_sides
 
         # Initialize the list of polygon points
         points = []
         # Calculate the polygon points
         for i in range(num_sides + 1):
-            angle = start_rad + i * angle_step
-            x = int(center[0] + radius_start * cos(angle))
-            y = int(center[1] + radius_start * sin(angle))
+            angle = start_angle + i * angle_step
+            x = int(center[0] + radius_start * sin_table[int(angle+90) % 360])
+            y = int(center[1] + radius_start * sin_table[int(angle)])
             points.extend((x, y))
         for i in range(num_sides + 1):
-            angle = start_rad + (num_sides-i) * angle_step
-            x = int(center[0] + radius_stop * cos(angle))
-            y = int(center[1] + radius_stop * sin(angle))
+            angle = start_angle + (num_sides-i) * angle_step
+            x = int(center[0] + radius_stop * sin_table[int(angle+90) % 360])
+            y = int(center[1] + radius_stop * sin_table[int(angle)])
             points.extend((x, y))
 
         # Draw the polygon
-        self.poly(0,0, array("h",points), color, True)
-
+        self.poly(0, 0, array("h", points), color, True)
+        debug_print("draw_approx_pie_slice", ticks_ms()-a)
+"""
