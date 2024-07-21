@@ -14,7 +14,7 @@ def get_menu_navigation_map():
     }
     out["Gate Length"] = {
         "min": 10,
-        "max": 2000,
+        "max": 250,
         "steps": 10,
         "attribute_name": "gate_length_ms"
     }

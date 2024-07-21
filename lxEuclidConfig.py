@@ -186,14 +186,14 @@ class EuclideanRythm(EuclideanRythmParameters):
         return to_return
 
     def incr_gate_length(self):
-        if (self.gate_length_ms+100) < 2000:
-            self.gate_length_ms = self.gate_length_ms + 100
+        if (self.gate_length_ms+10) < 250:
+            self.gate_length_ms = self.gate_length_ms + 10
         else:
-            self.gate_length_ms = 2000
+            self.gate_length_ms = 250
 
     def decr_gate_length(self):
-        if (self.gate_length_ms-100) > 10:
-            self.gate_length_ms = self.gate_length_ms - 100
+        if (self.gate_length_ms-10) > 10:
+            self.gate_length_ms = self.gate_length_ms - 10
         else:
             self.gate_length_ms = 10
 
