@@ -7,6 +7,8 @@ from cvManager import CvData
 from utime import ticks_ms
 from _thread import allocate_lock
 
+from ucollections import OrderedDict
+
 from MenuNavigationMap import get_menu_navigation_map
 
 JSON_CONFIG_FILE_NAME = "lx-euclide_config.json"
@@ -871,68 +873,50 @@ class LxEuclidConfig:
         return data_pointer, attribute_name, min_val, max_val, steps_val, current_value
 
     def save_data(self):
-        dict_data = {}
-        euclideanRythms_list = []
+        dict_data = OrderedDict()
         i = 0
-
+        
+        rhythm_index = 0
         for euclideanRythm in self.euclideanRythms:
+            rhythm_prefix = "e_r_" + str(rhythm_index) + "_"
             dict_EuclideanRythm = {}
-            dict_EuclideanRythm["b"] = euclideanRythm.beats
-            dict_EuclideanRythm["p"] = euclideanRythm.pulses
-            dict_EuclideanRythm["o"] = euclideanRythm.offset
-            dict_EuclideanRythm["p_i"] = euclideanRythm.prescaler_index
-            dict_EuclideanRythm["g_l_m"] = euclideanRythm.gate_length_ms
-            dict_EuclideanRythm["r_g_l"] = euclideanRythm.randomize_gate_length
-            euclideanRythms_list.append(dict_EuclideanRythm)
+            dict_data[rhythm_prefix+"b"] = euclideanRythm.beats
+            dict_data[rhythm_prefix+"p"] = euclideanRythm.pulses
+            dict_data[rhythm_prefix+"o"] = euclideanRythm.offset
+            dict_data[rhythm_prefix+"p_i"] = euclideanRythm.prescaler_index
+            dict_data[rhythm_prefix+"g_l_m"] = euclideanRythm.gate_length_ms
+            dict_data[rhythm_prefix+"r_g_l"] = euclideanRythm.randomize_gate_length
+            rhythm_index += 1
 
-        dict_data["e_r"] = euclideanRythms_list
-
-        presets_list = []
+        preset_index = 0
         for preset in self.presets:
-            presetsRythms_list = []
+            preset_prefix = "pr_" + str(preset_index) + "_"
+            rhythm_index = 0
             for preset_euclideanRythm in preset:
-                dict_presetsRythms = {}
-                dict_presetsRythms["b"] = preset_euclideanRythm.beats
-                dict_presetsRythms["p"] = preset_euclideanRythm.pulses
-                dict_presetsRythms["o"] = preset_euclideanRythm.offset
-                dict_presetsRythms["p_i"] = euclideanRythm.prescaler_index
-                dict_presetsRythms["g_l_m"] = euclideanRythm.gate_length_ms
-                dict_presetsRythms["r_g_l"] = euclideanRythm.randomize_gate_length
-                presetsRythms_list.append(dict_presetsRythms)
-            presets_list.append(presetsRythms_list)
+                
+                rhythm_prefix = preset_prefix+"e_r_" + str(rhythm_index) + "_"                
+                
+                dict_data[rhythm_prefix+"b"] = preset_euclideanRythm.beats
+                dict_data[rhythm_prefix+"p"] = preset_euclideanRythm.pulses
+                dict_data[rhythm_prefix+"o"] = preset_euclideanRythm.offset
+                dict_data[rhythm_prefix+"p_i"] = euclideanRythm.prescaler_index
+                dict_data[rhythm_prefix+"g_l_m"] = euclideanRythm.gate_length_ms
+                dict_data[rhythm_prefix+"r_g_l"] = euclideanRythm.randomize_gate_length
+                rhythm_index += 1
+            preset_index += 1
 
-        dict_data["pr"] = presets_list
+        dict_data["m_l_p_a"] = self.menu_btn_long_press_action
+        dict_data["t_l_p_a"] = self.tap_long_press_action
 
-        interface_dict = {}
-        menu_btn_dict = {}
-        tap_btn_dict = {}
-        menu_btn_dict["m_l_p_a"] = self.menu_btn_long_press_action
-        tap_btn_dict["t_l_p_a"] = self.tap_long_press_action
-        interface_dict["m"] = menu_btn_dict
-        interface_dict["t_b"] = tap_btn_dict
+        dict_data["i_r_a"] = self.inner_rotate_action
+        dict_data["i_a_r"] = self.inner_action_rythm
 
-        inner_circle_dict = {}
-        inner_circle_dict["i_r_a"] = self.inner_rotate_action
-        inner_circle_dict["i_a_r"] = self.inner_action_rythm
+        dict_data["o_r_a"] = self.outer_rotate_action
+        dict_data["o_a_r"] = self.outer_action_rythm
 
-        interface_dict["i_c"] = inner_circle_dict
+        dict_data["t_s"] = self.lxHardware.capacitives_circles.touch_sensitivity
 
-        outer_circle_dict = {}
-        outer_circle_dict["o_r_a"] = self.outer_rotate_action
-        outer_circle_dict["o_a_r"] = self.outer_action_rythm
-
-        interface_dict["o_c"] = outer_circle_dict
-
-        touch_dict = {}
-        touch_dict["t_s"] = self.lxHardware.capacitives_circles.touch_sensitivity
-
-        interface_dict["t"] = touch_dict
-
-        dict_data["i"] = interface_dict
-
-        clk_dict = {}
-        clk_dict["c_m"] = self.clk_mode
-        dict_data["clk"] = clk_dict
+        dict_data["c_m"] = self.clk_mode
 
         self.save_data_lock.acquire()
         self.dict_data_to_save = dict_data
@@ -980,105 +964,67 @@ class LxEuclidConfig:
             config_file = open(JSON_CONFIG_FILE_NAME, "r")
             dict_data = json.load(config_file)
 
-            euclideanRythmsList = dict_data.get("e_r", None)
+            rhythm_index = 0
+                
+            for euclideanRythm in self.euclideanRythms:                    
+                rhythm_prefix = "e_r_" + str(rhythm_index) + "_"
+                full_conf_load, euclideanRythm.beats = set_val_dict(
+                    full_conf_load, euclideanRythm.beats, dict_data, rhythm_prefix+"b")
+                full_conf_load, euclideanRythm.pulses = set_val_dict(
+                    full_conf_load, euclideanRythm.pulses, dict_data, rhythm_prefix+"p")
+                full_conf_load, euclideanRythm.offset = set_val_dict(
+                    full_conf_load, euclideanRythm.offset, dict_data, rhythm_prefix+"o")
+                full_conf_load, euclideanRythm.prescaler_index = set_val_dict(
+                    full_conf_load, euclideanRythm.prescaler_index, dict_data, rhythm_prefix+"p_i")
+                full_conf_load, euclideanRythm.gate_length_ms = set_val_dict(
+                    full_conf_load, euclideanRythm.gate_length_ms, dict_data, rhythm_prefix+"g_l_m")
+                full_conf_load, euclideanRythm.randomize_gate_length = set_val_dict(
+                    full_conf_load, euclideanRythm.randomize_gate_length, dict_data, rhythm_prefix+"r_g_l")
+                rhythm_index += 1
 
-            if euclideanRythmsList != None:
-                i = 0
-                for dict_EuclideanRythm in euclideanRythmsList:
-                    full_conf_load, self.euclideanRythms[i].beats = set_val_dict(
-                        full_conf_load, self.euclideanRythms[i].beats, dict_EuclideanRythm, "b")
-                    full_conf_load, self.euclideanRythms[i].pulses = set_val_dict(
-                        full_conf_load, self.euclideanRythms[i].pulses, dict_EuclideanRythm, "p")
-                    full_conf_load, self.euclideanRythms[i].offset = set_val_dict(
-                        full_conf_load, self.euclideanRythms[i].offset, dict_EuclideanRythm, "o")
-                    full_conf_load, self.euclideanRythms[i].prescaler_index = set_val_dict(
-                        full_conf_load, self.euclideanRythms[i].prescaler_index, dict_EuclideanRythm, "p_i")
-                    full_conf_load, self.euclideanRythms[i].gate_length_ms = set_val_dict(
-                        full_conf_load, self.euclideanRythms[i].gate_length_ms, dict_EuclideanRythm, "g_l_m")
-                    full_conf_load, self.euclideanRythms[i].randomize_gate_length = set_val_dict(
-                        full_conf_load, self.euclideanRythms[i].randomize_gate_length, dict_EuclideanRythm, "r_g_l")
-                    i += 1
-            else:
-                full_conf_load = False
+            preset_index = 0
+            for preset in self.presets:
+                preset_prefix = "pr_" + str(preset_index) + "_"
+                rhythm_index = 0
+                for preset_euclideanRythm in preset:                
+                    rhythm_prefix = preset_prefix+"e_r_" + str(rhythm_index) + "_"    
+                    full_conf_load, preset_euclideanRythm.beats = set_val_dict(
+                        full_conf_load, preset_euclideanRythm.beats, dict_data, rhythm_prefix+"b")
+                    full_conf_load, preset_euclideanRythm.pulses = set_val_dict(
+                        full_conf_load, preset_euclideanRythm.pulses, dict_data, rhythm_prefix+"p")
+                    full_conf_load, preset_euclideanRythm.offset = set_val_dict(
+                        full_conf_load, preset_euclideanRythm.offset, dict_data, rhythm_prefix+"o")
+                    full_conf_load, preset_euclideanRythm.prescaler_index = set_val_dict(
+                        full_conf_load, preset_euclideanRythm.prescaler_index, dict_data, rhythm_prefix+"p_i")
+                    full_conf_load, preset_euclideanRythm.gate_length_ms = set_val_dict(
+                        full_conf_load, preset_euclideanRythm.prescaler_index, dict_data, rhythm_prefix+"g_l_m")
+                    full_conf_load, preset_euclideanRythm.randomize_gate_length = set_val_dict(
+                        full_conf_load, preset_euclideanRythm.randomize_gate_length, dict_data, rhythm_prefix+"r_g_l")
 
-            presets_list = dict_data.get("pr", None)
+                    rhythm_index += 1
+                preset_index += 1
 
-            if presets_list != None:
-                preset_index = 0
-                for preset in presets_list:
-                    i = 0
-                    for dict_preset_euclideanRythm in preset:
-                        full_conf_load, self.presets[preset_index][i].beats = set_val_dict(
-                            full_conf_load, self.presets[preset_index][i].beats, dict_preset_euclideanRythm, "b")
-                        full_conf_load, self.presets[preset_index][i].pulses = set_val_dict(
-                            full_conf_load, self.presets[preset_index][i].pulses, dict_preset_euclideanRythm, "p")
-                        full_conf_load, self.presets[preset_index][i].offset = set_val_dict(
-                            full_conf_load, self.presets[preset_index][i].offset, dict_preset_euclideanRythm, "o")
-                        full_conf_load, self.presets[preset_index][i].prescaler_index = set_val_dict(
-                            full_conf_load, self.presets[preset_index][i].prescaler_index, dict_preset_euclideanRythm, "p_i")
-                        full_conf_load, self.presets[preset_index][i].gate_length_ms = set_val_dict(
-                            full_conf_load, self.presets[preset_index][i].prescaler_index, dict_preset_euclideanRythm, "g_l_m")
-                        full_conf_load, self.presets[preset_index][i].randomize_gate_length = set_val_dict(
-                            full_conf_load, self.presets[preset_index][i].randomize_gate_length, dict_preset_euclideanRythm, "r_g_l")
-
-                        i += 1
-                    preset_index += 1
-            else:
-                full_conf_load = False
-
-            interface_dict = dict_data.get("i", None)
-
-            if interface_dict != None:
-
-                tap_btn_dict = interface_dict.get("t_b", None)
-                if tap_btn_dict != None:
-                    full_conf_load, self.tap_long_press_action = set_val_dict(
-                        full_conf_load, self.tap_long_press_action, tap_btn_dict, "t_l_p_a")
-                else:
-                    full_conf_load = False
-
-                menu_btn_dict = interface_dict.get("m", None)
-                if menu_btn_dict != None:
-                    full_conf_load, self.menu_btn_long_press_action = set_val_dict(
-                        full_conf_load, self.menu_btn_long_press_action, menu_btn_dict, "m_l_p_a")
-                else:
-                    full_conf_load = False
-
-                inner_circle_dict = interface_dict.get("i_c", None)
-                if inner_circle_dict != None:
-                    full_conf_load, self.inner_rotate_action = set_val_dict(
-                        full_conf_load, self.inner_rotate_action, inner_circle_dict, "i_r_a")
-                    full_conf_load, self.inner_action_rythm = set_val_dict(
-                        full_conf_load, self.inner_action_rythm, inner_circle_dict, "i_a_r")
-                else:
-                    full_conf_load = False
-
-                outer_circle_dict = interface_dict.get("o_c", None)
-                if outer_circle_dict != None:
-                    full_conf_load, self.outer_rotate_action = set_val_dict(
-                        full_conf_load, self.outer_rotate_action, outer_circle_dict, "o_r_a")
-                    full_conf_load, self.outer_action_rythm = set_val_dict(
-                        full_conf_load, self.outer_action_rythm, outer_circle_dict, "o_a_r")
-                else:
-                    full_conf_load = False
-
-                touch_dict = interface_dict.get("t", None)
-
-                if touch_dict != None:
-                    full_conf_load, self.lxHardware.capacitives_circles.touch_sensitivity = set_val_dict(
-                        full_conf_load, self.lxHardware.capacitives_circles.touch_sensitivity, touch_dict, "t_s")
-                else:
-                    full_conf_load = False
-            else:
-                full_conf_load = False
-
-            clk_dict = dict_data.get("clk", None)
-            if clk_dict != None:
-                full_conf_load, self.clk_mode = set_val_dict(
-                    full_conf_load, self.clk_mode, clk_dict, "c_m")
-            else:
-                full_conf_load = False
-
+            full_conf_load, self.tap_long_press_action = set_val_dict(
+                full_conf_load, self.tap_long_press_action, dict_data, "t_l_p_a")
+            full_conf_load, self.menu_btn_long_press_action = set_val_dict(
+                full_conf_load, self.menu_btn_long_press_action, dict_data, "m_l_p_a")
+            
+            full_conf_load, self.inner_rotate_action = set_val_dict(
+                full_conf_load, self.inner_rotate_action, dict_data, "i_r_a")
+            full_conf_load, self.inner_action_rythm = set_val_dict(
+                full_conf_load, self.inner_action_rythm, dict_data, "i_a_r")
+               
+            full_conf_load, self.outer_rotate_action = set_val_dict(
+                full_conf_load, self.outer_rotate_action, dict_data, "o_r_a")
+            full_conf_load, self.outer_action_rythm = set_val_dict(
+                full_conf_load, self.outer_action_rythm, dict_data, "o_a_r")
+    
+            full_conf_load, self.lxHardware.capacitives_circles.touch_sensitivity = set_val_dict(
+                full_conf_load, self.lxHardware.capacitives_circles.touch_sensitivity, dict_data, "t_s")
+           
+            full_conf_load, self.clk_mode = set_val_dict(
+                full_conf_load, self.clk_mode, dict_data, "c_m")
+        
             if full_conf_load:
                 print("Full configuration was loaded")
             else:
