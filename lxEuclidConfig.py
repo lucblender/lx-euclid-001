@@ -932,9 +932,7 @@ class LxEuclidConfig:
 
         clk_dict = {}
         clk_dict["c_m"] = self.clk_mode
-        rst_dict = {}
         dict_data["clk"] = clk_dict
-        dict_data["rst"] = rst_dict
 
         self.save_data_lock.acquire()
         self.dict_data_to_save = dict_data
