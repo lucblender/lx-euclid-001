@@ -1,22 +1,19 @@
+from _thread import allocate_lock
+from array import array
+import gc
+import writer
 from machine import Pin, SPI, PWM
 import framebuf
 from utime import sleep, ticks_ms
-from array import array
-
-import writer
-import gc
 from micropython import const
-from _thread import allocate_lock
 
-DC = 8
-CS = 9
-SCK = 10
-MOSI = 11
-RST = 12
+DC = const(8)
+CS = const(9)
+SCK = const(10)
+MOSI = const(11)
+RST = const(12)
 
-BL = 25
-
-Vbat_Pin = 29
+BL = const(25)
 
 DEBUG = False
 
@@ -47,7 +44,7 @@ def polar_to_cartesian(radius, theta):
 
 
 class LCD_1inch28(framebuf.FrameBuffer):
-    
+
     OFFSET_RADIUS_LIVE = const(20)
     OFFSET_RADIUS_PARAM = const(15)
 
@@ -99,9 +96,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.__need_display = False
         self.need_display_lock = allocate_lock()
-        
-        self.beats_coords = [[0,[0,]],[0,[0,]],[0,[0,]],[0,[0,]]]
-        self.param_beats_coords = [[0,[0,]],[0,[0,]],[0,[0,]],[0,[0,]]]
+
+        self.beats_coords = [[0, [0,]], [0, [0,]], [0, [0,]], [0, [0,]]]
+        self.param_beats_coords = [[0, [0,]], [0, [0,]], [0, [0,]], [0, [0,]]]
 
         self.set_bl_pwm(65535)
 
@@ -109,17 +106,17 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         try:
             open("helixbyte_r5g6b5.bin", "r")
-        except:
+        except OSError:
             missing_files += "helixbyte_r5g6b5.bin\n"
 
         try:
             open("parameter_selected.bin", "r")
-        except:
+        except OSError:
             missing_files += "parameter_selected.bin\n"
 
         try:
             open("parameter_unselected.bin", "r")
-        except:
+        except OSError:
             missing_files += "parameter_unselected.bin\n"
 
         self.display_lxb_logo(version, missing_files)
@@ -128,13 +125,13 @@ class LCD_1inch28(framebuf.FrameBuffer):
         try:
             self.parameter_selected = pict_to_fbuff(
                 "parameter_selected.bin", 40, 40)
-        except:
+        except Exception:
             self.parameter_selected = None
 
         try:
             self.parameter_unselected = pict_to_fbuff(
                 "parameter_unselected.bin", 40, 40)
-        except:
+        except Exception:
             self.parameter_unselected = None
 
         gc.collect()
@@ -354,14 +351,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
             lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin", heigth, width)
 
             self.blit(lxb_fbuf, 120-int(heigth/2), 120-int(width/2))
-        self.show()        
+        self.show()
         sleep(1.5)
-        if version != None:
+        if version is not None:
             txt_len = 54  # can't use stinglen since we use default font to not use memory cause we loaded lxb logo
             self.text(version, 120-int(txt_len/2), 200, self.grey)
             self.show()
             sleep(0.5)
-            
+
         self.fill(self.black)
         gc.collect()
 
@@ -378,13 +375,13 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
     def display_rythms(self):
         pre_tick = ticks_ms()
-       
+
         # uncomment to get a pie-slice visualisation of the touch
-        #angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.outer_circle_angle
-        #self.draw_approx_pie_slice(
+        # angle_outer = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.outer_circle_angle
+        # self.draw_approx_pie_slice(
         #    [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.grey)
-        #angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.inner_circle_angle
-        #self.draw_approx_pie_slice(
+        # angle_inner = 90-self.lxEuclidConfig.lxHardware.capacitives_circles.inner_circle_angle
+        # self.draw_approx_pie_slice(
         #    [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.grey)
 
         self.lxEuclidConfig.state_lock.acquire()
@@ -393,13 +390,13 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         if local_state == self.lxEuclidConfig.STATE_LIVE:
             self.display_rythm_circles()
-            if self.lxEuclidConfig.need_circle_action_display == True:
+            if self.lxEuclidConfig.need_circle_action_display:
                 txt = self.lxEuclidConfig.action_display_info
                 txt_len = self.font_writer_freesans20.stringlen(txt)
                 if self.lxEuclidConfig.highlight_color_euclid:
                     color = self.rythm_colors[self.lxEuclidConfig.action_display_index]
                 self.font_writer_freesans20.text(
-                    txt, 120-int(txt_len/2), 110, color)      
+                    txt, 120-int(txt_len/2), 110, color)
 
         elif local_state == self.lxEuclidConfig.STATE_PARAMETERS:
             # TODO Disabled during parameters self.display_rythm_circles()
@@ -415,7 +412,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             current_menu_selected = self.lxEuclidConfig.current_menu_selected
             self.lxEuclidConfig.menu_lock.release()
 
-            if self.parameter_unselected != None:
+            if self.parameter_unselected is not None:
                 self.blit(self.parameter_unselected, 100, 5)
             origin_x = 50
             origin_y = 50
@@ -478,8 +475,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
             current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[rythm_param_counter]
             highlight_color = self.rythm_colors[rythm_param_counter]
 
-            char_height = self.font_writer_freesans20.char_height
-
             self.circle(120, 120, 51, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 51-15, self.black, True)
 
@@ -516,10 +511,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.display_enter_return_txt()
 
         self.show()
-        
-        debug_print("after show", ticks_ms()-pre_tick) 
+
+        debug_print("after show", ticks_ms()-pre_tick)
         self.fill(self.black)
-        debug_print("fill black", ticks_ms()-pre_tick) 
+        debug_print("fill black", ticks_ms()-pre_tick)
         self.__need_display = False
         debug_print("display rhthms", ticks_ms()-pre_tick)
         debug_print(" ")
@@ -545,7 +540,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             highlight_color = self.white
             if local_state in [self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
-                offset_radius = OFFSET_RADIUS_PARAM                
+                offset_radius = self.OFFSET_RADIUS_PARAM
                 local_beat_coord = self.param_beats_coords
                 if rythm_index != rythm_param_counter:
                     beat_color = self.grey
@@ -553,7 +548,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     highlight_color = self.grey
 
             self.circle(120, 120, radius, beat_color, False)
-            
+
             len_euclidiean_rythm = len(euclidieanRythm.rythm)
             degree_step = 360/len_euclidiean_rythm
 
@@ -561,18 +556,17 @@ class LCD_1inch28(framebuf.FrameBuffer):
             coords = []
             if local_beat_coord[rythm_index][0] == len_euclidiean_rythm:
                 coords = local_beat_coord[rythm_index][1]
-            else:                
+            else:
                 for index in range(0, len_euclidiean_rythm):
                     try:
-                        coord = polar_to_cartesian(radius, index*degree_step-90)
+                        coord = polar_to_cartesian(
+                            radius, index*degree_step-90)
                         coords.append(coord)
                     except:  # add this try except in the case we do a modification of rythm while trying to display it
-                        #print("miss in for index in range(0, len_euclidiean_rythm):")
+                        # print("miss in for index in range(0, len_euclidiean_rythm):")
                         pass
                 local_beat_coord[rythm_index][0] = len_euclidiean_rythm
                 local_beat_coord[rythm_index][1] = coords.copy()
-                
-            
 
             a = ticks_ms()
             for index in range(0, len_euclidiean_rythm):
@@ -594,48 +588,47 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     if filled == 0:
                         self.circle(coord[0]+120, coord[1] +
                                     120, 7, self.black, True)
-
-                    last_coord = coord
-                except Exception as e:  # add this try except in the case we do a modification of rythm while trying to display it
-                    #print("miss in 2nd for index in range(0, len_euclidiean_rythm):")
+                except Exception:  # add this try except in the case we do a modification of rythm while trying to display it
+                    # print("miss in 2nd for index in range(0, len_euclidiean_rythm):")
                     pass
 
             radius = radius - offset_radius
             rythm_index = rythm_index + 1
-            
+
             debug_print("display rhythm", ticks_ms()-a)
         debug_print("display_rythm_circles", ticks_ms()-pre_tick)
 
     def display_enter_return_txt(self):
         return
+
         # self.font_writer_font6.text("tap return",40,200,self.rythm_colors[2])
         # self.font_writer_font6.text("enc enter",135,200,self.rythm_colors[2])
-"""
-    # Draw the approximate pie slice
-    # Define a function to draw an approximate pie slice
-    def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
-        a = ticks_ms()
-        # Calculate the number of sides for the polygon (higher value for smoother pie slice)
-        num_sides = 3  # You can adjust this value for smoother or more jagged edges
 
-        # Calculate the angle step size between each side of the polygon
-        angle_step = (end_angle - start_angle) / num_sides
+    # # Draw the approximate pie slice
+    # # Define a function to draw an approximate pie slice
+    # def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
+    #     a = ticks_ms()
+    #     # Calculate the number of sides for the polygon (higher value for smoother pie slice)
+    #     num_sides = 3  # You can adjust this value for smoother or more jagged edges
 
-        # Initialize the list of polygon points
-        points = []
-        # Calculate the polygon points
-        for i in range(num_sides + 1):
-            angle = start_angle + i * angle_step
-            x = int(center[0] + radius_start * sin_table[int(angle+90) % 360])
-            y = int(center[1] + radius_start * sin_table[int(angle)])
-            points.extend((x, y))
-        for i in range(num_sides + 1):
-            angle = start_angle + (num_sides-i) * angle_step
-            x = int(center[0] + radius_stop * sin_table[int(angle+90) % 360])
-            y = int(center[1] + radius_stop * sin_table[int(angle)])
-            points.extend((x, y))
+    #     # Calculate the angle step size between each side of the polygon
+    #     angle_step = (end_angle - start_angle) / num_sides
 
-        # Draw the polygon
-        self.poly(0, 0, array("h", points), color, True)
-        debug_print("draw_approx_pie_slice", ticks_ms()-a)
-"""
+    #     # Initialize the list of polygon points
+    #     points = []
+    #     # Calculate the polygon points
+    #     for i in range(num_sides + 1):
+    #         angle = start_angle + i * angle_step
+    #         x = int(center[0] + radius_start * sin_table[int(angle+90) % 360])
+    #         y = int(center[1] + radius_start * sin_table[int(angle)])
+    #         points.extend((x, y))
+    #     for i in range(num_sides + 1):
+    #         angle = start_angle + (num_sides-i) * angle_step
+    #         x = int(center[0] + radius_stop * sin_table[int(angle+90) % 360])
+    #         y = int(center[1] + radius_stop * sin_table[int(angle)])
+    #         points.extend((x, y))
+
+    #     # Draw the polygon
+    #     self.poly(0, 0, array("h", points), color, True)
+    #     debug_print("draw_approx_pie_slice", ticks_ms()-a)
+

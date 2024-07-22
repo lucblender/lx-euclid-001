@@ -1,6 +1,7 @@
-from mpr121 import MPR121
 from machine import Pin, I2C
 from utime import sleep, ticks_ms
+
+from mpr121 import MPR121
 
 
 class CapacitivesCircles():
@@ -121,11 +122,10 @@ class CapacitivesCircles():
                         data_second_sensor = datas[1][1]
                         index_factor = datas[0][0] - index_factor_offset
 
-                    """
-                    #old angle computation, doesn't work well
-                    factor = (data_first_sensor-50)/(110-50)
-                    angle = index_factor*60 + factor*60
-                    """
+                    # old angle computation, doesn't work well
+                    # factor = (data_first_sensor-50)/(110-50)
+                    # angle = index_factor*60 + factor*60
+
                     # if 0 in indexes and 1 in indexes:
                     difference = data_first_sensor - data_second_sensor
                     factor = (difference+90)/180
@@ -177,6 +177,6 @@ class CapacitivesCircles():
 if __name__ == '__main__':
     capacitivesCircles = CapacitivesCircles(I2C(0, sda=Pin(0), scl=Pin(1)))
 
-    while (True):
+    while True:
         sleep(0.05)
-        data = capacitivesCircles.get_touch_circles_updates()
+        test_data = capacitivesCircles.get_touch_circles_updates()

@@ -54,11 +54,11 @@ def get_menu_navigation_map():
 
     interface_dict = OrderedDict()
     interface_dict["Menu Button"] = {"data_pointer": None,
-                                 "Long Press": {
-                                     "values": ["None", "Reset", "Switch Preset"],
-                                     "attribute_name": "encoder_long_press_action"
-                                 },
-                                 }
+                                     "Long Press": {
+                                         "values": ["None", "Reset", "Switch Preset"],
+                                         "attribute_name": "encoder_long_press_action"
+                                     },
+                                     }
     interface_dict["Tap Button"] = {"data_pointer": None,
                                     "Long Press": {
                                         "values": ["None", "Reset", "Switch Preset"],
