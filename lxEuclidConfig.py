@@ -297,7 +297,11 @@ class LxEuclidConfig:
 
     MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
 
-    def __init__(self, lxHardware, LCD):
+    def __init__(self, lxHardware, LCD, software_version):
+        self.v_major = software_version[0]
+        self.v_minor = software_version[1]
+        self.v_fix = software_version[2]
+        
         self.lxHardware = lxHardware
         self.LCD = LCD
         self.LCD.set_config(self)
@@ -855,6 +859,9 @@ class LxEuclidConfig:
 
     def save_data(self):
         dict_data = OrderedDict()
+        dict_data["v_ma"] = self.v_major
+        dict_data["v_mi"] = self.v_minor
+        dict_data["v_fi"] = self.v_fix
 
         rhythm_index = 0
         for euclidean_rythm in self.euclideanRythms:
@@ -946,6 +953,20 @@ class LxEuclidConfig:
         try:
             config_file = open(JSON_CONFIG_FILE_NAME, "r")
             dict_data = json.load(config_file)
+            
+            load_v_major = None
+            load_v_minor = None
+            load_v_fix = None
+            
+            full_conf_load, load_v_major = set_val_dict(full_conf_load, load_v_major, dict_data, "v_ma")
+            full_conf_load, load_v_minor = set_val_dict(full_conf_load, load_v_minor, dict_data, "v_mi")
+            full_conf_load, load_v_fix = set_val_dict(full_conf_load, load_v_fix, dict_data, "v_fi")
+            
+            if self.v_fix is not load_v_fix or self.v_minor is not load_v_minor or self.v_major is not load_v_major:
+                
+                version_main = f"v{self.v_major}.{self.v_minor}.{self.v_fix}"
+                version_memory = f"v{load_v_major}.{load_v_minor}.{load_v_fix}"
+                print("Warning: memory version is different", version_main, version_memory)
 
             rhythm_index = 0
 

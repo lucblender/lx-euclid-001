@@ -2,7 +2,13 @@ from machine import freq
 freq(250_000_000,250_000_000)
 from Rp2040Lcd import LCD_1inch28
 
-VERSION = "v0.0.4_dev"
+# minor.major.fix + add 
+MAJOR = 0
+MINOR = 0
+FIX = 4
+ADD = "_dev"
+
+VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
                             # once used, the lxb pic buffer is thrown away
 import gc
@@ -36,7 +42,7 @@ stop_thread = False
 wait_display_thread = True
 
 lxHardware = LxHardware()
-lxEuclidConfig = LxEuclidConfig(lxHardware, LCD)
+lxEuclidConfig = LxEuclidConfig(lxHardware, LCD, [MAJOR,MINOR,FIX])
 
 lxHardware.set_lxEuclidConfig(lxEuclidConfig)
 
