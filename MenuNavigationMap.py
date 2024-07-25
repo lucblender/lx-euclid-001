@@ -14,7 +14,7 @@ def get_menu_navigation_map():
     }
     out["Gate Length"] = {
         "min": 10,
-        "max": 2000,
+        "max": 250,
         "steps": 10,
         "attribute_name": "gate_length_ms"
     }
@@ -54,11 +54,11 @@ def get_menu_navigation_map():
 
     interface_dict = OrderedDict()
     interface_dict["Menu Button"] = {"data_pointer": None,
-                                 "Long Press": {
-                                     "values": ["None", "Reset", "Switch Preset"],
-                                     "attribute_name": "encoder_long_press_action"
-                                 },
-                                 }
+                                     "Long Press": {
+                                         "values": ["None", "Reset", "Switch Preset"],
+                                         "attribute_name": "encoder_long_press_action"
+                                     },
+                                     }
     interface_dict["Tap Button"] = {"data_pointer": None,
                                     "Long Press": {
                                         "values": ["None", "Reset", "Switch Preset"],
