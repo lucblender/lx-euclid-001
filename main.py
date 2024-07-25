@@ -12,6 +12,8 @@ VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
                             # once used, the lxb pic buffer is thrown away
 import gc
+gc.collect()
+
 from lxEuclidConfig import LxEuclidConfig
 from lxHardware import LxHardware
 from utime import sleep, ticks_ms
@@ -199,12 +201,13 @@ def append_error(error):
     error_file.write("\n")
     error_file.close()
 
-
+gc.collect()
 print_ram()
 start_new_thread(display_thread, ())
 
 if __name__ == '__main__':
-    try:
+    #try:
+        gc.collect()
         print_ram()
 
         if is_usb_connected() and lxHardware.get_btn_tap_pin_value() == 0:
@@ -244,5 +247,6 @@ if __name__ == '__main__':
                         tap_incr_steps()
 
         print("quit")
-    except Exception as e:
-        append_error(e)
+    #except Exception as e:
+     #   append_error(e)
+

@@ -7,7 +7,7 @@ import rp2
 from capacitivesCircles import *
 from cvManager import CvManager
 
-# TODO from eeprom_i2c import EEPROM, T24C64
+from eeprom_i2c import EEPROM, T24C64
 
 CLK_IN = const(18)
 RST_IN = const(17)
@@ -29,6 +29,8 @@ GATE_OUT_0 = const(2)
 GATE_OUT_1 = const(3)
 GATE_OUT_2 = const(4)
 GATE_OUT_3 = const(5)
+
+ENDIANESS_EEPROM = const(1)
 
 
 @rp2.asm_pio(set_init=rp2.PIO.OUT_LOW, out_init=rp2.PIO.OUT_LOW, out_shiftdir=rp2.PIO.SHIFT_LEFT, autopull=True, pull_thresh=24)
@@ -67,6 +69,8 @@ class LxHardware:
 
     BTN_SWITCHES_RISE = const(12)
     BTN_SWITCHES_FALL = const(13)
+    
+    EEPROM_ADDR = const(0x50)
 
     def __init__(self):
 
@@ -161,8 +165,7 @@ class LxHardware:
         # a lock on the i2c so both thread can use i2c devices
         self.i2c_lock = allocate_lock()
 
-        # TODO preparing for eeprom EEPROM_ADDR = 0x50
-        # self.eeprom_memory = EEPROM(self.i2c, chip_size = T24C64, addr = EEPROM_ADDR)
+        self.eeprom_memory = EEPROM(self.i2c, chip_size = T24C64, addr = self.EEPROM_ADDR)
 
         self.capacitives_circles = CapacitivesCircles(self.i2c)
         self.cv_manager = CvManager(self.i2c)
@@ -296,3 +299,14 @@ class LxHardware:
     def call_handlers(self, handlerEventData):
         for handler in self.handlers:
             handler(handlerEventData)
+            
+    def get_eeprom_data_int(self, address):
+        self.i2c_lock.acquire()
+        raw_data = self.eeprom_memory[address:address+1]
+        self.i2c_lock.release()
+        return int.from_bytes(raw_data, ENDIANESS_EEPROM)
+    
+    def set_eeprom_data_int(self, address, data):
+        self.i2c_lock.acquire()
+        self.eeprom_memory[address:address+1] = data.to_bytes(1,ENDIANESS_EEPROM)
+        self.i2c_lock.release()

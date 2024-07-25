@@ -1,6 +1,5 @@
 from _thread import allocate_lock
 from random import randint
-import ujson as json
 from micropython import const
 from utime import ticks_ms
 from ucollections import OrderedDict
@@ -8,12 +7,14 @@ from ucollections import OrderedDict
 from cvManager import CvData
 from MenuNavigationMap import get_menu_navigation_map
 
-JSON_CONFIG_FILE_NAME = "lx-euclide_config.json"
-
 T_CLK_LED_ON_MS = const(10)
 T_GATE_ON_MS = const(10)
 
 MAX_BEATS = const(32)
+
+MAJOR_E_ADDR = const(0)
+MINOR_E_ADDR = const(1)
+FIX_E_ADDR = const(2)
 
 
 def set_val_dict(full_conf_load, var, local_dict, key):
@@ -301,7 +302,7 @@ class LxEuclidConfig:
         self.v_major = software_version[0]
         self.v_minor = software_version[1]
         self.v_fix = software_version[2]
-        
+
         self.lxHardware = lxHardware
         self.LCD = LCD
         self.LCD.set_config(self)
@@ -378,11 +379,8 @@ class LxEuclidConfig:
         self.highlight_color_euclid = True
 
         self.computation_index = 0  # used in interrupt function that can't create memory
-
-        try:
-            open(JSON_CONFIG_FILE_NAME, "r")
-        except OSError:
-            self.save_data()
+        
+        self.previous_dict_data_list = [] # list used to test if data changed and needs to be stocked in memory
 
         self.load_data()
         self.reload_rythms()
@@ -857,7 +855,7 @@ class LxEuclidConfig:
 
         return data_pointer, attribute_name, min_val, max_val, steps_val, current_value
 
-    def save_data(self):
+    def create_memory_dict(self):
         dict_data = OrderedDict()
         dict_data["v_ma"] = self.v_major
         dict_data["v_mi"] = self.v_minor
@@ -869,6 +867,7 @@ class LxEuclidConfig:
             dict_data[rhythm_prefix+"b"] = euclidean_rythm.beats
             dict_data[rhythm_prefix+"p"] = euclidean_rythm.pulses
             dict_data[rhythm_prefix+"o"] = euclidean_rythm.offset
+            dict_data[rhythm_prefix+"pr"] = euclidean_rythm.pulses_probability
             dict_data[rhythm_prefix+"p_i"] = euclidean_rythm.prescaler_index
             dict_data[rhythm_prefix+"g_l_m"] = euclidean_rythm.gate_length_ms
             dict_data[rhythm_prefix +
@@ -886,6 +885,7 @@ class LxEuclidConfig:
                 dict_data[rhythm_prefix+"b"] = preset_euclidean_rythm.beats
                 dict_data[rhythm_prefix+"p"] = preset_euclidean_rythm.pulses
                 dict_data[rhythm_prefix+"o"] = preset_euclidean_rythm.offset
+                dict_data[rhythm_prefix+"pr"] = preset_euclidean_rythm.pulses_probability
                 dict_data[rhythm_prefix +
                           "p_i"] = preset_euclidean_rythm.prescaler_index
                 dict_data[rhythm_prefix +
@@ -907,142 +907,106 @@ class LxEuclidConfig:
         dict_data["t_s"] = self.lxHardware.capacitives_circles.touch_sensitivity
 
         dict_data["c_m"] = self.clk_mode
+        
+        return dict_data
+        
+    def save_data(self):
+        dict_data = self.create_memory_dict()
 
         self.save_data_lock.acquire()
         self.dict_data_to_save = dict_data
         self.need_save_data_in_file = True
         self.save_data_lock.release()
 
-    def test_save_data_in_file(self):
-        self.save_data_lock.acquire()
+    def test_save_data_in_file(self):        
         if self.need_save_data_in_file:
             self.need_save_data_in_file = False
-            # TODO testing speed of saving data b = ticks_ms()
-            with open(JSON_CONFIG_FILE_NAME, "w") as config_file:
-                json.dump(self.dict_data_to_save,
-                          config_file, separators=(',', ':'))
-            # TODO testing speed of saving data print("file ",ticks_ms()-b)
+            self.save_data_lock.acquire()            
+            dict_data_list = list(self.dict_data_to_save.values())
+            self.save_data_lock.release()
+            
+            changed_index = []
+            size_previous_dict_data_list = len(self.previous_dict_data_list)
 
-
-# TODO  Trying to save *WHOLE* data into eeprom instead of flash, works well but slower
-#
-#             b = ticks_ms()
-#             wdata = json.dumps(self.dict_data_to_save,separators=(',', ':')).encode('utf8')
-#             sl = '{:10d}'.format(len(wdata)).encode('utf8')
-#             print("eeprom format ",ticks_ms()-b)
-#             self.lxHardware.eeprom_memory[0 : len(sl)] = sl  # Save data length in locations 0-9
-#             start = 10  # Data goes in 10:
-#             end = start + len(wdata)
-#             self.lxHardware.eeprom_memory[start : end] = wdata
-#             print("eeprom write", ticks_ms()-b, "len", len(wdata))
-#
-#             slen = int(self.lxHardware.eeprom_memory[:10].decode().strip())  # retrieve object size
-#             start = 10
-#             end = start + slen
-#             d = json.loads(self.lxHardware.eeprom_memory[start : end])
-#             print(d)
-
-        self.save_data_lock.release()
+            for index, current_value in enumerate(dict_data_list):
+                if index > (size_previous_dict_data_list-1): # necessary if we change version or at boot when list is empty
+                    changed_index.append(index)
+                elif current_value != self.previous_dict_data_list[index]:
+                    changed_index.append(index)
+                    
+            # uncomment for debug purpose            
+            #if len(changed_index) > 0:
+            #    print("data changed and needs to be put to eeprom", changed_index)
+            
+            self.previous_dict_data_list = dict_data_list
+            if len(changed_index) > 0:
+                print(changed_index)
+                for index, addr_to_update in enumerate(changed_index):
+                    self.lxHardware.set_eeprom_data_int(addr_to_update, int(dict_data_list[addr_to_update]))
 
     def load_data(self):
         print("Start loading data")
-
-        full_conf_load = True
-
-        config_file = None
-        try:
-            config_file = open(JSON_CONFIG_FILE_NAME, "r")
-            dict_data = json.load(config_file)
-            
-            load_v_major = None
-            load_v_minor = None
-            load_v_fix = None
-            
-            full_conf_load, load_v_major = set_val_dict(full_conf_load, load_v_major, dict_data, "v_ma")
-            full_conf_load, load_v_minor = set_val_dict(full_conf_load, load_v_minor, dict_data, "v_mi")
-            full_conf_load, load_v_fix = set_val_dict(full_conf_load, load_v_fix, dict_data, "v_fi")
-            
-            if self.v_fix is not load_v_fix or self.v_minor is not load_v_minor or self.v_major is not load_v_major:
-                
+        
+        eeprom_v_major = self.lxHardware.get_eeprom_data_int(MAJOR_E_ADDR)
+        eeprom_v_minor = self.lxHardware.get_eeprom_data_int(MINOR_E_ADDR)
+        eeprom_v_fix = self.lxHardware.get_eeprom_data_int(FIX_E_ADDR)
+        version_eeprom = f"v{eeprom_v_major}.{eeprom_v_minor}.{eeprom_v_fix}"
+        print("version_eeprom", version_eeprom)
+        
+        if eeprom_v_major+eeprom_v_minor+eeprom_v_fix == 0:
+            print("Eeprom not initialized, saving all data")
+            self.save_data()
+        else:
+            if self.v_fix is not eeprom_v_fix or self.v_minor is not eeprom_v_minor or self.v_major is not eeprom_v_major:
                 version_main = f"v{self.v_major}.{self.v_minor}.{self.v_fix}"
-                version_memory = f"v{load_v_major}.{load_v_minor}.{load_v_fix}"
-                print("Warning: memory version is different", version_main, version_memory)
+                print("Warning: memory version is different", version_main, version_eeprom)
+            try:
+                
+                eeprom_addr = [FIX_E_ADDR+1]
+                
+                def incr_addr(a):
+                    a[0] +=1
+                    return a[0]-1
 
-            rhythm_index = 0
+                for euclidean_rythm in self.euclideanRythms:
+                    
+                    euclidean_rythm.beats = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))                    
+                    euclidean_rythm.pulses = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                    euclidean_rythm.offset = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                    euclidean_rythm.pulses_probability = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                    euclidean_rythm.prescaler_index = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                    euclidean_rythm.gate_length_ms = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                    euclidean_rythm.randomize_gate_length = bool(self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
 
-            for euclidean_rythm in self.euclideanRythms:
-                rhythm_prefix = "e_r_" + str(rhythm_index) + "_"
-                full_conf_load, euclidean_rythm.beats = set_val_dict(
-                    full_conf_load, euclidean_rythm.beats, dict_data, rhythm_prefix+"b")
-                full_conf_load, euclidean_rythm.pulses = set_val_dict(
-                    full_conf_load, euclidean_rythm.pulses, dict_data, rhythm_prefix+"p")
-                full_conf_load, euclidean_rythm.offset = set_val_dict(
-                    full_conf_load, euclidean_rythm.offset, dict_data, rhythm_prefix+"o")
-                full_conf_load, euclidean_rythm.prescaler_index = set_val_dict(
-                    full_conf_load, euclidean_rythm.prescaler_index, dict_data, rhythm_prefix+"p_i")
-                full_conf_load, euclidean_rythm.gate_length_ms = set_val_dict(
-                    full_conf_load, euclidean_rythm.gate_length_ms, dict_data, rhythm_prefix+"g_l_m")
-                full_conf_load, euclidean_rythm.randomize_gate_length = set_val_dict(
-                    full_conf_load, euclidean_rythm.randomize_gate_length, dict_data, rhythm_prefix+"r_g_l")
-                rhythm_index += 1
+                for preset in self.presets:
+                    for preset_euclidean_rythm in preset:
+                        preset_euclidean_rythm.beats = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rythm.pulses = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rythm.offset = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rythm.pulses_probability = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rythm.prescaler_index = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rythm.gate_length_ms = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rythm.randomize_gate_length = bool(self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr)))    
 
-            preset_index = 0
-            for preset in self.presets:
-                preset_prefix = "pr_" + str(preset_index) + "_"
-                rhythm_index = 0
-                for preset_euclidean_rythm in preset:
-                    rhythm_prefix = preset_prefix + \
-                        "e_r_" + str(rhythm_index) + "_"
-                    full_conf_load, preset_euclidean_rythm.beats = set_val_dict(
-                        full_conf_load, preset_euclidean_rythm.beats, dict_data, rhythm_prefix+"b")
-                    full_conf_load, preset_euclidean_rythm.pulses = set_val_dict(
-                        full_conf_load, preset_euclidean_rythm.pulses, dict_data, rhythm_prefix+"p")
-                    full_conf_load, preset_euclidean_rythm.offset = set_val_dict(
-                        full_conf_load, preset_euclidean_rythm.offset, dict_data, rhythm_prefix+"o")
-                    full_conf_load, preset_euclidean_rythm.prescaler_index = set_val_dict(
-                        full_conf_load, preset_euclidean_rythm.prescaler_index, dict_data, rhythm_prefix+"p_i")
-                    full_conf_load, preset_euclidean_rythm.gate_length_ms = set_val_dict(
-                        full_conf_load, preset_euclidean_rythm.prescaler_index, dict_data, rhythm_prefix+"g_l_m")
-                    full_conf_load, preset_euclidean_rythm.randomize_gate_length = set_val_dict(
-                        full_conf_load, preset_euclidean_rythm.randomize_gate_length, dict_data, rhythm_prefix+"r_g_l")
 
-                    rhythm_index += 1
-                preset_index += 1
+                self.tap_long_press_action = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
+                self.menu_btn_long_press_action = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
 
-            full_conf_load, self.tap_long_press_action = set_val_dict(
-                full_conf_load, self.tap_long_press_action, dict_data, "t_l_p_a")
-            full_conf_load, self.menu_btn_long_press_action = set_val_dict(
-                full_conf_load, self.menu_btn_long_press_action, dict_data, "m_l_p_a")
+                self.inner_rotate_action = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
+                self.inner_action_rythm = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
 
-            full_conf_load, self.inner_rotate_action = set_val_dict(
-                full_conf_load, self.inner_rotate_action, dict_data, "i_r_a")
-            full_conf_load, self.inner_action_rythm = set_val_dict(
-                full_conf_load, self.inner_action_rythm, dict_data, "i_a_r")
+                self.outer_rotate_action = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
+                self.outer_action_rythm = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
 
-            full_conf_load, self.outer_rotate_action = set_val_dict(
-                full_conf_load, self.outer_rotate_action, dict_data, "o_r_a")
-            full_conf_load, self.outer_action_rythm = set_val_dict(
-                full_conf_load, self.outer_action_rythm, dict_data, "o_a_r")
+                self.lxHardware.capacitives_circles.touch_sensitivity = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
 
-            full_conf_load, self.lxHardware.capacitives_circles.touch_sensitivity = set_val_dict(
-                full_conf_load, self.lxHardware.capacitives_circles.touch_sensitivity, dict_data, "t_s")
+                self.clk_mode = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                
+                self.previous_dict_data_list = list(self.create_memory_dict().values())
 
-            full_conf_load, self.clk_mode = set_val_dict(
-                full_conf_load, self.clk_mode, dict_data, "c_m")
-
-            if full_conf_load:
-                print("Full configuration was loaded")
-            else:
-                print("Configuration loaded but some parameters were missing")
-
-        except OSError:
-            print("Couldn't load config because of OS ERROR")
-        except Exception as e:
-            print("Couldn't load config because unknown error")
-            print(e)
-
-        if config_file is not None:
-            config_file.close()
+            except Exception as e:
+                print("Couldn't load eeprom config because unknown error")
+                print(e)
 
     def reload_rythms(self):
         for euclidean_rythm in self.euclideanRythms:
