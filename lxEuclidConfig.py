@@ -959,6 +959,10 @@ class LxEuclidConfig:
         else:
             if self.v_fix is not eeprom_v_fix or self.v_minor is not eeprom_v_minor or self.v_major is not eeprom_v_major:
                 version_main = f"v{self.v_major}.{self.v_minor}.{self.v_fix}"
+                self.lxHardware.set_eeprom_data_int(MAJOR_E_ADDR, self.v_major)
+                self.lxHardware.set_eeprom_data_int(MINOR_E_ADDR,self.v_minor)
+                self.lxHardware.set_eeprom_data_int(FIX_E_ADDR, self.v_fix)
+
                 print("Warning: memory version is different", version_main, version_eeprom)
             try:
                 
@@ -1003,6 +1007,7 @@ class LxEuclidConfig:
                 self.clk_mode = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
                 
                 self.previous_dict_data_list = list(self.create_memory_dict().values())
+                
 
             except Exception as e:
                 print("Couldn't load eeprom config because unknown error")

@@ -5,7 +5,7 @@ from Rp2040Lcd import LCD_1inch28
 # minor.major.fix + add 
 MAJOR = 0
 MINOR = 0
-FIX = 4
+FIX = 5
 ADD = "_dev"
 
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
