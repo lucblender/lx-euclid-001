@@ -76,8 +76,6 @@ class CvManager:
                     rising_edge_detected = True
                 to_return = [self.current_channel_measure,
                              rising_edge_detected]
-                if rising_edge_detected:
-                    print(to_return)
             self.current_channel_measure = (
                 self.current_channel_measure + 1) % 4
 

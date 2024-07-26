@@ -326,7 +326,6 @@ class LxEuclidConfig:
         self.state_lock = allocate_lock()
         self.save_data_lock = allocate_lock()
 
-        self.dict_data_to_save = {}
         self.need_save_data_in_file = False
 
         self.state = LxEuclidConfig.STATE_INIT
@@ -384,6 +383,8 @@ class LxEuclidConfig:
         self.computation_index = 0  # used in interrupt function that can't create memory
         
         self.previous_dict_data_list = [] # list used to test if data changed and needs to be stocked in memory
+
+        self.dict_data = OrderedDict() # used in create_memory_dict, put it as attribute so it doesn't create memory in loop
 
         self.load_data()
         self.reload_rythms()
@@ -859,21 +860,20 @@ class LxEuclidConfig:
         return data_pointer, attribute_name, min_val, max_val, steps_val, current_value
 
     def create_memory_dict(self):
-        dict_data = OrderedDict()
-        dict_data["v_ma"] = self.v_major
-        dict_data["v_mi"] = self.v_minor
-        dict_data["v_fi"] = self.v_fix
+        self.dict_data["v_ma"] = self.v_major
+        self.dict_data["v_mi"] = self.v_minor
+        self.dict_data["v_fi"] = self.v_fix
 
         rhythm_index = 0
         for euclidean_rythm in self.euclideanRythms:
             rhythm_prefix = "e_r_" + str(rhythm_index) + "_"
-            dict_data[rhythm_prefix+"b"] = euclidean_rythm.beats
-            dict_data[rhythm_prefix+"p"] = euclidean_rythm.pulses
-            dict_data[rhythm_prefix+"o"] = euclidean_rythm.offset
-            dict_data[rhythm_prefix+"pr"] = euclidean_rythm.pulses_probability
-            dict_data[rhythm_prefix+"p_i"] = euclidean_rythm.prescaler_index
-            dict_data[rhythm_prefix+"g_l_m"] = euclidean_rythm.gate_length_ms
-            dict_data[rhythm_prefix +
+            self.dict_data[rhythm_prefix+"b"] = euclidean_rythm.beats
+            self.dict_data[rhythm_prefix+"p"] = euclidean_rythm.pulses
+            self.dict_data[rhythm_prefix+"o"] = euclidean_rythm.offset
+            self.dict_data[rhythm_prefix+"pr"] = euclidean_rythm.pulses_probability
+            self.dict_data[rhythm_prefix+"p_i"] = euclidean_rythm.prescaler_index
+            self.dict_data[rhythm_prefix+"g_l_m"] = euclidean_rythm.gate_length_ms
+            self.dict_data[rhythm_prefix +
                       "r_g_l"] = euclidean_rythm.randomize_gate_length
             rhythm_index += 1
 
@@ -885,39 +885,37 @@ class LxEuclidConfig:
 
                 rhythm_prefix = preset_prefix+"e_r_" + str(rhythm_index) + "_"
 
-                dict_data[rhythm_prefix+"b"] = preset_euclidean_rythm.beats
-                dict_data[rhythm_prefix+"p"] = preset_euclidean_rythm.pulses
-                dict_data[rhythm_prefix+"o"] = preset_euclidean_rythm.offset
-                dict_data[rhythm_prefix+"pr"] = preset_euclidean_rythm.pulses_probability
-                dict_data[rhythm_prefix +
+                self.dict_data[rhythm_prefix+"b"] = preset_euclidean_rythm.beats
+                self.dict_data[rhythm_prefix+"p"] = preset_euclidean_rythm.pulses
+                self.dict_data[rhythm_prefix+"o"] = preset_euclidean_rythm.offset
+                self.dict_data[rhythm_prefix+"pr"] = preset_euclidean_rythm.pulses_probability
+                self.dict_data[rhythm_prefix +
                           "p_i"] = preset_euclidean_rythm.prescaler_index
-                dict_data[rhythm_prefix +
+                self.dict_data[rhythm_prefix +
                           "g_l_m"] = preset_euclidean_rythm.gate_length_ms
-                dict_data[rhythm_prefix +
+                self.dict_data[rhythm_prefix +
                           "r_g_l"] = preset_euclidean_rythm.randomize_gate_length
                 rhythm_index += 1
             preset_index += 1
 
-        dict_data["m_l_p_a"] = self.menu_btn_long_press_action
-        dict_data["t_l_p_a"] = self.tap_long_press_action
+        self.dict_data["m_l_p_a"] = self.menu_btn_long_press_action
+        self.dict_data["t_l_p_a"] = self.tap_long_press_action
 
-        dict_data["i_r_a"] = self.inner_rotate_action
-        dict_data["i_a_r"] = self.inner_action_rythm
+        self.dict_data["i_r_a"] = self.inner_rotate_action
+        self.dict_data["i_a_r"] = self.inner_action_rythm
 
-        dict_data["o_r_a"] = self.outer_rotate_action
-        dict_data["o_a_r"] = self.outer_action_rythm
+        self.dict_data["o_r_a"] = self.outer_rotate_action
+        self.dict_data["o_a_r"] = self.outer_action_rythm
 
-        dict_data["t_s"] = self.lxHardware.capacitives_circles.touch_sensitivity
+        self.dict_data["t_s"] = self.lxHardware.capacitives_circles.touch_sensitivity
 
-        dict_data["c_m"] = self.clk_mode
-        
-        return dict_data
+        self.dict_data["c_m"] = self.clk_mode
         
     def save_data(self):
-        dict_data = self.create_memory_dict()
 
         self.save_data_lock.acquire()
-        self.dict_data_to_save = dict_data
+        
+        self.create_memory_dict()
         self.need_save_data_in_file = True
         self.save_data_lock.release()
 
@@ -925,7 +923,7 @@ class LxEuclidConfig:
         if self.need_save_data_in_file:
             self.need_save_data_in_file = False
             self.save_data_lock.acquire()            
-            dict_data_list = list(self.dict_data_to_save.values())
+            dict_data_list = list(self.dict_data.values())
             self.save_data_lock.release()
             
             changed_index = []
@@ -943,7 +941,6 @@ class LxEuclidConfig:
             
             self.previous_dict_data_list = dict_data_list
             if len(changed_index) > 0:
-                print(changed_index)
                 for index, addr_to_update in enumerate(changed_index):
                     self.lxHardware.set_eeprom_data_int(addr_to_update, int(dict_data_list[addr_to_update]))
 
@@ -1008,8 +1005,8 @@ class LxEuclidConfig:
                 self.lxHardware.capacitives_circles.touch_sensitivity = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
 
                 self.clk_mode = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
-                
-                self.previous_dict_data_list = list(self.create_memory_dict().values())
+                self.create_memory_dict()
+                self.previous_dict_data_list = list(self.dict_data.values())
                 
 
             except Exception as e:
