@@ -280,9 +280,11 @@ class LxEuclidConfig:
 
     STATE_INIT = const(0)
     STATE_LIVE = const(1)
-    STATE_PARAMETERS = const(2)
-    STATE_RYTHM_PARAM_INNER_BEAT_PULSE = const(3)
-    STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(4)
+    STATE_MENU_SELECT = const(2)
+    STATE_PARAM_MENU = const(3)
+    STATE_RYTHM_PARAM_INNER_BEAT_PULSE = const(4)
+    STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(5)
+    
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
@@ -444,7 +446,7 @@ class LxEuclidConfig:
             # START STATE LIVE
             if event == LxEuclidConfig.EVENT_MENU_BTN:
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_PARAMETERS
+                self.state = LxEuclidConfig.STATE_MENU_SELECT
                 self.lxHardware.set_sw_leds(3)
                 self.state_lock.release()
                 self.sm_rythm_param_counter = 0
@@ -676,7 +678,35 @@ class LxEuclidConfig:
                 self.sm_rythm_param_counter = (
                     self.sm_rythm_param_counter-1) % 5
                 self.menu_lock.release()
-
+        elif self.state == LxEuclidConfig.STATE_MENU_SELECT:
+            if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH:                
+                angle_inner = self.lxHardware.capacitives_circles.inner_circle_angle
+                print(angle_inner)
+                if angle_inner >= 45 and angle_inner < 135: # Touch
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConfig.STATE_LIVE
+                    self.state_lock.release()
+                    self.lxHardware.clear_sw_leds(3)
+                elif angle_inner >= 135 and angle_inner < 225: # Preset
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConfig.STATE_LIVE
+                    self.state_lock.release()
+                    self.lxHardware.clear_sw_leds(3)
+                elif angle_inner >= 225 and angle_inner < 315: # CVs
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConfig.STATE_LIVE
+                    self.state_lock.release()
+                    self.lxHardware.clear_sw_leds(3)
+                else: # Other
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConfig.STATE_PARAM_MENU
+                    self.state_lock.release()
+            elif event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3:
+                self.save_data()
+                self.state_lock.acquire()
+                self.state = LxEuclidConfig.STATE_LIVE
+                self.state_lock.release()
+                self.lxHardware.clear_sw_leds(3)
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
             if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rythm_param_counter:
                 self.state_lock.acquire()
@@ -711,7 +741,7 @@ class LxEuclidConfig:
                 self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses_probability(
                 )
 
-        elif local_state == LxEuclidConfig.STATE_PARAMETERS:
+        elif local_state == LxEuclidConfig.STATE_PARAM_MENU:
             if event == LxEuclidConfig.EVENT_MENU_BTN or event == LxEuclidConfig.EVENT_MENU_BTN_LONG:
                 self.menu_lock.acquire()
                 parameter_set = self.menu_enter_pressed()
@@ -759,7 +789,6 @@ class LxEuclidConfig:
         # tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
         self.last_gate_led_event = ticks_ms()
         self.clear_led_needed = True  # TODO this var is not needed anymore
-        self.LCD.set_need_display()
 
     def random_gate_length_update(self):
         for euclidean_rythm in self.euclideanRythms:

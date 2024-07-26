@@ -109,10 +109,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
         except OSError:
             missing_files += "helixbyte_r5g6b5.bin\n"
 
-        try:
-            open("parameter_selected.bin", "r")
-        except OSError:
-            missing_files += "parameter_selected.bin\n"
 
         try:
             open("parameter_unselected.bin", "r")
@@ -121,12 +117,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.display_lxb_logo(version, missing_files)
         gc.collect()
-
-        try:
-            self.parameter_selected = pict_to_fbuff(
-                "parameter_selected.bin", 40, 40)
-        except Exception:
-            self.parameter_selected = None
 
         try:
             self.parameter_unselected = pict_to_fbuff(
@@ -374,6 +364,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
         return to_return
 
     def display_rythms(self):
+        
+        self.__need_display = False
         pre_tick = ticks_ms()
 
         # uncomment to get a pie-slice visualisation of the touch
@@ -397,8 +389,33 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     color = self.rythm_colors[self.lxEuclidConfig.action_display_index]
                 self.font_writer_freesans20.text(
                     txt, 120-int(txt_len/2), 110, color)
+        elif local_state == self.lxEuclidConfig.STATE_MENU_SELECT:
+                
+            self.circle(120, 120, 51, self.touch_circle_color, True)
+            self.circle(120, 120, 51-15, self.black, True)
 
-        elif local_state == self.lxEuclidConfig.STATE_PARAMETERS:
+            self.circle(120, 120, 31, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 31-15, self.black, True)
+            
+            txt_color = self.rythm_colors[3]
+            
+            
+            self.font_writer_freesans20.text(
+                "Presets", 80, 12, txt_color)
+            
+            self.font_writer_freesans20.text(
+                "CVs", 8, 110, txt_color)
+            
+            self.font_writer_freesans20.text(
+                "Touch", 180, 110, txt_color)
+            
+            self.font_writer_freesans20.text(
+                "Other", 91, 213, txt_color)
+            
+#             if self.parameter_unselected is not None:
+#                 self.blit(self.parameter_unselected, 100, 100)
+
+        elif local_state == self.lxEuclidConfig.STATE_PARAM_MENU:
             # TODO Disabled during parameters self.display_rythm_circles()
             self.display_enter_return_txt()
 
@@ -515,7 +532,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
         debug_print("after show", ticks_ms()-pre_tick)
         self.fill(self.black)
         debug_print("fill black", ticks_ms()-pre_tick)
-        self.__need_display = False
         debug_print("display rhthms", ticks_ms()-pre_tick)
         debug_print(" ")
 
@@ -539,7 +555,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             beat_color_hightlight = self.rythm_colors_highlight[rythm_index]
 
             highlight_color = self.white
-            if local_state in [self.lxEuclidConfig.STATE_PARAMETERS, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
+            if local_state in [self.lxEuclidConfig.STATE_PARAM_MENU, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
                 offset_radius = self.OFFSET_RADIUS_PARAM
                 local_beat_coord = self.param_beats_coords
                 if rythm_index != rythm_param_counter:

@@ -66,8 +66,10 @@ def lxhardware_changed(handlerEventData):
     global tap_btn_press, btn_menu_press
     event = handlerEventData.event
     if event == lxHardware.CLK_RISE:
+        if lxEuclidConfig.state in [LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY,LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,LxEuclidConfig.STATE_LIVE]:            
+            LCD.set_need_display()
         lxEuclidConfig.random_gate_length_update()
-    if event == lxHardware.RST_RISE:
+    elif event == lxHardware.RST_RISE:
         lxEuclidConfig.reset_steps()
         LCD.set_need_display()
     elif event == lxHardware.BTN_TAP_RISE:
@@ -135,10 +137,9 @@ def lxhardware_changed(handlerEventData):
     elif event == lxHardware.BTN_MENU_FALL:
         if ticks_ms() - btn_menu_press > LONG_PRESS_MS:
             lxEuclidConfig.on_event(LxEuclidConfig.EVENT_MENU_BTN_LONG)
-            LCD.set_need_display()
         else:
             lxEuclidConfig.on_event(LxEuclidConfig.EVENT_MENU_BTN)
-            LCD.set_need_display()
+        LCD.set_need_display()
 
 def is_usb_connected():
     SIE_STATUS = const(0x50110000+0x50)
@@ -206,7 +207,7 @@ print_ram()
 start_new_thread(display_thread, ())
 
 if __name__ == '__main__':
-    #try:
+    try:
         gc.collect()
         print_ram()
 
@@ -247,6 +248,6 @@ if __name__ == '__main__':
                         tap_incr_steps()
 
         print("quit")
-    #except Exception as e:
-     #   append_error(e)
+    except Exception as e:
+        append_error(e)
 
