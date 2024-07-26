@@ -58,8 +58,8 @@ class EuclideanRythmParameters:
 
         if self.beats < 1:
             self.beats = 1
-        if self.pulses < 1:
-            self.pulses = 1
+        if self.pulses < 0:
+            self.pulses = 0
         self.__pulses_ratio = self.pulses / self.beats
         self.clear_gate_needed = False
         self.gate_length_ms = gate_length_ms
@@ -152,8 +152,8 @@ class EuclideanRythm(EuclideanRythmParameters):
 
     def decr_pulses(self):
         self.pulses = self.pulses - 1
-        if self.pulses < 1:
-            self.pulses = 1
+        if self.pulses < 0:
+            self.pulses = 0
         self.__pulses_ratio = self.pulses / self.beats
         self.set_rythm()
 
@@ -221,36 +221,39 @@ class EuclideanRythm(EuclideanRythmParameters):
     def __set_rythm_bjorklund(self):
         if self.pulses > self.beats:
             raise ValueError
-        pattern = []
-        counts = []
-        remainders = []
-        divisor = self.beats - self.pulses
-        remainders.append(self.pulses)
-        level = 0
-        while True:
-            counts.append(divisor // remainders[level])
-            remainders.append(divisor % remainders[level])
-            divisor = remainders[level]
-            level = level + 1
-            if remainders[level] <= 1:
-                break
-        counts.append(divisor)
+        if self.pulses == 0:
+            self.rythm = [0]*self.beats
+        else:
+            pattern = []
+            counts = []
+            remainders = []
+            divisor = self.beats - self.pulses
+            remainders.append(self.pulses)
+            level = 0
+            while True:
+                counts.append(divisor // remainders[level])
+                remainders.append(divisor % remainders[level])
+                divisor = remainders[level]
+                level = level + 1
+                if remainders[level] <= 1:
+                    break
+            counts.append(divisor)
 
-        def build(level):
-            if level == -1:
-                pattern.append(0)
-            elif level == -2:
-                pattern.append(1)
-            else:
-                for _ in range(0, counts[level]):
-                    build(level - 1)
-                if remainders[level] != 0:
-                    build(level - 2)
+            def build(level):
+                if level == -1:
+                    pattern.append(0)
+                elif level == -2:
+                    pattern.append(1)
+                else:
+                    for _ in range(0, counts[level]):
+                        build(level - 1)
+                    if remainders[level] != 0:
+                        build(level - 2)
 
-        build(level)
-        i = pattern.index(1)
-        pattern = pattern[i:] + pattern[0:i]
-        self.rythm = pattern
+            build(level)
+            i = pattern.index(1)
+            pattern = pattern[i:] + pattern[0:i]
+            self.rythm = pattern
 
 
 MAIN_MENU_PARAMETER_INDEX = 4
