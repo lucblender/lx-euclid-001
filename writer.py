@@ -79,8 +79,8 @@ class Writer():
         palette = framebuf.FrameBuffer(buffer, 1, 1, framebuf.RGB565)
 
         # we use color 0 as transparent color in the blit... so I change color 0 to 1. We don't have full black but eh, it works
-#         if color == 0:
-#             color = 1
+        if color == 0:
+            color = 1
 
         palette.fill(color)
 

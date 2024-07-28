@@ -71,31 +71,7 @@ def get_menu_navigation_map():
                                    "attribute_name": "touch_sensitivity"
                                },
                                }
-    circle_dict = {"data_pointer": None,
-                   "Live action": {
-                       "values": ["None", "Rotate Rythm", "Incr/Decr Pulses", "Incr/Decr Gate Length"],
-                       "attribute_name": "inner_rotate_action"
-                   },
-                   "Action Rythm": {
-                       "values": ["1", "2", "3", "4", "all"],
-                       "attribute_name": "inner_action_rythm"
-                   },
-                   }
-    interface_dict["Inner Circle"] = circle_dict
-    interface_dict["Outer Circle"] = circle_dict.copy()
 
     my_dict["Interface"] = interface_dict
-
-    my_dict["Presets"] = OrderedDict(
-        {"data_pointer": None,
-         "Save Preset": {
-             "values": ["0", "1"],
-             "attribute_name": "save_preset_index"
-         },
-         "Load Preset": {
-             "values": ["0", "1"],
-             "attribute_name": "load_preset_index"
-         },
-         })
 
     return my_dict

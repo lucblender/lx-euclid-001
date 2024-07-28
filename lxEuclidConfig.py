@@ -17,17 +17,16 @@ MINOR_E_ADDR = const(1)
 FIX_E_ADDR = const(2)
 
 
-def set_val_dict(full_conf_load, var, local_dict, key):
-    if key in local_dict:
-        var = local_dict[key]
-        return full_conf_load, var
-    else:
-        return False, var
+PRESCALER_LIST = [1, 2, 3, 4, 8, 16]
 
+# pass from 360° (in capacitive circle referential) to 0..steps
+def angle_to_index(angle,steps):
+    step_angle = 360/steps
+    return  int(((steps/2)-int(((angle+(step_angle/2))%360)/step_angle))%steps)
+    
 
 class EuclideanRythmParameters:
 
-    PRESCALER_LIST = [1, 2, 3, 4, 8, 16]
 
     def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, randomize_gate_length=False):
         self.set_parameters(beats, pulses, offset, pulses_probability,
@@ -40,7 +39,7 @@ class EuclideanRythmParameters:
     def set_parameters(self, beats, pulses, offset, pulses_probability, prescaler_index, gate_length_ms, randomize_gate_length):
         self._prescaler_index = prescaler_index
 
-        self.prescaler = EuclideanRythmParameters.PRESCALER_LIST[prescaler_index]
+        self.prescaler = PRESCALER_LIST[prescaler_index]
 
         self.beats = beats
 
@@ -82,7 +81,7 @@ class EuclideanRythm(EuclideanRythmParameters):
             self, beats, pulses, offset, pulses_probability, prescaler_index)
 
         self.current_step = 0
-        self.prescaler = EuclideanRythmParameters.PRESCALER_LIST[prescaler_index]
+        self.prescaler = PRESCALER_LIST[prescaler_index]
         self.prescaler_rythm_counter = 0
 
         self.rythm = []
@@ -95,7 +94,7 @@ class EuclideanRythm(EuclideanRythmParameters):
     @prescaler_index.setter
     def prescaler_index(self, prescaler_index):
         self._prescaler_index = prescaler_index
-        self.prescaler = EuclideanRythmParameters.PRESCALER_LIST[self._prescaler_index]
+        self.prescaler = PRESCALER_LIST[self._prescaler_index]
 
     def set_offset(self, offset):
         self.offset = offset % self.beats
@@ -284,6 +283,7 @@ class LxEuclidConfig:
     STATE_PARAM_MENU = const(3)
     STATE_RYTHM_PARAM_INNER_BEAT_PULSE = const(4)
     STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(5)
+    STATE_PARAM_PRESETS = const(6)
     
 
     EVENT_INIT = const(0)
@@ -322,6 +322,18 @@ class LxEuclidConfig:
             8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
         self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
             8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
+            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
+            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
+            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
+            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
+            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
+            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
 
         self.rythm_lock = allocate_lock()
         self.menu_lock = allocate_lock()
@@ -338,25 +350,24 @@ class LxEuclidConfig:
         self.clk_mode = LxEuclidConfig.CLK_IN
 
         self.menu_navigation_map = get_menu_navigation_map()
+        
+        data_pointer_key = "data_pointer"
 
-        self.menu_navigation_map["Outputs"]["Out 0"]["data_pointer"] = self.euclideanRythms[0]
-        self.menu_navigation_map["Outputs"]["Out 1"]["data_pointer"] = self.euclideanRythms[1]
-        self.menu_navigation_map["Outputs"]["Out 2"]["data_pointer"] = self.euclideanRythms[2]
-        self.menu_navigation_map["Outputs"]["Out 3"]["data_pointer"] = self.euclideanRythms[3]
+        self.menu_navigation_map["Outputs"]["Out 0"][data_pointer_key] = self.euclideanRythms[0]
+        self.menu_navigation_map["Outputs"]["Out 1"][data_pointer_key] = self.euclideanRythms[1]
+        self.menu_navigation_map["Outputs"]["Out 2"][data_pointer_key] = self.euclideanRythms[2]
+        self.menu_navigation_map["Outputs"]["Out 3"][data_pointer_key] = self.euclideanRythms[3]
 
-        self.menu_navigation_map["CVs"]["CV 0"]["data_pointer"] = self.lxHardware.cv_manager.cvs_data[0]
-        self.menu_navigation_map["CVs"]["CV 1"]["data_pointer"] = self.lxHardware.cv_manager.cvs_data[1]
-        self.menu_navigation_map["CVs"]["CV 2"]["data_pointer"] = self.lxHardware.cv_manager.cvs_data[2]
-        self.menu_navigation_map["CVs"]["CV 3"]["data_pointer"] = self.lxHardware.cv_manager.cvs_data[3]
+        self.menu_navigation_map["CVs"]["CV 0"][data_pointer_key] = self.lxHardware.cv_manager.cvs_data[0]
+        self.menu_navigation_map["CVs"]["CV 1"][data_pointer_key] = self.lxHardware.cv_manager.cvs_data[1]
+        self.menu_navigation_map["CVs"]["CV 2"][data_pointer_key] = self.lxHardware.cv_manager.cvs_data[2]
+        self.menu_navigation_map["CVs"]["CV 3"][data_pointer_key] = self.lxHardware.cv_manager.cvs_data[3]
 
-        self.menu_navigation_map["Clock"]["data_pointer"] = self
-        self.menu_navigation_map["Presets"]["data_pointer"] = self
+        self.menu_navigation_map["Clock"][data_pointer_key] = self
 
-        self.menu_navigation_map["Interface"]["Menu Button"]["data_pointer"] = self
-        self.menu_navigation_map["Interface"]["Tap Button"]["data_pointer"] = self
-        self.menu_navigation_map["Interface"]["Outer Circle"]["data_pointer"] = self
-        self.menu_navigation_map["Interface"]["Inner Circle"]["data_pointer"] = self
-        self.menu_navigation_map["Interface"]["Touch"]["data_pointer"] = self.lxHardware.capacitives_circles
+        self.menu_navigation_map["Interface"]["Menu Button"][data_pointer_key] = self
+        self.menu_navigation_map["Interface"]["Tap Button"][data_pointer_key] = self
+        self.menu_navigation_map["Interface"]["Touch"][data_pointer_key] = self.lxHardware.capacitives_circles
 
         self.current_menu_len = len(self.menu_navigation_map)
         self.current_menu_selected = 0
@@ -406,7 +417,6 @@ class LxEuclidConfig:
     @property
     def save_preset_index(self):
         return self._save_preset_index
-
     @save_preset_index.setter
     def save_preset_index(self, save_preset_index):
         self._save_preset_index = save_preset_index
@@ -681,32 +691,62 @@ class LxEuclidConfig:
         elif self.state == LxEuclidConfig.STATE_MENU_SELECT:
             if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH:                
                 angle_inner = self.lxHardware.capacitives_circles.inner_circle_angle
-                print(angle_inner)
-                if angle_inner >= 45 and angle_inner < 135: # Touch
+                menu_selection_index = angle_to_index(angle_inner,4)
+                
+                if menu_selection_index == 0: # Preset
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConfig.STATE_PARAM_PRESETS
+                    self.state_lock.release()     
+                elif menu_selection_index == 1: # Pads
                     self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_LIVE
                     self.state_lock.release()
                     self.lxHardware.clear_sw_leds(3)
-                elif angle_inner >= 135 and angle_inner < 225: # Preset
-                    self.state_lock.acquire()
-                    self.state = LxEuclidConfig.STATE_LIVE
-                    self.state_lock.release()
-                    self.lxHardware.clear_sw_leds(3)
-                elif angle_inner >= 225 and angle_inner < 315: # CVs
-                    self.state_lock.acquire()
-                    self.state = LxEuclidConfig.STATE_LIVE
-                    self.state_lock.release()
-                    self.lxHardware.clear_sw_leds(3)
-                else: # Other
+                elif menu_selection_index == 2: # Other
                     self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_PARAM_MENU
+                    self.state_lock.release()                    
+                else: # CVs
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConfig.STATE_LIVE
                     self.state_lock.release()
+                    self.lxHardware.clear_sw_leds(3)
+                    
             elif event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3:
                 self.save_data()
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
                 self.lxHardware.clear_sw_leds(3)
+        elif self.state == LxEuclidConfig.STATE_PARAM_PRESETS:
+            if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH:  # saving preset      
+                angle_inner = self.lxHardware.capacitives_circles.inner_circle_angle
+                preset_index = angle_to_index(angle_outer,8)
+                self.save_preset_index = preset_index
+                
+                self.state_lock.acquire()
+                self.state = LxEuclidConfig.STATE_LIVE
+                self.state_lock.release()
+                self.lxHardware.clear_sw_leds(3)
+                
+            elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH:    # loading preset    
+                angle_outer = self.lxHardware.capacitives_circles.outer_circle_angle
+                preset_index = angle_to_index(angle_outer,8)
+                
+                self.load_preset_index = preset_index
+                
+                self.state_lock.acquire()
+                self.state = LxEuclidConfig.STATE_LIVE
+                self.state_lock.release()
+                self.lxHardware.clear_sw_leds(3)
+                
+            elif event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3:
+                self.save_data()
+                self.state_lock.acquire()
+                self.state = LxEuclidConfig.STATE_LIVE
+                self.state_lock.release()
+                self.lxHardware.clear_sw_leds(3)
+                    
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
             if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rythm_param_counter:
                 self.state_lock.acquire()
@@ -952,26 +992,25 @@ class LxEuclidConfig:
         if self.need_save_data_in_file:
             self.need_save_data_in_file = False
             self.save_data_lock.acquire()            
-            dict_data_list = list(self.dict_data.values())
             self.save_data_lock.release()
             
             changed_index = []
             size_previous_dict_data_list = len(self.previous_dict_data_list)
 
-            for index, current_value in enumerate(dict_data_list):
+            for index, current_value in enumerate(self.dict_data.values()):
                 if index > (size_previous_dict_data_list-1): # necessary if we change version or at boot when list is empty
                     changed_index.append(index)
                 elif current_value != self.previous_dict_data_list[index]:
                     changed_index.append(index)
-                    
+                 
             # uncomment for debug purpose            
             #if len(changed_index) > 0:
             #    print("data changed and needs to be put to eeprom", changed_index)
             
-            self.previous_dict_data_list = dict_data_list
+            self.previous_dict_data_list = list(self.dict_data.values())
             if len(changed_index) > 0:
                 for index, addr_to_update in enumerate(changed_index):
-                    self.lxHardware.set_eeprom_data_int(addr_to_update, int(dict_data_list[addr_to_update]))
+                    self.lxHardware.set_eeprom_data_int(addr_to_update, int(self.previous_dict_data_list[addr_to_update]))
 
     def load_data(self):
         print("Start loading data")

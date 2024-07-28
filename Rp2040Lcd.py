@@ -6,6 +6,7 @@ from machine import Pin, SPI, PWM
 import framebuf
 from utime import sleep, ticks_ms
 from micropython import const
+from math import sin, cos, radians
 
 DC = const(8)
 CS = const(9)
@@ -16,10 +17,6 @@ RST = const(12)
 BL = const(25)
 
 DEBUG = False
-
-sin_table = [0.0, 0.01745241, 0.0348995, 0.05233596, 0.06975647, 0.08715573, 0.1045285, 0.1218693, 0.1391731, 0.1564345, 0.1736482, 0.190809, 0.2079117, 0.2249511, 0.2419219, 0.2588191, 0.2756374, 0.2923717, 0.309017, 0.3255682, 0.3420201, 0.3583679, 0.3746066, 0.3907311, 0.4067367, 0.4226183, 0.4383711, 0.4539905, 0.4694715, 0.4848096, 0.5, 0.5150381, 0.5299192, 0.5446391, 0.5591929, 0.5735765, 0.5877852, 0.601815, 0.6156615, 0.6293204, 0.6427876, 0.656059, 0.6691306, 0.6819983, 0.6946584, 0.7071068, 0.7193398, 0.7313537, 0.7431449, 0.7547095, 0.7660445, 0.777146, 0.7880107, 0.7986355, 0.809017, 0.8191521, 0.8290376, 0.8386705, 0.8480481, 0.8571673, 0.8660254, 0.8746197, 0.8829475, 0.8910066, 0.8987941, 0.9063078, 0.9135455, 0.9205048, 0.9271839, 0.9335804, 0.9396926, 0.9455186, 0.9510566, 0.9563047, 0.9612617, 0.9659258, 0.9702957, 0.9743701, 0.9781476, 0.9816272, 0.9848078, 0.9876884, 0.990268, 0.9925462, 0.9945219, 0.9961947, 0.9975641, 0.9986295, 0.9993908, 0.9998477, 1.0, 0.9998477, 0.9993908, 0.9986295, 0.9975641, 0.9961947, 0.9945219, 0.9925462, 0.990268, 0.9876884, 0.9848078, 0.9816272, 0.9781476, 0.9743701, 0.9702957, 0.9659258, 0.9612617, 0.9563047, 0.9510566, 0.9455186, 0.9396926, 0.9335804, 0.9271839, 0.9205048, 0.9135455, 0.9063078, 0.8987941, 0.8910066, 0.8829475, 0.8746197, 0.8660254, 0.8571673, 0.848048, 0.8386705, 0.8290376, 0.819152, 0.809017, 0.7986355, 0.7880107, 0.7771461, 0.7660444, 0.7547096, 0.7431448, 0.7313537, 0.7193398, 0.7071068, 0.6946585, 0.6819983, 0.6691306, 0.656059, 0.6427876, 0.6293205, 0.6156614, 0.6018151, 0.5877852, 0.5735765, 0.559193, 0.544639, 0.5299193, 0.515038, 0.5, 0.4848095, 0.4694715, 0.4539906, 0.4383711, 0.4226183, 0.4067366, 0.3907311, 0.3746067, 0.3583679, 0.3420202, 0.3255681, 0.309017, 0.2923718, 0.2756374, 0.2588191, 0.2419219, 0.2249511, 0.2079116, 0.190809, 0.1736483, 0.1564344, 0.1391732, 0.1218693, 0.1045285, 0.08715588, 0.06975647, 0.05233605, 0.03489945, 0.01745246, -8.742278e-08, -0.01745239, -0.03489939, -0.05233598, -0.0697564, -0.08715581, -0.1045284, -
-             0.1218692, -0.1391731, -0.1564344, -0.1736482, -0.190809, -0.2079118, -0.2249511, -0.2419218, -0.2588191, -0.2756373, -0.2923718, -0.309017, -0.3255681, -0.3420202, -0.3583679, -0.3746066, -0.3907311, -0.4067365, -0.4226183, -0.4383711, -0.4539906, -0.4694715, -0.4848097, -0.5, -0.515038, -0.5299192, -0.544639, -0.5591929, -0.5735764, -0.5877851, -0.601815, -0.6156614, -0.6293204, -0.6427876, -0.6560591, -0.6691306, -0.6819983, -0.6946584, -0.7071068, -0.7193398, -0.7313537, -0.7431448, -0.7547096, -0.7660446, -0.777146, -0.7880107, -0.7986354, -0.8090168, -0.8191521, -0.8290376, -0.8386705, -0.848048, -0.8571671, -0.8660254, -0.8746197, -0.8829475, -0.8910065, -0.8987941, -0.9063078, -0.9135455, -0.9205048, -0.9271838, -0.9335805, -0.9396927, -0.9455186, -0.9510565, -0.9563046, -0.9612617, -0.9659258, -0.9702957, -0.9743701, -0.9781476, -0.9816273, -0.9848078, -0.9876883, -0.990268, -0.9925462, -0.9945219, -0.9961947, -0.997564, -0.9986295, -0.9993908, -0.9998477, -1.0, -0.9998477, -0.9993908, -0.9986295, -0.997564, -0.9961947, -0.9945219, -0.9925462, -0.990268, -0.9876883, -0.9848078, -0.9816273, -0.9781476, -0.97437, -0.9702957, -0.9659258, -0.9612617, -0.9563048, -0.9510565, -0.9455186, -0.9396926, -0.9335805, -0.9271839, -0.9205048, -0.9135454, -0.9063078, -0.8987941, -0.8910067, -0.8829475, -0.8746197, -0.8660254, -0.8571674, -0.848048, -0.8386705, -0.8290376, -0.8191521, -0.8090171, -0.7986354, -0.7880107, -0.777146, -0.7660445, -0.7547097, -0.7431448, -0.7313537, -0.7193398, -0.7071069, -0.6946585, -0.6819983, -0.6691306, -0.6560591, -0.6427877, -0.6293206, -0.6156614, -0.601815, -0.5877853, -0.5735765, -0.5591931, -0.5446389, -0.5299192, -0.5150381, -0.5000002, -0.4848094, -0.4694715, -0.4539905, -0.4383712, -0.4226184, -0.4067365, -0.3907311, -0.3746066, -0.3583681, -0.3420204, -0.325568, -0.3090169, -0.2923717, -0.2756375, -0.2588193, -0.2419218, -0.224951, -0.2079118, -0.1908092, -0.1736485, -0.1564344, -0.1391731, -0.1218694, -0.1045287, -0.08715603, -0.06975638, -0.05233597, -0.0348996, -0.01745261]
-
 
 def debug_print(*txt):
     if DEBUG:
@@ -37,9 +34,9 @@ def pict_to_fbuff(path, x, y):
 
 
 def polar_to_cartesian(radius, theta):
-    # rad_theta = radians(theta)
-    x = radius * sin_table[int(90+theta) % 360]
-    y = radius * sin_table[int(theta)]
+    rad_theta = radians(theta)
+    x = radius * cos(rad_theta)
+    y = radius * sin(rad_theta)
     return int(x), int(y)
 
 
@@ -69,11 +66,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.init_display()
         gc.collect()
 
-        self.blue = 0x07E0
-        self.green = 0x001f
-        self.red = 0xf800
-        self.white = 0xffff
-        self.black = 0x0000
+        self.blue = const(0x07E0)
+        self.green = const(0x001f)
+        self.red = const(0xf800)
+        self.white = const(0xffff)
+        self.black = const(0x0000)
         self.grey = rgb888_to_rgb565(54, 54, 54)
         self.touch_circle_color_highlight = rgb888_to_rgb565(255, 221, 0)
         self.touch_circle_color = rgb888_to_rgb565(176, 157, 34)
@@ -108,7 +105,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
             open("helixbyte_r5g6b5.bin", "r")
         except OSError:
             missing_files += "helixbyte_r5g6b5.bin\n"
-
 
         try:
             open("parameter_unselected.bin", "r")
@@ -151,6 +147,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.spi.write(bytearray([buf]))
         self.cs(1)
 
+    def write_cmd_data(self, cmd, datas):
+        self.write_cmd(cmd)
+        for data in datas:
+            self.write_data(data)
+
     def set_bl_pwm(self, duty):
         self.pwm.duty_u16(duty)  # max 65535
 
@@ -164,47 +165,34 @@ class LCD_1inch28(framebuf.FrameBuffer):
         sleep(0.05)
 
         self.write_cmd(0xEF)
-        self.write_cmd(0xEB)
-        self.write_data(0x14)
+        self.write_cmd_data(0xEB,[0x14])
 
         self.write_cmd(0xFE)
         self.write_cmd(0xEF)
 
-        self.write_cmd(0xEB)
-        self.write_data(0x14)
+        self.write_cmd_data(0xEB,[0x14])
 
-        self.write_cmd(0x84)
-        self.write_data(0x40)
+        self.write_cmd_data(0x84,[0x40])
 
-        self.write_cmd(0x85)
-        self.write_data(0xFF)
+        self.write_cmd_data(0x85,[0xFF])
 
-        self.write_cmd(0x86)
-        self.write_data(0xFF)
+        self.write_cmd_data(0x86,[0xFF])
 
-        self.write_cmd(0x87)
-        self.write_data(0xFF)
+        self.write_cmd_data(0x87,[0xFF])
 
-        self.write_cmd(0x88)
-        self.write_data(0x0A)
+        self.write_cmd_data(0x88,[0x0A])
 
-        self.write_cmd(0x89)
-        self.write_data(0x21)
+        self.write_cmd_data(0x89,[0x21])
 
-        self.write_cmd(0x8A)
-        self.write_data(0x00)
+        self.write_cmd_data(0x8A,[0x00])
 
-        self.write_cmd(0x8B)
-        self.write_data(0x80)
+        self.write_cmd_data(0x8B,[0x80])
 
-        self.write_cmd(0x8C)
-        self.write_data(0x01)
+        self.write_cmd_data(0x8C,[0x01])
 
-        self.write_cmd(0x8D)
-        self.write_data(0x01)
+        self.write_cmd_data(0x8D,[0x01])
 
-        self.write_cmd(0x8E)
-        self.write_data(0xFF)
+        self.write_cmd_data(0x8E,[0xFF])
 
         self.write_cmd_data(0x8F, [0xFF])
 
@@ -300,11 +288,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.spi.write(self.buffer)
         self.cs(1)
         debug_print("show", ticks_ms()-a)
-
-    def write_cmd_data(self, cmd, datas):
-        self.write_cmd(cmd)
-        for data in datas:
-            self.write_data(data)
 
     def circle(self, x, y, radius, color, filled):
         self.ellipse(x, y, radius, radius, color, filled)
@@ -407,10 +390,34 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 "CVs", 8, 110, txt_color)
             
             self.font_writer_freesans20.text(
-                "Touch", 180, 110, txt_color)
+                "Pads", 190, 110, txt_color)
             
             self.font_writer_freesans20.text(
                 "Other", 91, 213, txt_color)
+            
+        elif local_state == self.lxEuclidConfig.STATE_PARAM_PRESETS:            
+            
+            txt_color = self.rythm_colors[3]
+                
+            self.circle(120, 120, 82, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 60, self.black, True)
+
+            self.circle(120, 120, 54, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 28, self.black, True)
+            
+            
+            self.font_writer_freesans20.text("load", 99, 42, self.black)
+            
+            self.font_writer_freesans20.text("save", 101, 71, self.black)
+            
+            self.font_writer_freesans20.text("1", 116, 5, txt_color)
+            self.font_writer_freesans20.text("2", 190, 38, txt_color)
+            self.font_writer_freesans20.text("3", 220, 110, txt_color)
+            self.font_writer_freesans20.text("4", 190, 184, txt_color)
+            self.font_writer_freesans20.text("5", 113, 218, txt_color)
+            self.font_writer_freesans20.text("6", 34, 184, txt_color)
+            self.font_writer_freesans20.text("7", 3, 110, txt_color)
+            self.font_writer_freesans20.text("8", 34, 38, txt_color)
             
 #             if self.parameter_unselected is not None:
 #                 self.blit(self.parameter_unselected, 100, 100)
@@ -635,13 +642,13 @@ class LCD_1inch28(framebuf.FrameBuffer):
     #     # Calculate the polygon points
     #     for i in range(num_sides + 1):
     #         angle = start_angle + i * angle_step
-    #         x = int(center[0] + radius_start * sin_table[int(angle+90) % 360])
-    #         y = int(center[1] + radius_start * sin_table[int(angle)])
+    #         x = int(center[0] + radius_start * get_sin(int(angle+90) % 360))
+    #         y = int(center[1] + radius_start * get_sin(int(angle)))
     #         points.extend((x, y))
     #     for i in range(num_sides + 1):
     #         angle = start_angle + (num_sides-i) * angle_step
-    #         x = int(center[0] + radius_stop * sin_table[int(angle+90) % 360])
-    #         y = int(center[1] + radius_stop * sin_table[int(angle)])
+    #         x = int(center[0] + radius_stop * get_sin(int(angle+90) % 360))
+    #         y = int(center[1] + radius_stop * get_sin(int(angle)))
     #         points.extend((x, y))
 
     #     # Draw the polygon
