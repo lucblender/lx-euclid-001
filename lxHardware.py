@@ -1,10 +1,10 @@
 from _thread import allocate_lock
-from machine import Pin
+from machine import Pin, I2C
 from ucollections import deque
 from micropython import const
 import rp2
 
-from capacitivesCircles import *
+from capacitivesCircles import CapacitivesCircles
 from cvManager import CvManager
 
 from eeprom_i2c import EEPROM, T24C64
@@ -66,10 +66,12 @@ class LxHardware:
     OUTER_CIRCLE_DECR = const(9)
     INNER_CIRCLE_TOUCH = const(10)
     OUTER_CIRCLE_TOUCH = const(11)
+    INNER_CIRCLE_TAP = const(12)
+    OUTER_CIRCLE_TAP = const(13)
 
-    BTN_SWITCHES_RISE = const(12)
-    BTN_SWITCHES_FALL = const(13)
-    
+    BTN_SWITCHES_RISE = const(14)
+    BTN_SWITCHES_FALL = const(15)
+
     EEPROM_ADDR = const(0x50)
 
     def __init__(self):
@@ -165,9 +167,15 @@ class LxHardware:
         # a lock on the i2c so both thread can use i2c devices
         self.i2c_lock = allocate_lock()
 
-        self.eeprom_memory = EEPROM(self.i2c, chip_size = T24C64, addr = self.EEPROM_ADDR)
+        self.eeprom_memory = EEPROM(
+            self.i2c, chip_size=T24C64, addr=self.EEPROM_ADDR)
 
         self.capacitives_circles = CapacitivesCircles(self.i2c)
+
+        # used to detect a press on circles
+        self.inner_previous_state = False
+        self.outer_previous_sate = False
+
         self.cv_manager = CvManager(self.i2c)
 
         self.handlers = []
@@ -243,11 +251,19 @@ class LxHardware:
 
     def set_sw_leds(self, index):
         if index is not None:
-            self.sw_leds[index].value(1)
+            if index == -1:
+                for i in range(0, 4):
+                    self.sw_leds[i].value(1)
+            else:
+                self.sw_leds[index].value(1)
 
-    def clear_sw_leds(self, index):
+    def clear_sw_leds(self, index=-1):
         if index is not None:
-            self.sw_leds[index].value(0)
+            if index == -1:
+                for i in range(0, 4):
+                    self.sw_leds[i].value(0)
+            else:
+                self.sw_leds[index].value(0)
 
     def set_gate(self, gate_index, time_tenth_ms):
         time = time_tenth_ms * 10
@@ -286,6 +302,17 @@ class LxHardware:
             # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
+        elif not circles_data[0] and self.inner_previous_state:
+            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_TOUCH, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.INNER_CIRCLE_TAP, circles_data))
+        elif not circles_data[1] and self.outer_previous_sate:
+            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.OUTER_CIRCLE_TAP, circles_data))
+
+        self.inner_previous_state = circles_data[0]
+        self.outer_previous_sate = circles_data[1]
 
     def update_cv_values(self):
         self.i2c_lock.acquire()
@@ -299,14 +326,15 @@ class LxHardware:
     def call_handlers(self, handlerEventData):
         for handler in self.handlers:
             handler(handlerEventData)
-            
+
     def get_eeprom_data_int(self, address):
         self.i2c_lock.acquire()
         raw_data = self.eeprom_memory[address:address+1]
         self.i2c_lock.release()
         return int.from_bytes(raw_data, ENDIANESS_EEPROM)
-    
+
     def set_eeprom_data_int(self, address, data):
         self.i2c_lock.acquire()
-        self.eeprom_memory[address:address+1] = data.to_bytes(1,ENDIANESS_EEPROM)
+        self.eeprom_memory[address:address +
+                           1] = data.to_bytes(1, ENDIANESS_EEPROM)
         self.i2c_lock.release()

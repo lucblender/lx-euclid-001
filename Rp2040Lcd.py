@@ -374,11 +374,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     txt, 120-int(txt_len/2), 110, color)
         elif local_state == self.lxEuclidConfig.STATE_MENU_SELECT:
                 
-            self.circle(120, 120, 51, self.touch_circle_color, True)
-            self.circle(120, 120, 51-15, self.black, True)
+            self.circle(120, 120, 62, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 62-15, self.black, True)
 
-            self.circle(120, 120, 31, self.touch_circle_color_highlight, True)
-            self.circle(120, 120, 31-15, self.black, True)
+            self.circle(120, 120, 44, self.touch_circle_color, True)
+            self.circle(120, 120, 44-15, self.black, True)
             
             txt_color = self.rythm_colors[3]
             
@@ -395,6 +395,35 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(
                 "Other", 91, 213, txt_color)
             
+            if self.parameter_unselected is not None:
+                self.blit(self.parameter_unselected, 100, 100)
+            
+        elif local_state == self.lxEuclidConfig.STATE_PARAM_CVS:
+            
+            cv_index = self.lxEuclidConfig.param_cv_index
+            cv_action = self.lxEuclidConfig.lxHardware.cv_manager.cvs_data[cv_index].cv_action
+            
+            txt_color = self.rythm_colors[3]
+            txt_color_highlight = self.rythm_colors_highlight[0]
+            
+            txt_colors = [txt_color]*5
+            txt_colors[cv_action] = txt_color_highlight
+            
+            self.circle(120, 120, 62, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 62-15, self.black, True)
+
+            self.circle(120, 120, 44, self.touch_circle_color, True)
+            self.circle(120, 120, 44-15, self.black, True)
+                
+            cv_index_txt = f"CV {cv_index+1}"
+            self.font_writer_freesans20.text(cv_index_txt, 100, 110, txt_color)
+            
+            self.font_writer_freesans20.text("None", 87, 7, txt_colors[0])
+            self.font_writer_freesans20.text("Beat", 193, 80, txt_colors[1])
+            self.font_writer_freesans20.text("Pulse", 160, 184, txt_colors[2])
+            self.font_writer_freesans20.text("Rot", 40, 184, txt_colors[3])
+            self.font_writer_freesans20.text("Prob", 10, 80, txt_colors[4])
+            
         elif local_state == self.lxEuclidConfig.STATE_PARAM_PRESETS:            
             
             txt_color = self.rythm_colors[3]
@@ -402,13 +431,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 82, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 60, self.black, True)
 
-            self.circle(120, 120, 54, self.touch_circle_color_highlight, True)
-            self.circle(120, 120, 28, self.black, True)
+            self.circle(120, 120, 55, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 36, self.black, True)
             
             
-            self.font_writer_freesans20.text("load", 99, 42, self.black)
+            self.font_writer_freesans20.text("Load", 99, 42, self.black)
             
-            self.font_writer_freesans20.text("save", 101, 71, self.black)
+            self.font_writer_freesans20.text("Save", 100, 67, self.black)
+            self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
             
             self.font_writer_freesans20.text("1", 116, 5, txt_color)
             self.font_writer_freesans20.text("2", 190, 38, txt_color)
@@ -418,9 +448,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text("6", 34, 184, txt_color)
             self.font_writer_freesans20.text("7", 3, 110, txt_color)
             self.font_writer_freesans20.text("8", 34, 38, txt_color)
-            
-#             if self.parameter_unselected is not None:
-#                 self.blit(self.parameter_unselected, 100, 100)
 
         elif local_state == self.lxEuclidConfig.STATE_PARAM_MENU:
             # TODO Disabled during parameters self.display_rythm_circles()
@@ -458,20 +485,22 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     if menu_index == current_menu_selected:
 
                         txt = current_keys[menu_index]
+                        txt_color = self.white
                         if in_last_sub_menu and current_menu_value == menu_index:
-                            txt = "-"+txt+"-"
+                            txt_color = self.rythm_colors_highlight[0]
                         txt = "> "+txt+" <"
                         txt_len = self.font_writer_freesans20.stringlen(txt)
                         self.font_writer_freesans20.text(
-                            txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, self.white)
+                            txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, txt_color)
                     else:
 
                         txt = current_keys[menu_index]
+                        txt_color = self.rythm_colors[3]
                         if in_last_sub_menu and current_menu_value == menu_index:
-                            txt = "-"+txt+"-"
+                            txt_color = self.rythm_colors_highlight[0]
                         txt_len = self.font_writer_freesans20.stringlen(txt)
                         self.font_writer_freesans20.text(
-                            txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, self.rythm_colors[3])
+                            txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, txt_color)
 
                 general_index = general_index+1
 

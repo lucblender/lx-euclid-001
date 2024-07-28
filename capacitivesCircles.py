@@ -1,4 +1,3 @@
-from machine import Pin, I2C
 from utime import sleep, ticks_ms
 from _thread import allocate_lock
 
@@ -189,11 +188,3 @@ class CapacitivesCircles():
             return inner_angle_updated, outer_angle_updated, incr_decr_event, angle
         else:
             return False, False, CapacitivesCircles.NO_INCR_DECR_EVENT, 0
-
-
-if __name__ == '__main__':
-    capacitivesCircles = CapacitivesCircles(I2C(0, sda=Pin(0), scl=Pin(1)))
-
-    while True:
-        sleep(0.05)
-        test_data = capacitivesCircles.get_touch_circles_updates()

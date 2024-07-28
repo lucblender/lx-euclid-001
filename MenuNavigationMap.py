@@ -23,28 +23,11 @@ def get_menu_navigation_map():
         "attribute_name": "randomize_gate_length"
     }
 
-    outputs["Out 0"] = out
-    outputs["Out 1"] = out.copy()
+    outputs["Out 1"] = out
     outputs["Out 2"] = out.copy()
     outputs["Out 3"] = out.copy()
+    outputs["Out 4"] = out.copy()
     my_dict["Outputs"] = outputs
-
-    cv_dict = {"data_pointer": None,
-               "Live action": {
-                   "values": ["None", "beats", "pulses", "rotation", "probability"],
-                   "attribute_name": "cv_action"
-               },
-               "Action Rythm": {
-                   "values": ["1", "2", "3", "4"],
-                   "attribute_name": "cv_action_rythm"
-               },
-               }
-    cv = OrderedDict()
-    cv["CV 0"] = cv_dict
-    cv["CV 1"] = cv_dict.copy()
-    cv["CV 2"] = cv_dict.copy()
-    cv["CV 3"] = cv_dict.copy()
-    my_dict["CVs"] = cv
 
     my_dict["Clock"] = OrderedDict({"data_pointer": None,
                                     "Clock source": {

@@ -21,8 +21,9 @@ PRESCALER_LIST = [1, 2, 3, 4, 8, 16]
 
 # pass from 360° (in capacitive circle referential) to 0..steps
 def angle_to_index(angle,steps):
+    angle = 180 - angle
     step_angle = 360/steps
-    return  int(((steps/2)-int(((angle+(step_angle/2))%360)/step_angle))%steps)
+    return  int((int(((angle+(step_angle/2))%360)/step_angle))%steps)
     
 
 class EuclideanRythmParameters:
@@ -284,6 +285,7 @@ class LxEuclidConfig:
     STATE_RYTHM_PARAM_INNER_BEAT_PULSE = const(4)
     STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(5)
     STATE_PARAM_PRESETS = const(6)
+    STATE_PARAM_CVS= const(7)
     
 
     EVENT_INIT = const(0)
@@ -297,6 +299,8 @@ class LxEuclidConfig:
     EVENT_OUTER_CIRCLE_DECR = const(8)
     EVENT_INNER_CIRCLE_TOUCH = const(9)
     EVENT_OUTER_CIRCLE_TOUCH = const(10)
+    EVENT_INNER_CIRCLE_TAP = const(11)
+    EVENT_OUTER_CIRCLE_TAP = const(12)
 
     EVENT_BTN_SWITCHES = const(13)
     EVENT_BTN_SWITCHES_LONG = const(14)
@@ -353,15 +357,10 @@ class LxEuclidConfig:
         
         data_pointer_key = "data_pointer"
 
-        self.menu_navigation_map["Outputs"]["Out 0"][data_pointer_key] = self.euclideanRythms[0]
-        self.menu_navigation_map["Outputs"]["Out 1"][data_pointer_key] = self.euclideanRythms[1]
-        self.menu_navigation_map["Outputs"]["Out 2"][data_pointer_key] = self.euclideanRythms[2]
-        self.menu_navigation_map["Outputs"]["Out 3"][data_pointer_key] = self.euclideanRythms[3]
-
-        self.menu_navigation_map["CVs"]["CV 0"][data_pointer_key] = self.lxHardware.cv_manager.cvs_data[0]
-        self.menu_navigation_map["CVs"]["CV 1"][data_pointer_key] = self.lxHardware.cv_manager.cvs_data[1]
-        self.menu_navigation_map["CVs"]["CV 2"][data_pointer_key] = self.lxHardware.cv_manager.cvs_data[2]
-        self.menu_navigation_map["CVs"]["CV 3"][data_pointer_key] = self.lxHardware.cv_manager.cvs_data[3]
+        self.menu_navigation_map["Outputs"]["Out 1"][data_pointer_key] = self.euclideanRythms[0]
+        self.menu_navigation_map["Outputs"]["Out 2"][data_pointer_key] = self.euclideanRythms[1]
+        self.menu_navigation_map["Outputs"]["Out 3"][data_pointer_key] = self.euclideanRythms[2]
+        self.menu_navigation_map["Outputs"]["Out 4"][data_pointer_key] = self.euclideanRythms[3]
 
         self.menu_navigation_map["Clock"][data_pointer_key] = self
 
@@ -392,6 +391,9 @@ class LxEuclidConfig:
         self.action_display_index = 0
         self.action_display_info = ""
         self.highlight_color_euclid = True
+        
+        
+        self.param_cv_index = 0 # used when doing CVs parameters selection
 
         self.computation_index = 0  # used in interrupt function that can't create memory
         
@@ -689,9 +691,9 @@ class LxEuclidConfig:
                     self.sm_rythm_param_counter-1) % 5
                 self.menu_lock.release()
         elif self.state == LxEuclidConfig.STATE_MENU_SELECT:
-            if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH:                
-                angle_inner = self.lxHardware.capacitives_circles.inner_circle_angle
-                menu_selection_index = angle_to_index(angle_inner,4)
+            if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_TAP:                
+                angle_outer = self.lxHardware.capacitives_circles.outer_circle_angle
+                menu_selection_index = angle_to_index(angle_outer,4)
                 
                 if menu_selection_index == 0: # Preset
                     self.state_lock.acquire()
@@ -708,20 +710,40 @@ class LxEuclidConfig:
                     self.state_lock.release()                    
                 else: # CVs
                     self.state_lock.acquire()
-                    self.state = LxEuclidConfig.STATE_LIVE
+                    self.state = LxEuclidConfig.STATE_PARAM_CVS
                     self.state_lock.release()
+                    self.param_cv_index = 0
                     self.lxHardware.clear_sw_leds(3)
+                    self.lxHardware.set_sw_leds(self.param_cv_index)
                     
             elif event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3:
                 self.save_data()
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
-                self.lxHardware.clear_sw_leds(3)
+                self.lxHardware.clear_sw_leds()
+                
+        elif self.state == LxEuclidConfig.STATE_PARAM_CVS: #todotodo
+            
+            if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_TAP:         
+                angle_outer = self.lxHardware.capacitives_circles.outer_circle_angle
+                preset_index = angle_to_index(angle_outer,5)
+                self.lxHardware.cv_manager.cvs_data[self.param_cv_index].cv_action = preset_index
+                
+            elif event == LxEuclidConfig.EVENT_BTN_SWITCHES:
+                self.param_cv_index = data
+                self.lxHardware.clear_sw_leds()
+                self.lxHardware.set_sw_leds(data)
+            elif event == LxEuclidConfig.EVENT_MENU_BTN:
+                self.state_lock.acquire()
+                self.state = LxEuclidConfig.STATE_LIVE
+                self.state_lock.release()
+                self.lxHardware.clear_sw_leds()
+            
         elif self.state == LxEuclidConfig.STATE_PARAM_PRESETS:
-            if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH:  # saving preset      
+            if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TAP:  # saving preset      
                 angle_inner = self.lxHardware.capacitives_circles.inner_circle_angle
-                preset_index = angle_to_index(angle_outer,8)
+                preset_index = angle_to_index(angle_inner,8)
                 self.save_preset_index = preset_index
                 
                 self.state_lock.acquire()
@@ -729,7 +751,7 @@ class LxEuclidConfig:
                 self.state_lock.release()
                 self.lxHardware.clear_sw_leds(3)
                 
-            elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH:    # loading preset    
+            elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_TAP:    # loading preset    
                 angle_outer = self.lxHardware.capacitives_circles.outer_circle_angle
                 preset_index = angle_to_index(angle_outer,8)
                 
