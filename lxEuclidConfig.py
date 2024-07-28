@@ -729,6 +729,7 @@ class LxEuclidConfig:
                 angle_outer = self.lxHardware.capacitives_circles.outer_circle_angle
                 preset_index = angle_to_index(angle_outer,5)
                 self.lxHardware.cv_manager.cvs_data[self.param_cv_index].cv_action = preset_index
+                self.save_data()
                 
             elif event == LxEuclidConfig.EVENT_BTN_SWITCHES:
                 self.param_cv_index = data
@@ -955,9 +956,8 @@ class LxEuclidConfig:
         self.dict_data["v_mi"] = self.v_minor
         self.dict_data["v_fi"] = self.v_fix
 
-        rhythm_index = 0
-        for euclidean_rythm in self.euclideanRythms:
-            rhythm_prefix = "e_r_" + str(rhythm_index) + "_"
+        for rhythm_index, euclidean_rythm in enumerate(self.euclideanRythms):
+            rhythm_prefix = f"e_r_{rhythm_index}_"
             self.dict_data[rhythm_prefix+"b"] = euclidean_rythm.beats
             self.dict_data[rhythm_prefix+"p"] = euclidean_rythm.pulses
             self.dict_data[rhythm_prefix+"o"] = euclidean_rythm.offset
@@ -966,15 +966,12 @@ class LxEuclidConfig:
             self.dict_data[rhythm_prefix+"g_l_m"] = euclidean_rythm.gate_length_ms
             self.dict_data[rhythm_prefix +
                       "r_g_l"] = euclidean_rythm.randomize_gate_length
-            rhythm_index += 1
 
-        preset_index = 0
-        for preset in self.presets:
-            preset_prefix = "pr_" + str(preset_index) + "_"
-            rhythm_index = 0
-            for preset_euclidean_rythm in preset:
+        for preset_index, preset in enumerate(self.presets):
+            preset_prefix = f"pr_{preset_index}_"
+            for rhythm_index, preset_euclidean_rythm in enumerate(preset):
 
-                rhythm_prefix = preset_prefix+"e_r_" + str(rhythm_index) + "_"
+                rhythm_prefix = f"{preset_prefix}e_r_{rhythm_index}_"
 
                 self.dict_data[rhythm_prefix+"b"] = preset_euclidean_rythm.beats
                 self.dict_data[rhythm_prefix+"p"] = preset_euclidean_rythm.pulses
@@ -986,8 +983,6 @@ class LxEuclidConfig:
                           "g_l_m"] = preset_euclidean_rythm.gate_length_ms
                 self.dict_data[rhythm_prefix +
                           "r_g_l"] = preset_euclidean_rythm.randomize_gate_length
-                rhythm_index += 1
-            preset_index += 1
 
         self.dict_data["m_l_p_a"] = self.menu_btn_long_press_action
         self.dict_data["t_l_p_a"] = self.tap_long_press_action
@@ -1002,6 +997,11 @@ class LxEuclidConfig:
 
         self.dict_data["c_m"] = self.clk_mode
         
+        for cv_index, cv_data in enumerate(self.lxHardware.cv_manager.cvs_data):            
+            cv_prefix = f"cv_{cv_index}_"
+            self.dict_data[cv_prefix+"a"] = cv_data.cv_action
+            self.dict_data[cv_prefix+"r"] = cv_data.cv_action_rythm
+            
     def save_data(self):
 
         self.save_data_lock.acquire()
@@ -1095,6 +1095,12 @@ class LxEuclidConfig:
                 self.lxHardware.capacitives_circles.touch_sensitivity = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
 
                 self.clk_mode = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                
+                for cv_data in self.lxHardware.cv_manager.cvs_data:
+                        cv_data.cv_action = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                        cv_data.cv_action_rythm = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+
+
                 self.create_memory_dict()
                 self.previous_dict_data_list = list(self.dict_data.values())
                 
