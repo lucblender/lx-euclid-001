@@ -11,9 +11,11 @@ from eeprom_i2c import EEPROM, T24C64
 
 CLK_IN = const(18)
 RST_IN = const(17)
-BTN_TAP_IN = const(19)
+BTN_TAP = const(29)
+LED_TAP = const(20)
 
 BTN_MENU = const(22)
+LED_MENU = const(21)
 
 SW0 = const(19)
 SW1 = const(7)
@@ -99,7 +101,7 @@ class LxHardware:
 
         self.clk_pin = Pin(CLK_IN, Pin.IN)
         self.rst_pin = Pin(RST_IN, Pin.IN)
-        self.btn_tap_pin = Pin(BTN_TAP_IN, Pin.IN, Pin.PULL_UP)
+        self.btn_tap_pin = Pin(BTN_TAP, Pin.IN, Pin.PULL_UP)
         self.btn_menu_pin = Pin(BTN_MENU, Pin.IN, Pin.PULL_UP)
 
         self.clk_pin_status = self.clk_pin.value()
@@ -142,10 +144,18 @@ class LxHardware:
         sw_led_1 = Pin(SW_LED1, Pin.OUT)
         sw_led_2 = Pin(SW_LED2, Pin.OUT)
         sw_led_3 = Pin(SW_LED3, Pin.OUT)
-
+        
         self.sw_leds = [sw_led_0, sw_led_1, sw_led_2, sw_led_3]
         for sw_led in self.sw_leds:
             sw_led.value(0)
+            
+            
+        
+        self.led_menu = Pin(LED_MENU, Pin.OUT)
+        self.led_tap = Pin(LED_TAP, Pin.OUT)
+        
+        self.led_menu.value(0)
+        self.led_tap.value(0)
 
         self.sm0 = rp2.StateMachine(0, timed_10th_ms_pulse, freq=20_000, set_base=Pin(
             GATE_OUT_0), out_base=Pin(GATE_OUT_0))
@@ -273,6 +283,18 @@ class LxHardware:
     def clear_gate(self, gate_index):
         pass
         # self.gates[gate_index].value(0)
+        
+    def set_tap_led(self):
+        self.led_tap.value(1)
+        
+    def clear_tap_led(self):
+        self.led_tap.value(0)
+        
+    def set_menu_led(self):
+        self.led_menu.value(1)
+        
+    def clear_menu_led(self):
+        self.led_menu.value(0)
 
     def get_touch_circles_updates(self):
         self.i2c_lock.acquire()

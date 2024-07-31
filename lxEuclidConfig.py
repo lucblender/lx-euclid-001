@@ -459,7 +459,7 @@ class LxEuclidConfig:
             if event == LxEuclidConfig.EVENT_MENU_BTN:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_MENU_SELECT
-                self.lxHardware.set_sw_leds(3)
+                self.lxHardware.set_tap_led()
                 self.state_lock.release()
                 self.sm_rythm_param_counter = 0
             elif event == LxEuclidConfig.EVENT_MENU_BTN_LONG:
@@ -691,37 +691,41 @@ class LxEuclidConfig:
                     self.sm_rythm_param_counter-1) % 5
                 self.menu_lock.release()
         elif self.state == LxEuclidConfig.STATE_MENU_SELECT:
-            if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_TAP:                
-                angle_outer = self.lxHardware.capacitives_circles.outer_circle_angle
-                menu_selection_index = angle_to_index(angle_outer,4)
+            if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TAP:                
+                angle_inner = self.lxHardware.capacitives_circles.inner_circle_angle
+                menu_selection_index = angle_to_index(angle_inner,4)
                 
                 if menu_selection_index == 0: # Preset
                     self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_PARAM_PRESETS
                     self.state_lock.release()     
+                    self.lxHardware.set_menu_led()
                 elif menu_selection_index == 1: # Pads
                     self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_LIVE
                     self.state_lock.release()
-                    self.lxHardware.clear_sw_leds(3)
+                    self.lxHardware.clear_tap_led()
+                    self.lxHardware.clear_menu_led()
                 elif menu_selection_index == 2: # Other
                     self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_PARAM_MENU
-                    self.state_lock.release()                    
+                    self.state_lock.release()       
+                    self.lxHardware.set_menu_led()             
                 else: # CVs
                     self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_PARAM_CVS
                     self.state_lock.release()
                     self.param_cv_index = 0
-                    self.lxHardware.clear_sw_leds(3)
                     self.lxHardware.set_sw_leds(self.param_cv_index)
+                    self.lxHardware.set_menu_led()
                     
-            elif event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3:
+            elif event == LxEuclidConfig.EVENT_TAP_BTN:
                 self.save_data()
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
-                self.lxHardware.clear_sw_leds()
+                self.lxHardware.clear_tap_led()
+                self.lxHardware.clear_menu_led()
                 
         elif self.state == LxEuclidConfig.STATE_PARAM_CVS: #todotodo
             
@@ -736,10 +740,14 @@ class LxEuclidConfig:
                 self.lxHardware.clear_sw_leds()
                 self.lxHardware.set_sw_leds(data)
             elif event == LxEuclidConfig.EVENT_MENU_BTN:
+                pass # todo logic to change pages
+            elif event == LxEuclidConfig.EVENT_TAP_BTN:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
-                self.lxHardware.clear_sw_leds()
+                self.lxHardware.clear_tap_led()
+                self.lxHardware.clear_menu_led()
+                self.lxHardware.clear_sw_leds()                
             
         elif self.state == LxEuclidConfig.STATE_PARAM_PRESETS:
             if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TAP:  # saving preset      
@@ -763,12 +771,16 @@ class LxEuclidConfig:
                 self.state_lock.release()
                 self.lxHardware.clear_sw_leds(3)
                 
-            elif event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3:
+            elif event == LxEuclidConfig.EVENT_TAP_BTN:
                 self.save_data()
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
-                self.lxHardware.clear_sw_leds(3)
+                self.lxHardware.clear_tap_led()
+                self.lxHardware.clear_menu_led()
+                
+            elif event == LxEuclidConfig.EVENT_MENU_BTN:
+                pass # todo logic to change page
                     
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
             if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rythm_param_counter:
@@ -823,16 +835,20 @@ class LxEuclidConfig:
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.menu_lock.acquire()
                 self.menu_up_action()
-                self.menu_lock.release()
-            # TODO REMOVE TAP, DOESN'T EXIST ANYMORE event == LxEuclidConfig.EVENT_TAP_BTN or
-            elif (event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == 3):
+                self.menu_lock.release()                
+            elif event == LxEuclidConfig.EVENT_MENU_BTN:
+                self.state_lock.acquire()
+                self.state = LxEuclidConfig.STATE_LIVE
+                self.state_lock.release()
+            elif event == LxEuclidConfig.EVENT_TAP_BTN:
                 self.menu_lock.acquire()
                 success = self.menu_back_pressed()
                 if not success:
                     self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_LIVE
-                    self.lxHardware.clear_sw_leds(3)
                     self.state_lock.release()
+                    self.lxHardware.clear_tap_led()
+                    self.lxHardware.clear_menu_led()
                 self.menu_lock.release()
     # this function can be called by an interrupt, this is why it cannot allocate any memory
 
@@ -850,8 +866,10 @@ class LxEuclidConfig:
             self.computation_index = self.computation_index + 1
         # tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
         # tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
-        self.last_gate_led_event = ticks_ms()
-        self.clear_led_needed = True  # TODO this var is not needed anymore
+        if self.state == LxEuclidConfig.STATE_LIVE:
+            self.lxHardware.set_tap_led()
+            self.last_gate_led_event = ticks_ms()
+            self.clear_led_needed = True
 
     def random_gate_length_update(self):
         for euclidean_rythm in self.euclideanRythms:
@@ -862,6 +880,15 @@ class LxEuclidConfig:
     def reset_steps(self):
         for euclidean_rythm in self.euclideanRythms:
             euclidean_rythm.reset_step()
+            
+    def test_if_clear_gates_led(self):        
+        self.state_lock.acquire()
+        local_state = self.state
+        self.state_lock.release()
+        if ticks_ms() -self.last_gate_led_event>=T_CLK_LED_ON_MS and self.clear_led_needed == True:
+            if local_state == LxEuclidConfig.STATE_LIVE:
+                self.lxHardware.clear_tap_led()
+            self.clear_led_needed = False
 
     def menu_back_pressed(self):
         if len(self.menu_path) > 0:

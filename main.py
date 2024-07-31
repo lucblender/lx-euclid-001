@@ -44,6 +44,7 @@ stop_thread = False
 wait_display_thread = True
 
 lxHardware = LxHardware()
+gc.collect()
 lxEuclidConfig = LxEuclidConfig(lxHardware, LCD, [MAJOR,MINOR,FIX])
 
 lxHardware.set_lxEuclidConfig(lxEuclidConfig)
@@ -117,6 +118,14 @@ def lxhardware_changed(handlerEventData):
         lxEuclidConfig.on_event(
             LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH, handlerEventData.data)
         LCD.set_need_display()
+    elif event == lxHardware.INNER_CIRCLE_TAP:
+        lxEuclidConfig.on_event(
+            LxEuclidConfig.EVENT_INNER_CIRCLE_TAP, handlerEventData.data)
+        LCD.set_need_display()
+    elif event == lxHardware.OUTER_CIRCLE_TAP:
+        lxEuclidConfig.on_event(
+            LxEuclidConfig.EVENT_OUTER_CIRCLE_TAP, handlerEventData.data)
+        LCD.set_need_display()
     elif event == lxHardware.BTN_SWITCHES_RISE:
         tmp_time = ticks_ms()
         if (tmp_time - sw_btns_press[handlerEventData.data]) > DEBOUNCE_MS:
@@ -159,6 +168,7 @@ def display_thread():
     while not stop_thread:
         try:
             if not in_lxhardware_changed:
+                gc.collect()
                 lxEuclidConfig.test_save_data_in_file()
                 if LCD.get_need_display():
                     gc.collect()
@@ -204,10 +214,11 @@ def append_error(error):
 
 gc.collect()
 print_ram()
+gc.collect()
 start_new_thread(display_thread, ())
 
 if __name__ == '__main__':
-    try:
+   # try:
         gc.collect()
         print_ram()
 
@@ -225,6 +236,7 @@ if __name__ == '__main__':
             wait_display_thread = False
             LCD.set_need_display()
             while True:
+                lxEuclidConfig.test_if_clear_gates_led()
                 if len(lxHardware.lxHardwareEventFifo) > 0:
                     in_lxhardware_changed = True
                     lxhardware_changed(
@@ -246,8 +258,9 @@ if __name__ == '__main__':
                     # hardware gpio + timer)
                     if ticks_ms() - last_timer_launch_ms >= (tap_delay_ms):
                         tap_incr_steps()
+                        LCD.set_need_display()
 
         print("quit")
-    except Exception as e:
-        append_error(e)
+    #except Exception as e:
+    #    append_error(e)
 
