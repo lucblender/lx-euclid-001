@@ -22,8 +22,7 @@ def debug_print(*txt):
     if DEBUG:
         print(txt)
 
-
-def rgb888_to_rgb565(R, G, B):  # Convert RGB888 to RGB565
+def rgb888_to_rgb565(R:int, G:int, B:int):  # Convert RGB888 to RGB565
     return const((((G & 0b00011100) << 3) + ((B & 0b11111000) >> 3) << 8) + (R & 0b11111000)+((G & 0b11100000) >> 5))
 
 
@@ -347,7 +346,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         return to_return
 
     def display_rythms(self):
-        
+
         self.__need_display = False
         pre_tick = ticks_ms()
 
@@ -373,73 +372,89 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     txt, 120-int(txt_len/2), 110, color)
         elif local_state == self.lxEuclidConfig.STATE_MENU_SELECT:
-                
-            self.circle(120, 120, 62, self.touch_circle_color_highlight, True)
+
+            self.circle(120, 120, 62, self.touch_circle_color, True)
             self.circle(120, 120, 62-15, self.black, True)
 
-            self.circle(120, 120, 44, self.touch_circle_color, True)
+            self.circle(120, 120, 44, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 44-15, self.black, True)
-            
+
             txt_color = self.rythm_colors[3]
-            
             
             self.font_writer_freesans20.text(
                 "Presets", 80, 12, txt_color)
-            
+
             self.font_writer_freesans20.text(
                 "CVs", 8, 110, txt_color)
-            
+
             self.font_writer_freesans20.text(
                 "Pads", 190, 110, txt_color)
-            
+
             self.font_writer_freesans20.text(
                 "Other", 91, 213, txt_color)
-            
+
             if self.parameter_unselected is not None:
                 self.blit(self.parameter_unselected, 100, 100)
-            
+
         elif local_state == self.lxEuclidConfig.STATE_PARAM_CVS:
-            
-            cv_index = self.lxEuclidConfig.param_cv_index
+
+            cv_index = self.lxEuclidConfig.param_cvs_index
             cv_action = self.lxEuclidConfig.lxHardware.cv_manager.cvs_data[cv_index].cv_action
-            
+
             txt_color = self.rythm_colors[3]
             txt_color_highlight = self.rythm_colors_highlight[0]
-            
+
             txt_colors = [txt_color]*5
             txt_colors[cv_action] = txt_color_highlight
-            
+
             self.circle(120, 120, 62, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 62-15, self.black, True)
 
             self.circle(120, 120, 44, self.touch_circle_color, True)
             self.circle(120, 120, 44-15, self.black, True)
-                
+
             cv_index_txt = f"CV {cv_index+1}"
             self.font_writer_freesans20.text(cv_index_txt, 100, 110, txt_color)
             
+            page = self.lxEuclidConfig.param_cvs_page 
+            page_color = self.rythm_colors_highlight[0]
+            
+            page_txt = f"page {page+1}"
+            self.font_writer_font6.text(page_txt, 102, 130, page_color)
+
+
             self.font_writer_freesans20.text("None", 87, 7, txt_colors[0])
             self.font_writer_freesans20.text("Beat", 193, 80, txt_colors[1])
             self.font_writer_freesans20.text("Pulse", 160, 184, txt_colors[2])
             self.font_writer_freesans20.text("Rot", 40, 184, txt_colors[3])
             self.font_writer_freesans20.text("Prob", 10, 80, txt_colors[4])
-            
-        elif local_state == self.lxEuclidConfig.STATE_PARAM_PRESETS:            
-            
+
+        elif local_state == self.lxEuclidConfig.STATE_PARAM_PRESETS:
+
             txt_color = self.rythm_colors[3]
-                
-            self.circle(120, 120, 82, self.touch_circle_color_highlight, True)
+
+            self.circle(120, 120, 82, self.touch_circle_color, True)
             self.circle(120, 120, 60, self.black, True)
 
             self.circle(120, 120, 55, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 36, self.black, True)
             
+                      
+            page = self.lxEuclidConfig.param_presets_page 
+            page_color = self.rythm_colors_highlight[0]
             
-            self.font_writer_freesans20.text("Load", 99, 42, self.black)
+            page_txt = f"page {page+1}"
+            self.font_writer_font6.text(page_txt, 102, 130, page_color)
             
-            self.font_writer_freesans20.text("Save", 100, 67, self.black)
+            
+            if page == 0:
+                self.font_writer_freesans20.text("Load", 99, 67, self.black)
+            else:
+                self.font_writer_freesans20.text("Save", 100, 67, self.black)
+                
+            
             self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
-            
+
             self.font_writer_freesans20.text("1", 116, 5, txt_color)
             self.font_writer_freesans20.text("2", 190, 38, txt_color)
             self.font_writer_freesans20.text("3", 220, 110, txt_color)

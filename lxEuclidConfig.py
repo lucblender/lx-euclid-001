@@ -16,6 +16,9 @@ MAJOR_E_ADDR = const(0)
 MINOR_E_ADDR = const(1)
 FIX_E_ADDR = const(2)
 
+CV_PAGE_MAX = 3
+PRESET_PAGE_MAX = 2
+PADS_PAGE_MAX = 3
 
 PRESCALER_LIST = [1, 2, 3, 4, 8, 16]
 
@@ -393,7 +396,10 @@ class LxEuclidConfig:
         self.highlight_color_euclid = True
         
         
-        self.param_cv_index = 0 # used when doing CVs parameters selection
+        self.param_cvs_index = 0 # used when doing CVs parameters selection
+        self.param_cvs_page = 0
+        self.param_presets_page = 0
+        self.param_pads_page = 0
 
         self.computation_index = 0  # used in interrupt function that can't create memory
         
@@ -700,12 +706,15 @@ class LxEuclidConfig:
                     self.state = LxEuclidConfig.STATE_PARAM_PRESETS
                     self.state_lock.release()     
                     self.lxHardware.set_menu_led()
+                    self.param_presets_page = 0
+        
                 elif menu_selection_index == 1: # Pads
                     self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_LIVE
                     self.state_lock.release()
                     self.lxHardware.clear_tap_led()
                     self.lxHardware.clear_menu_led()
+                    self.param_pads_page = 0
                 elif menu_selection_index == 2: # Other
                     self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_PARAM_MENU
@@ -715,9 +724,10 @@ class LxEuclidConfig:
                     self.state_lock.acquire()
                     self.state = LxEuclidConfig.STATE_PARAM_CVS
                     self.state_lock.release()
-                    self.param_cv_index = 0
-                    self.lxHardware.set_sw_leds(self.param_cv_index)
+                    self.param_cvs_index = 0
+                    self.lxHardware.set_sw_leds(self.param_cvs_index)
                     self.lxHardware.set_menu_led()
+                    self.param_cvs_page = 0
                     
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
                 self.save_data()
@@ -732,15 +742,17 @@ class LxEuclidConfig:
             if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_TAP:         
                 angle_outer = self.lxHardware.capacitives_circles.outer_circle_angle
                 preset_index = angle_to_index(angle_outer,5)
-                self.lxHardware.cv_manager.cvs_data[self.param_cv_index].cv_action = preset_index
+                self.lxHardware.cv_manager.cvs_data[self.param_cvs_index].cv_action = preset_index
                 self.save_data()
                 
             elif event == LxEuclidConfig.EVENT_BTN_SWITCHES:
-                self.param_cv_index = data
+                self.param_cvs_index = data
                 self.lxHardware.clear_sw_leds()
                 self.lxHardware.set_sw_leds(data)
-            elif event == LxEuclidConfig.EVENT_MENU_BTN:
-                pass # todo logic to change pages
+                self.param_cvs_page = 0
+        
+            elif event == LxEuclidConfig.EVENT_MENU_BTN:                
+                self.param_cvs_page = (self.param_cvs_page+1)%CV_PAGE_MAX
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
@@ -750,26 +762,20 @@ class LxEuclidConfig:
                 self.lxHardware.clear_sw_leds()                
             
         elif self.state == LxEuclidConfig.STATE_PARAM_PRESETS:
-            if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TAP:  # saving preset      
+            if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TAP:  # loading saving preset      
                 angle_inner = self.lxHardware.capacitives_circles.inner_circle_angle
                 preset_index = angle_to_index(angle_inner,8)
-                self.save_preset_index = preset_index
+                
+                if  self.param_presets_page == 0:
+                    self.load_preset_index = preset_index
+                else:
+                    self.save_preset_index = preset_index
                 
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
                 self.state_lock.release()
-                self.lxHardware.clear_sw_leds(3)
-                
-            elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_TAP:    # loading preset    
-                angle_outer = self.lxHardware.capacitives_circles.outer_circle_angle
-                preset_index = angle_to_index(angle_outer,8)
-                
-                self.load_preset_index = preset_index
-                
-                self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_LIVE
-                self.state_lock.release()
-                self.lxHardware.clear_sw_leds(3)
+                self.lxHardware.clear_tap_led()
+                self.lxHardware.clear_menu_led()
                 
             elif event == LxEuclidConfig.EVENT_TAP_BTN:
                 self.save_data()
@@ -779,8 +785,8 @@ class LxEuclidConfig:
                 self.lxHardware.clear_tap_led()
                 self.lxHardware.clear_menu_led()
                 
-            elif event == LxEuclidConfig.EVENT_MENU_BTN:
-                pass # todo logic to change page
+            elif event == LxEuclidConfig.EVENT_MENU_BTN:       
+                self.param_presets_page = (self.param_presets_page+1)%PRESET_PAGE_MAX
                     
         elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
             if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rythm_param_counter:
@@ -851,7 +857,7 @@ class LxEuclidConfig:
                     self.lxHardware.clear_menu_led()
                 self.menu_lock.release()
     # this function can be called by an interrupt, this is why it cannot allocate any memory
-
+    
     def incr_steps(self):
         self.computation_index = 0
         for euclidean_rythm in self.euclideanRythms:
@@ -1056,7 +1062,13 @@ class LxEuclidConfig:
             #if len(changed_index) > 0:
             #    print("data changed and needs to be put to eeprom", changed_index)
             
-            self.previous_dict_data_list = list(self.dict_data.values())
+            # if previous_dict_data_list is empty, replace it by a list, else just fill it to not create memory
+            if len(self.previous_dict_data_list) == 0:            
+                self.previous_dict_data_list = list(self.dict_data.values())
+            else:
+                for index, current_value in enumerate(self.dict_data.values()):
+                    self.previous_dict_data_list[index] = current_value
+                    
             if len(changed_index) > 0:
                 for index, addr_to_update in enumerate(changed_index):
                     self.lxHardware.set_eeprom_data_int(addr_to_update, int(self.previous_dict_data_list[addr_to_update]))
