@@ -115,7 +115,8 @@ class EuclideanRythm(EuclideanRythmParameters):
     def incr_beats(self):
         if self.beats != MAX_BEATS:
             self.beats = self.beats + 1
-            self.set_pulses_per_ratio()
+            if self.pulses > 1: # only re-compute pulses number if it's different from 0 and 1
+                self.set_pulses_per_ratio()
             self.set_rythm()
 
     def decr_beats(self):
