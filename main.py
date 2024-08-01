@@ -68,7 +68,7 @@ def lxhardware_changed(handlerEventData):
     global tap_btn_press, btn_menu_press, btn_menu_ack
     event = handlerEventData.event
     if event == lxHardware.CLK_RISE:
-        if lxEuclidConfig.state in [LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY,LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,LxEuclidConfig.STATE_LIVE]:            
+        if lxEuclidConfig.state in [LxEuclidConfig.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY,LxEuclidConfig.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE,LxEuclidConfig.STATE_LIVE]:            
             LCD.set_need_display()
         lxEuclidConfig.random_gate_length_update()
     elif event == lxHardware.RST_RISE:
@@ -176,7 +176,7 @@ def display_thread():
                 lxEuclidConfig.test_save_data_in_file()
                 if LCD.get_need_display():
                     gc.collect()
-                    LCD.display_rythms()
+                    LCD.display_rhythms()
                     gc.collect()
                 if ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
                     # gc.collect()

@@ -75,10 +75,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.touch_circle_color = rgb888_to_rgb565(176, 157, 34)
 
         # each array has 5 colors, 4 for the circles, the 5th used when the infos concerns all the circles
-        self.rythm_colors = [rgb888_to_rgb565(255, 136, 31), rgb888_to_rgb565(
+        self.rhythm_colors = [rgb888_to_rgb565(255, 136, 31), rgb888_to_rgb565(
             255, 130, 218), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(156, 255, 237), self.white]
 
-        self.rythm_colors_highlight = [rgb888_to_rgb565(253, 168, 94), rgb888_to_rgb565(
+        self.rhythm_colors_highlight = [rgb888_to_rgb565(253, 168, 94), rgb888_to_rgb565(
             250, 180, 229), rgb888_to_rgb565(176, 196, 255), rgb888_to_rgb565(195, 250, 240), self.white]
 
         self.fill(self.white)
@@ -345,7 +345,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.need_display_lock.release()
         return to_return
 
-    def display_rythms(self):
+    def display_rhythms(self):
 
         self.__need_display = False
         pre_tick = ticks_ms()
@@ -363,12 +363,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.lxEuclidConfig.state_lock.release()
 
         if local_state == self.lxEuclidConfig.STATE_LIVE:
-            self.display_rythm_circles()
+            self.display_rhythm_circles()
             if self.lxEuclidConfig.need_circle_action_display:
                 txt = self.lxEuclidConfig.action_display_info
                 txt_len = self.font_writer_freesans20.stringlen(txt)
                 if self.lxEuclidConfig.highlight_color_euclid:
-                    color = self.rythm_colors[self.lxEuclidConfig.action_display_index]
+                    color = self.rhythm_colors[self.lxEuclidConfig.action_display_index]
                 self.font_writer_freesans20.text(
                     txt, 120-int(txt_len/2), 110, color)
         elif local_state == self.lxEuclidConfig.STATE_MENU_SELECT:
@@ -379,7 +379,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 44, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 44-15, self.black, True)
 
-            txt_color = self.rythm_colors[3]
+            txt_color = self.rhythm_colors[3]
             
             self.font_writer_freesans20.text(
                 "Presets", 80, 12, txt_color)
@@ -400,8 +400,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             cv_index = self.lxEuclidConfig.param_cvs_index
 
-            txt_color = self.rythm_colors[3]
-            txt_color_highlight = self.rythm_colors_highlight[0]
+            txt_color = self.rhythm_colors[3]
+            txt_color_highlight = self.rhythm_colors_highlight[0]
 
 
             self.circle(120, 120, 62, self.touch_circle_color, True)
@@ -414,7 +414,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(cv_index_txt, 100, 110, txt_color)
             
             page = self.lxEuclidConfig.param_cvs_page 
-            page_color = self.rythm_colors_highlight[0]
+            page_color = self.rhythm_colors_highlight[0]
             
             page_txt = f"page {page+1}"
             self.font_writer_font6.text(page_txt, 102, 130, page_color)
@@ -431,9 +431,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
             elif page == 1:              
                 txt_colors = [txt_color]*4
                 #txt_colors[cv_action] = txt_color_highlight
-                action_rythm = self.lxEuclidConfig.lxHardware.cv_manager.cvs_data[cv_index].cv_action_rythm
+                action_rhythm = self.lxEuclidConfig.lxHardware.cv_manager.cvs_data[cv_index].cv_action_rhythm
                 for i in range(0,4):
-                    if action_rythm & (1<<i) != 0: # action_rhythm are stored by bit 
+                    if action_rhythm & (1<<i) != 0: # action_rhythm are stored by bit 
                         txt_colors[i] = txt_color_highlight
                 self.font_writer_freesans20.text("Out 0", 93, 12, txt_colors[0])
                 self.font_writer_freesans20.text("Out 1", 190, 110, txt_colors[1])
@@ -450,7 +450,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         elif local_state == self.lxEuclidConfig.STATE_PARAM_PRESETS:
 
-            txt_color = self.rythm_colors[3]
+            txt_color = self.rhythm_colors[3]
 
             self.circle(120, 120, 82, self.touch_circle_color, True)
             self.circle(120, 120, 60, self.black, True)
@@ -460,7 +460,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             
                       
             page = self.lxEuclidConfig.param_presets_page 
-            page_color = self.rythm_colors_highlight[0]
+            page_color = self.rhythm_colors_highlight[0]
             
             page_txt = f"page {page+1}"
             self.font_writer_font6.text(page_txt, 102, 130, page_color)
@@ -484,7 +484,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text("8", 34, 38, txt_color)
 
         elif local_state == self.lxEuclidConfig.STATE_PARAM_MENU:
-            # TODO Disabled during parameters self.display_rythm_circles()
+            # TODO Disabled during parameters self.display_rhythm_circles()
             self.display_enter_return_txt()
 
             self.lxEuclidConfig.menu_lock.acquire()
@@ -506,7 +506,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 path = path + sub_path + "/"
             path_len = self.font_writer_font6.stringlen(path)
             self.font_writer_font6.text(
-                path, 120-int(path_len/2), 130+origin_y, self.rythm_colors[0])
+                path, 120-int(path_len/2), 130+origin_y, self.rhythm_colors[0])
 
             offset_menu_text = 25
 
@@ -521,7 +521,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                         txt = current_keys[menu_index]
                         txt_color = self.white
                         if in_last_sub_menu and current_menu_value == menu_index:
-                            txt_color = self.rythm_colors_highlight[0]
+                            txt_color = self.rhythm_colors_highlight[0]
                         txt = "> "+txt+" <"
                         txt_len = self.font_writer_freesans20.stringlen(txt)
                         self.font_writer_freesans20.text(
@@ -529,9 +529,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     else:
 
                         txt = current_keys[menu_index]
-                        txt_color = self.rythm_colors[3]
+                        txt_color = self.rhythm_colors[3]
                         if in_last_sub_menu and current_menu_value == menu_index:
-                            txt_color = self.rythm_colors_highlight[0]
+                            txt_color = self.rhythm_colors_highlight[0]
                         txt_len = self.font_writer_freesans20.stringlen(txt)
                         self.font_writer_freesans20.text(
                             txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, txt_color)
@@ -553,14 +553,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 max_scrollbar_size = 1
             self.fill_rect(scrollbar_x, scrollbar_y+int(max_scrollbar_size_float *
                            current_menu_selected), scrollbar_width, max_scrollbar_size, self.white)
-        elif local_state in [self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
+        elif local_state in [self.lxEuclidConfig.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, self.lxEuclidConfig.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 
             self.lxEuclidConfig.menu_lock.acquire()
-            rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
+            rhythm_param_counter = self.lxEuclidConfig.sm_rhythm_param_counter
             self.lxEuclidConfig.menu_lock.release()
 
-            current_euclidean_rythm = self.lxEuclidConfig.euclideanRythms[rythm_param_counter]
-            highlight_color = self.rythm_colors[rythm_param_counter]
+            current_euclidean_rhythm = self.lxEuclidConfig.euclideanRhythms[rhythm_param_counter]
+            highlight_color = self.rhythm_colors[rhythm_param_counter]
 
             self.circle(120, 120, 51, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 51-15, self.black, True)
@@ -568,33 +568,33 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 31, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 31-15, self.black, True)
 
-            if local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
+            if local_state == self.lxEuclidConfig.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
                 self.poly(0, 0, array(
                     "h", [120, 120, 120-36, 65, 120+36, 65]), self.black, True)
-                b = str(current_euclidean_rythm.beats)
+                b = str(current_euclidean_rhythm.beats)
                 b_len = self.font_writer_freesans20.stringlen(b)
 
-                p = str(current_euclidean_rythm.pulses)
+                p = str(current_euclidean_rhythm.pulses)
                 p_len = self.font_writer_freesans20.stringlen(p)
                 self.font_writer_freesans20.text(
                     str(b), 120-int(b_len/2), 71, highlight_color)
                 self.font_writer_freesans20.text(
                     str(p), 120-int(p_len/2), 90, highlight_color)
-            elif local_state == self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:
+            elif local_state == self.lxEuclidConfig.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY:
                 self.poly(0, 0, array(
                     "h", [120, 120, 120-45, 65, 120+45, 65]), self.black, True)
 
-                o = str(current_euclidean_rythm.offset)
+                o = str(current_euclidean_rhythm.offset)
                 o_len = self.font_writer_freesans20.stringlen(o)
 
-                prob = str(current_euclidean_rythm.pulses_probability) + "%"
+                prob = str(current_euclidean_rhythm.pulses_probability) + "%"
                 prob_len = self.font_writer_freesans20.stringlen(prob)
 
                 self.font_writer_freesans20.text(
                     str(prob), 120-int(prob_len/2), 71, highlight_color)
                 self.font_writer_freesans20.text(
                     str(o), 120-int(o_len/2), 90, highlight_color)
-            self.display_rythm_circles()
+            self.display_rhythm_circles()
             self.display_enter_return_txt()
 
         self.show()
@@ -605,90 +605,90 @@ class LCD_1inch28(framebuf.FrameBuffer):
         debug_print("display rhthms", ticks_ms()-pre_tick)
         debug_print(" ")
 
-    def display_rythm_circles(self):
+    def display_rhythm_circles(self):
         pre_tick = ticks_ms()
         radius = 110
         offset_radius = self.OFFSET_RADIUS_LIVE
-        rythm_index = 0
+        rhythm_index = 0
 
         self.lxEuclidConfig.menu_lock.acquire()
-        rythm_param_counter = self.lxEuclidConfig.sm_rythm_param_counter
+        rhythm_param_counter = self.lxEuclidConfig.sm_rhythm_param_counter
         self.lxEuclidConfig.menu_lock.release()
 
         self.lxEuclidConfig.state_lock.acquire()
         local_state = self.lxEuclidConfig.state
         self.lxEuclidConfig.state_lock.release()
         local_beat_coord = self.beats_coords
-        for euclidieanRythm in self.lxEuclidConfig.euclideanRythms:
+        for euclidieanRhythm in self.lxEuclidConfig.euclideanRhythms:
 
-            beat_color = self.rythm_colors[rythm_index]
-            beat_color_hightlight = self.rythm_colors_highlight[rythm_index]
+            beat_color = self.rhythm_colors[rhythm_index]
+            beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
 
             highlight_color = self.white
-            if local_state in [self.lxEuclidConfig.STATE_PARAM_MENU, self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
+            if local_state in [self.lxEuclidConfig.STATE_PARAM_MENU, self.lxEuclidConfig.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE,  self.lxEuclidConfig.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
                 offset_radius = self.OFFSET_RADIUS_PARAM
                 local_beat_coord = self.param_beats_coords
-                if rythm_index != rythm_param_counter:
+                if rhythm_index != rhythm_param_counter:
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
                     highlight_color = self.grey
 
             self.circle(120, 120, radius, beat_color, False)
 
-            len_euclidiean_rythm = len(euclidieanRythm.rythm)
-            degree_step = 360/len_euclidiean_rythm
+            len_euclidiean_rhythm = len(euclidieanRhythm.rhythm)
+            degree_step = 360/len_euclidiean_rhythm
 
             coord = None
             coords = []
-            if local_beat_coord[rythm_index][0] == len_euclidiean_rythm:
-                coords = local_beat_coord[rythm_index][1]
+            if local_beat_coord[rhythm_index][0] == len_euclidiean_rhythm:
+                coords = local_beat_coord[rhythm_index][1]
             else:
-                for index in range(0, len_euclidiean_rythm):
+                for index in range(0, len_euclidiean_rhythm):
                     try:
                         coord = polar_to_cartesian(
                             radius, index*degree_step-90)
                         coords.append(coord)
-                    except:  # add this try except in the case we do a modification of rythm while trying to display it
-                        # print("miss in for index in range(0, len_euclidiean_rythm):")
+                    except:  # add this try except in the case we do a modification of rhythm while trying to display it
+                        # print("miss in for index in range(0, len_euclidiean_rhythm):")
                         pass
-                local_beat_coord[rythm_index][0] = len_euclidiean_rythm
-                local_beat_coord[rythm_index][1] = coords.copy()
+                local_beat_coord[rhythm_index][0] = len_euclidiean_rhythm
+                local_beat_coord[rhythm_index][1] = coords.copy()
 
             a = ticks_ms()
-            for index in range(0, len_euclidiean_rythm):
+            for index in range(0, len_euclidiean_rhythm):
                 try:
                     coord = coords[index]
 
                     final_beat_color = beat_color
 
-                    if index == euclidieanRythm.current_step:
+                    if index == euclidieanRhythm.current_step:
                         self.circle(coord[0]+120, coord[1] +
                                     120, 10, highlight_color, True)
                         final_beat_color = beat_color_hightlight
 
-                    filled = euclidieanRythm.rythm[(
-                        index-euclidieanRythm.offset) % len_euclidiean_rythm]
+                    filled = euclidieanRhythm.rhythm[(
+                        index-euclidieanRhythm.offset) % len_euclidiean_rhythm]
 
                     self.circle(coord[0]+120, coord[1]+120,
                                 8, final_beat_color, filled)
                     if filled == 0:
                         self.circle(coord[0]+120, coord[1] +
                                     120, 7, self.black, True)
-                except Exception:  # add this try except in the case we do a modification of rythm while trying to display it
-                    # print("miss in 2nd for index in range(0, len_euclidiean_rythm):")
+                except Exception:  # add this try except in the case we do a modification of rhythm while trying to display it
+                    # print("miss in 2nd for index in range(0, len_euclidiean_rhythm):")
                     pass
 
             radius = radius - offset_radius
-            rythm_index = rythm_index + 1
+            rhythm_index = rhythm_index + 1
 
             debug_print("display rhythm", ticks_ms()-a)
-        debug_print("display_rythm_circles", ticks_ms()-pre_tick)
+        debug_print("display_rhythm_circles", ticks_ms()-pre_tick)
 
     def display_enter_return_txt(self):
         return
 
-        # self.font_writer_font6.text("tap return",40,200,self.rythm_colors[2])
-        # self.font_writer_font6.text("enc enter",135,200,self.rythm_colors[2])
+        # self.font_writer_font6.text("tap return",40,200,self.rhythm_colors[2])
+        # self.font_writer_font6.text("enc enter",135,200,self.rhythm_colors[2])
 
     # # Draw the approximate pie slice
     # # Define a function to draw an approximate pie slice

@@ -29,16 +29,16 @@ def angle_to_index(angle,steps):
     return  int((int(((angle+(step_angle/2))%360)/step_angle))%steps)
     
 
-class EuclideanRythmParameters:
+class EuclideanRhythmParameters:
 
 
     def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, randomize_gate_length=False):
         self.set_parameters(beats, pulses, offset, pulses_probability,
                             prescaler_index, gate_length_ms, randomize_gate_length)
 
-    def set_parameters_from_rythm(self, euclideanRythmParameters):
-        self.set_parameters(euclideanRythmParameters.beats, euclideanRythmParameters.pulses, euclideanRythmParameters.offset, euclideanRythmParameters.pulses_probability,
-                            euclideanRythmParameters.prescaler_index, euclideanRythmParameters.gate_length_ms, euclideanRythmParameters.randomize_gate_length)
+    def set_parameters_from_rhythm(self, euclideanRhythmParameters):
+        self.set_parameters(euclideanRhythmParameters.beats, euclideanRhythmParameters.pulses, euclideanRhythmParameters.offset, euclideanRhythmParameters.pulses_probability,
+                            euclideanRhythmParameters.prescaler_index, euclideanRhythmParameters.gate_length_ms, euclideanRhythmParameters.randomize_gate_length)
 
     def set_parameters(self, beats, pulses, offset, pulses_probability, prescaler_index, gate_length_ms, randomize_gate_length):
         self._prescaler_index = prescaler_index
@@ -78,18 +78,18 @@ class EuclideanRythmParameters:
         self._prescaler_index = prescaler_index
 
 
-class EuclideanRythm(EuclideanRythmParameters):
+class EuclideanRhythm(EuclideanRhythmParameters):
     def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0):
 
-        EuclideanRythmParameters.__init__(
+        EuclideanRhythmParameters.__init__(
             self, beats, pulses, offset, pulses_probability, prescaler_index)
 
         self.current_step = 0
         self.prescaler = PRESCALER_LIST[prescaler_index]
-        self.prescaler_rythm_counter = 0
+        self.prescaler_rhythm_counter = 0
 
-        self.rythm = []
-        self.set_rythm()
+        self.rhythm = []
+        self.set_rhythm()
 
     @property
     def prescaler_index(self):
@@ -117,7 +117,7 @@ class EuclideanRythm(EuclideanRythmParameters):
             self.beats = self.beats + 1
             if self.pulses > 1: # only re-compute pulses number if it's different from 0 and 1
                 self.set_pulses_per_ratio()
-            self.set_rythm()
+            self.set_rhythm()
 
     def decr_beats(self):
         self.beats = self.beats - 1
@@ -128,7 +128,7 @@ class EuclideanRythm(EuclideanRythmParameters):
         if self.offset > self.beats:
             self.offset = self.beats
         self.set_pulses_per_ratio()
-        self.set_rythm()
+        self.set_rhythm()
 
     def set_beats_in_percent(self, percent):
         temp_beats = int(percent*MAX_BEATS/100)
@@ -136,7 +136,7 @@ class EuclideanRythm(EuclideanRythmParameters):
         if self.offset > self.beats:
             self.offset = self.beats
         self.set_pulses_per_ratio()
-        self.set_rythm()
+        self.set_rhythm()
 
     def set_pulses_per_ratio(self):
         computed_pulses_per_ratio = round(self.beats*self.__pulses_ratio)
@@ -145,21 +145,21 @@ class EuclideanRythm(EuclideanRythmParameters):
     def set_pulses_in_percent(self, percent):
         self.__pulses_ratio = percent/100
         self.set_pulses_per_ratio()
-        self.set_rythm()
+        self.set_rhythm()
 
     def incr_pulses(self):
         self.pulses = self.pulses + 1
         if self.pulses > self.beats:
             self.pulses = self.beats
         self.__pulses_ratio = self.pulses / self.beats
-        self.set_rythm()
+        self.set_rhythm()
 
     def decr_pulses(self):
         self.pulses = self.pulses - 1
         if self.pulses < 0:
             self.pulses = 0
         self.__pulses_ratio = self.pulses / self.beats
-        self.set_rythm()
+        self.set_rhythm()
 
     def incr_pulses_probability(self):
         if self.pulses_probability != 100:
@@ -174,7 +174,7 @@ class EuclideanRythm(EuclideanRythmParameters):
 
     def incr_step(self):
         to_return = False
-        if self.prescaler_rythm_counter == 0:
+        if self.prescaler_rhythm_counter == 0:
             self.current_step = self.current_step + 1
 
             beat_limit = self.beats-1
@@ -184,9 +184,9 @@ class EuclideanRythm(EuclideanRythmParameters):
 
             to_return = True
 
-        self.prescaler_rythm_counter = self.prescaler_rythm_counter+1
-        if self.prescaler_rythm_counter == self.prescaler:
-            self.prescaler_rythm_counter = 0
+        self.prescaler_rhythm_counter = self.prescaler_rhythm_counter+1
+        if self.prescaler_rhythm_counter == self.prescaler:
+            self.prescaler_rhythm_counter = 0
         return to_return
 
     def incr_gate_length(self):
@@ -203,11 +203,11 @@ class EuclideanRythm(EuclideanRythmParameters):
 
     def reset_step(self):
         self.current_step = 0
-        self.prescaler_rythm_counter = 0
+        self.prescaler_rhythm_counter = 0
 
     def get_current_step(self):
-        to_return = self.rythm[(
-            self.current_step-self.offset) % len(self.rythm)]
+        to_return = self.rhythm[(
+            self.current_step-self.offset) % len(self.rhythm)]
         if to_return == 0:
             return 0
         else:
@@ -218,15 +218,15 @@ class EuclideanRythm(EuclideanRythmParameters):
             else:
                 return 0
 
-    def set_rythm(self):
-        self.__set_rythm_bjorklund()
+    def set_rhythm(self):
+        self.__set_rhythm_bjorklund()
 
     # from https://github.com/brianhouse/bjorklund/tree/master
-    def __set_rythm_bjorklund(self):
+    def __set_rhythm_bjorklund(self):
         if self.pulses > self.beats:
             raise ValueError
         if self.pulses == 0:
-            self.rythm = [0]*self.beats
+            self.rhythm = [0]*self.beats
         else:
             pattern = []
             counts = []
@@ -257,7 +257,7 @@ class EuclideanRythm(EuclideanRythmParameters):
             build(level)
             i = pattern.index(1)
             pattern = pattern[i:] + pattern[0:i]
-            self.rythm = pattern
+            self.rhythm = pattern
 
 
 MAIN_MENU_PARAMETER_INDEX = 4
@@ -276,18 +276,18 @@ class LxEuclidConfig:
     CIRCLE_ACTION_PULSES = const(2)
     CIRCLE_ACTION_GATE_LENGTH = const(3)
 
-    CIRCLE_RYTHM_1 = const(0)
-    CIRCLE_RYTHM_2 = const(1)
-    CIRCLE_RYTHM_3 = const(2)
-    CIRCLE_RYTHM_4 = const(3)
-    CIRCLE_RYTHM_ALL = const(4)
+    CIRCLE_RHYTHM_1 = const(0)
+    CIRCLE_RHYTHM_2 = const(1)
+    CIRCLE_RHYTHM_3 = const(2)
+    CIRCLE_RHYTHM_4 = const(3)
+    CIRCLE_RHYTHM_ALL = const(4)
 
     STATE_INIT = const(0)
     STATE_LIVE = const(1)
     STATE_MENU_SELECT = const(2)
     STATE_PARAM_MENU = const(3)
-    STATE_RYTHM_PARAM_INNER_BEAT_PULSE = const(4)
-    STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(5)
+    STATE_RHYTHM_PARAM_INNER_BEAT_PULSE = const(4)
+    STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(5)
     STATE_PARAM_PRESETS = const(6)
     STATE_PARAM_CVS= const(7)
     
@@ -319,31 +319,31 @@ class LxEuclidConfig:
         self.lxHardware = lxHardware
         self.LCD = LCD
         self.LCD.set_config(self)
-        self.euclideanRythms = []
-        self.euclideanRythms.append(EuclideanRythm(8, 4, 0, 100))
-        self.euclideanRythms.append(EuclideanRythm(8, 2, 0, 100))
-        self.euclideanRythms.append(EuclideanRythm(4, 3, 0, 100))
-        self.euclideanRythms.append(EuclideanRythm(4, 2, 0, 100))
+        self.euclideanRhythms = []
+        self.euclideanRhythms.append(EuclideanRhythm(8, 4, 0, 100))
+        self.euclideanRhythms.append(EuclideanRhythm(8, 2, 0, 100))
+        self.euclideanRhythms.append(EuclideanRhythm(4, 3, 0, 100))
+        self.euclideanRhythms.append(EuclideanRhythm(4, 2, 0, 100))
 
         self.presets = []
-        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
-            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
-            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
-            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
-            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
-            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
-            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
-            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(
-            8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100), EuclideanRythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
+            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
+            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
+            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
+            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
+            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
+            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
+            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
+            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
 
-        self.rythm_lock = allocate_lock()
+        self.rhythm_lock = allocate_lock()
         self.menu_lock = allocate_lock()
         self.state_lock = allocate_lock()
         self.save_data_lock = allocate_lock()
@@ -353,7 +353,7 @@ class LxEuclidConfig:
         self.state = LxEuclidConfig.STATE_INIT
         self.on_event(LxEuclidConfig.EVENT_INIT)
 
-        self.sm_rythm_param_counter = 0
+        self.sm_rhythm_param_counter = 0
 
         self.clk_mode = LxEuclidConfig.CLK_IN
 
@@ -361,10 +361,10 @@ class LxEuclidConfig:
         
         data_pointer_key = "data_pointer"
 
-        self.menu_navigation_map["Outputs"]["Out 1"][data_pointer_key] = self.euclideanRythms[0]
-        self.menu_navigation_map["Outputs"]["Out 2"][data_pointer_key] = self.euclideanRythms[1]
-        self.menu_navigation_map["Outputs"]["Out 3"][data_pointer_key] = self.euclideanRythms[2]
-        self.menu_navigation_map["Outputs"]["Out 4"][data_pointer_key] = self.euclideanRythms[3]
+        self.menu_navigation_map["Outputs"]["Out 1"][data_pointer_key] = self.euclideanRhythms[0]
+        self.menu_navigation_map["Outputs"]["Out 2"][data_pointer_key] = self.euclideanRhythms[1]
+        self.menu_navigation_map["Outputs"]["Out 3"][data_pointer_key] = self.euclideanRhythms[2]
+        self.menu_navigation_map["Outputs"]["Out 4"][data_pointer_key] = self.euclideanRhythms[3]
 
         self.menu_navigation_map["Clock"][data_pointer_key] = self
 
@@ -384,9 +384,9 @@ class LxEuclidConfig:
         self.tap_long_press_action = LxEuclidConfig.LONG_PRESS_ACTION_NONE
 
         self.inner_rotate_action = LxEuclidConfig.CIRCLE_ACTION_NONE
-        self.inner_action_rythm = LxEuclidConfig.CIRCLE_RYTHM_1
+        self.inner_action_rhythm = LxEuclidConfig.CIRCLE_RHYTHM_1
         self.outer_rotate_action = LxEuclidConfig.CIRCLE_ACTION_NONE
-        self.outer_action_rythm = LxEuclidConfig.CIRCLE_RYTHM_1
+        self.outer_action_rhythm = LxEuclidConfig.CIRCLE_RHYTHM_1
 
         self._need_circle_action_display = False
         self.last_set_need_circle_action_display_ms = ticks_ms()
@@ -409,7 +409,7 @@ class LxEuclidConfig:
         self.dict_data = OrderedDict() # used in create_memory_dict, put it as attribute so it doesn't create memory in loop
 
         self.load_data()
-        self.reload_rythms()
+        self.reload_rhythms()
 
     @property
     def need_circle_action_display(self):
@@ -430,9 +430,9 @@ class LxEuclidConfig:
     def save_preset_index(self, save_preset_index):
         self._save_preset_index = save_preset_index
         index = 0
-        for preset_euclidean_rythm in self.presets[self._save_preset_index]:
-            preset_euclidean_rythm.set_parameters_from_rythm(
-                self.euclideanRythms[index])
+        for preset_euclidean_rhythm in self.presets[self._save_preset_index]:
+            preset_euclidean_rhythm.set_parameters_from_rhythm(
+                self.euclideanRhythms[index])
             index = index + 1
         self.save_data()
 
@@ -444,10 +444,10 @@ class LxEuclidConfig:
     def load_preset_index(self, load_preset_index):
         self._load_preset_index = load_preset_index
         index = 0
-        for euclidean_rythm in self.euclideanRythms:
-            euclidean_rythm.set_parameters_from_rythm(
+        for euclidean_rhythm in self.euclideanRhythms:
+            euclidean_rhythm.set_parameters_from_rhythm(
                 self.presets[self._load_preset_index][index])
-            euclidean_rythm.set_rythm()
+            euclidean_rhythm.set_rhythm()
             index = index + 1
 
     def on_event(self, event, data=None):
@@ -468,7 +468,7 @@ class LxEuclidConfig:
                 self.state = LxEuclidConfig.STATE_MENU_SELECT
                 self.lxHardware.set_tap_led()
                 self.state_lock.release()
-                self.sm_rythm_param_counter = 0
+                self.sm_rhythm_param_counter = 0
             elif event == LxEuclidConfig.EVENT_MENU_BTN_LONG:
                 if self.menu_btn_long_press_action == LxEuclidConfig.LONG_PRESS_ACTION_NONE:
                     pass
@@ -488,214 +488,214 @@ class LxEuclidConfig:
             elif event == LxEuclidConfig.EVENT_BTN_SWITCHES:
 
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE
+                self.state = LxEuclidConfig.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
                 self.lxHardware.set_sw_leds(data)
 
                 self.menu_lock.acquire()
-                self.sm_rythm_param_counter = data
+                self.sm_rhythm_param_counter = data
                 self.menu_lock.release()
 
             elif event in [LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH, LxEuclidConfig.EVENT_INNER_CIRCLE_DECR, LxEuclidConfig.EVENT_INNER_CIRCLE_INCR]:
                 if self.inner_rotate_action == LxEuclidConfig.CIRCLE_ACTION_ROTATE:
-                    if self.inner_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                    if self.inner_action_rhythm == LxEuclidConfig.CIRCLE_RHYTHM_ALL:
                         if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.incr_offset()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.incr_offset()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_index = self.inner_action_rhythm
                             self.action_display_info = "+"
                             self.highlight_color_euclid = True
                         elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.decr_offset()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.decr_offset()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_index = self.inner_action_rhythm
                             self.action_display_info = "-"
                             self.highlight_color_euclid = True
                     else:
                         angle_inner = 180-self.lxHardware.capacitives_circles.inner_circle_angle
                         degree_steps = 360 / \
-                            self.euclideanRythms[self.inner_action_rythm].beats
-                        self.euclideanRythms[self.inner_action_rythm].set_offset(
+                            self.euclideanRhythms[self.inner_action_rhythm].beats
+                        self.euclideanRhythms[self.inner_action_rhythm].set_offset(
                             int(angle_inner/degree_steps))
                         self.need_circle_action_display = True
-                        self.action_display_index = self.inner_action_rythm
+                        self.action_display_index = self.inner_action_rhythm
                         self.action_display_info = str(
-                            self.euclideanRythms[self.inner_action_rythm].offset)
+                            self.euclideanRhythms[self.inner_action_rhythm].offset)
                         self.highlight_color_euclid = True
                 elif self.inner_rotate_action == LxEuclidConfig.CIRCLE_ACTION_PULSES:
-                    if self.inner_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                    if self.inner_action_rhythm == LxEuclidConfig.CIRCLE_RHYTHM_ALL:
                         if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.incr_pulses()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.incr_pulses()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_index = self.inner_action_rhythm
                             self.action_display_info = "+"
                             self.highlight_color_euclid = True
                         elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.decr_pulses()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.decr_pulses()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_index = self.inner_action_rhythm
                             self.action_display_info = "-"
                             self.highlight_color_euclid = True
                     else:
                         if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
-                            self.euclideanRythms[self.inner_action_rythm].incr_pulses(
+                            self.euclideanRhythms[self.inner_action_rhythm].incr_pulses(
                             )
                             self.need_circle_action_display = True
-                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_index = self.inner_action_rhythm
                             self.action_display_info = str(
-                                self.euclideanRythms[self.inner_action_rythm].pulses)
+                                self.euclideanRhythms[self.inner_action_rhythm].pulses)
                             self.highlight_color_euclid = True
                         elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
-                            self.euclideanRythms[self.inner_action_rythm].decr_pulses(
+                            self.euclideanRhythms[self.inner_action_rhythm].decr_pulses(
                             )
                             self.need_circle_action_display = True
-                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_index = self.inner_action_rhythm
                             self.action_display_info = str(
-                                self.euclideanRythms[self.inner_action_rythm].pulses)
+                                self.euclideanRhythms[self.inner_action_rhythm].pulses)
                             self.highlight_color_euclid = True
                 elif self.inner_rotate_action == LxEuclidConfig.CIRCLE_ACTION_GATE_LENGTH:  # TODO
-                    if self.inner_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                    if self.inner_action_rhythm == LxEuclidConfig.CIRCLE_RHYTHM_ALL:
                         if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.incr_gate_length()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.incr_gate_length()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_index = self.inner_action_rhythm
                             self.action_display_info = "+"
                             self.highlight_color_euclid = True
                         elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.decr_gate_length()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.decr_gate_length()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_index = self.inner_action_rhythm
                             self.action_display_info = "-"
                             self.highlight_color_euclid = True
                     else:
                         if event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
-                            self.euclideanRythms[self.inner_action_rythm].incr_gate_length(
+                            self.euclideanRhythms[self.inner_action_rhythm].incr_gate_length(
                             )
                             self.need_circle_action_display = True
-                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_index = self.inner_action_rhythm
                             self.action_display_info = str(
-                                self.euclideanRythms[self.inner_action_rythm].gate_length_ms)+"ms"
+                                self.euclideanRhythms[self.inner_action_rhythm].gate_length_ms)+"ms"
                             self.highlight_color_euclid = True
                         elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
-                            self.euclideanRythms[self.inner_action_rythm].decr_gate_length(
+                            self.euclideanRhythms[self.inner_action_rhythm].decr_gate_length(
                             )
                             self.need_circle_action_display = True
-                            self.action_display_index = self.inner_action_rythm
+                            self.action_display_index = self.inner_action_rhythm
                             self.action_display_info = str(
-                                self.euclideanRythms[self.inner_action_rythm].gate_length_ms)+"ms"
+                                self.euclideanRhythms[self.inner_action_rhythm].gate_length_ms)+"ms"
                             self.highlight_color_euclid = True
 
             elif event in [LxEuclidConfig.EVENT_OUTER_CIRCLE_TOUCH, LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR, LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR]:
                 if self.outer_rotate_action == LxEuclidConfig.CIRCLE_ACTION_ROTATE:
-                    if self.outer_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                    if self.outer_action_rhythm == LxEuclidConfig.CIRCLE_RHYTHM_ALL:
                         if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.incr_offset()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.incr_offset()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_index = self.outer_action_rhythm
                             self.action_display_info = "+"
                             self.highlight_color_euclid = True
                         elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.decr_offset()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.decr_offset()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_index = self.outer_action_rhythm
                             self.action_display_info = "-"
                             self.highlight_color_euclid = True
                     else:
                         angle_outer = 180-self.lxHardware.capacitives_circles.outer_circle_angle
                         degree_steps = 360 / \
-                            self.euclideanRythms[self.outer_action_rythm].beats
-                        self.euclideanRythms[self.outer_action_rythm].set_offset(
+                            self.euclideanRhythms[self.outer_action_rhythm].beats
+                        self.euclideanRhythms[self.outer_action_rhythm].set_offset(
                             int(angle_outer/degree_steps))
                         self.need_circle_action_display = True
-                        self.action_display_index = self.outer_action_rythm
+                        self.action_display_index = self.outer_action_rhythm
                         self.action_display_info = str(
-                            self.euclideanRythms[self.outer_action_rythm].offset)
+                            self.euclideanRhythms[self.outer_action_rhythm].offset)
                         self.highlight_color_euclid = True
                 elif self.outer_rotate_action == LxEuclidConfig.CIRCLE_ACTION_PULSES:
-                    if self.outer_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                    if self.outer_action_rhythm == LxEuclidConfig.CIRCLE_RHYTHM_ALL:
                         if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.incr_pulses()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.incr_pulses()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_index = self.outer_action_rhythm
                             self.action_display_info = "+"
                             self.highlight_color_euclid = True
                         elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.decr_pulses()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.decr_pulses()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_index = self.outer_action_rhythm
                             self.action_display_info = "-"
                             self.highlight_color_euclid = True
                     else:
                         if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
-                            self.euclideanRythms[self.outer_action_rythm].incr_pulses(
+                            self.euclideanRhythms[self.outer_action_rhythm].incr_pulses(
                             )
                             self.need_circle_action_display = True
-                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_index = self.outer_action_rhythm
                             self.action_display_info = str(
-                                self.euclideanRythms[self.outer_action_rythm].pulses)
+                                self.euclideanRhythms[self.outer_action_rhythm].pulses)
                             self.highlight_color_euclid = True
                         elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
-                            self.euclideanRythms[self.outer_action_rythm].decr_pulses(
+                            self.euclideanRhythms[self.outer_action_rhythm].decr_pulses(
                             )
                             self.need_circle_action_display = True
-                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_index = self.outer_action_rhythm
                             self.action_display_info = str(
-                                self.euclideanRythms[self.outer_action_rythm].pulses)
+                                self.euclideanRhythms[self.outer_action_rhythm].pulses)
                             self.highlight_color_euclid = True
                 elif self.outer_rotate_action == LxEuclidConfig.CIRCLE_ACTION_GATE_LENGTH:  # TODO
-                    if self.outer_action_rythm == LxEuclidConfig.CIRCLE_RYTHM_ALL:
+                    if self.outer_action_rhythm == LxEuclidConfig.CIRCLE_RHYTHM_ALL:
                         if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.incr_gate_length()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.incr_gate_length()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_index = self.outer_action_rhythm
                             self.action_display_info = "+"
                             self.highlight_color_euclid = True
                         elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
-                            for euclidean_rythm in self.euclideanRythms:
-                                euclidean_rythm.decr_gate_length()
+                            for euclidean_rhythm in self.euclideanRhythms:
+                                euclidean_rhythm.decr_gate_length()
                             self.need_circle_action_display = True
-                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_index = self.outer_action_rhythm
                             self.action_display_info = "-"
                             self.highlight_color_euclid = True
                     else:
                         if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
-                            self.euclideanRythms[self.outer_action_rythm].incr_gate_length(
+                            self.euclideanRhythms[self.outer_action_rhythm].incr_gate_length(
                             )
                             self.need_circle_action_display = True
-                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_index = self.outer_action_rhythm
                             self.action_display_info = str(
-                                self.euclideanRythms[self.outer_action_rythm].gate_length_ms)+"ms"
+                                self.euclideanRhythms[self.outer_action_rhythm].gate_length_ms)+"ms"
                             self.highlight_color_euclid = True
                         elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
-                            self.euclideanRythms[self.outer_action_rythm].decr_gate_length(
+                            self.euclideanRhythms[self.outer_action_rhythm].decr_gate_length(
                             )
                             self.need_circle_action_display = True
-                            self.action_display_index = self.outer_action_rythm
+                            self.action_display_index = self.outer_action_rhythm
                             self.action_display_info = str(
-                                self.euclideanRythms[self.outer_action_rythm].gate_length_ms)+"ms"
+                                self.euclideanRhythms[self.outer_action_rhythm].gate_length_ms)+"ms"
                             self.highlight_color_euclid = True
 
             # END STATE LIVE
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 self.menu_lock.acquire()
-                self.sm_rythm_param_counter = (
-                    self.sm_rythm_param_counter+1) % 5
+                self.sm_rhythm_param_counter = (
+                    self.sm_rhythm_param_counter+1) % 5
                 self.menu_lock.release()
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
                 self.menu_lock.acquire()
-                self.sm_rythm_param_counter = (
-                    self.sm_rythm_param_counter-1) % 5
+                self.sm_rhythm_param_counter = (
+                    self.sm_rhythm_param_counter-1) % 5
                 self.menu_lock.release()
         elif self.state == LxEuclidConfig.STATE_MENU_SELECT:
             if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TAP:                
@@ -798,22 +798,22 @@ class LxEuclidConfig:
             elif event == LxEuclidConfig.EVENT_MENU_BTN:       
                 self.param_presets_page = (self.param_presets_page+1)%PRESET_PAGE_MAX
                     
-        elif self.state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE:
-            if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rythm_param_counter:
+        elif self.state == LxEuclidConfig.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
+            if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
                 self.state_lock.acquire()
-                self.state = LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY
+                self.state = LxEuclidConfig.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY
                 self.state_lock.release()
             elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
-                self.euclideanRythms[self.sm_rythm_param_counter].incr_beats()
+                self.euclideanRhythms[self.sm_rhythm_param_counter].incr_beats()
             elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
-                self.euclideanRythms[self.sm_rythm_param_counter].decr_beats()
+                self.euclideanRhythms[self.sm_rhythm_param_counter].decr_beats()
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
-                self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses()
+                self.euclideanRhythms[self.sm_rhythm_param_counter].incr_pulses()
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR:
-                self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses()
+                self.euclideanRhythms[self.sm_rhythm_param_counter].decr_pulses()
 
-        elif local_state == LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY:
-            if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rythm_param_counter:
+        elif local_state == LxEuclidConfig.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY:
+            if event == LxEuclidConfig.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
                 self.save_data()
                 self.state_lock.acquire()
                 self.state = LxEuclidConfig.STATE_LIVE
@@ -822,14 +822,14 @@ class LxEuclidConfig:
             elif event == LxEuclidConfig.EVENT_INNER_CIRCLE_TOUCH or event == LxEuclidConfig.EVENT_INNER_CIRCLE_DECR or event == LxEuclidConfig.EVENT_INNER_CIRCLE_INCR:
                 angle_inner = 180-self.lxHardware.capacitives_circles.inner_circle_angle
                 degree_steps = 360 / \
-                    self.euclideanRythms[self.sm_rythm_param_counter].beats
-                self.euclideanRythms[self.sm_rythm_param_counter].set_offset(
+                    self.euclideanRhythms[self.sm_rhythm_param_counter].beats
+                self.euclideanRhythms[self.sm_rhythm_param_counter].set_offset(
                     int(angle_inner/degree_steps))
             elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_DECR:
-                self.euclideanRythms[self.sm_rythm_param_counter].decr_pulses_probability(
+                self.euclideanRhythms[self.sm_rhythm_param_counter].decr_pulses_probability(
                 )
             elif event == LxEuclidConfig.EVENT_OUTER_CIRCLE_INCR:
-                self.euclideanRythms[self.sm_rythm_param_counter].incr_pulses_probability(
+                self.euclideanRhythms[self.sm_rhythm_param_counter].incr_pulses_probability(
                 )
 
         elif local_state == LxEuclidConfig.STATE_PARAM_MENU:
@@ -870,15 +870,15 @@ class LxEuclidConfig:
     
     def incr_steps(self):
         self.computation_index = 0
-        for euclidean_rythm in self.euclideanRythms:
-            did_step = euclidean_rythm.incr_step()
-            if euclidean_rythm.get_current_step() and did_step:
-                if euclidean_rythm.randomize_gate_length:
+        for euclidean_rhythm in self.euclideanRhythms:
+            did_step = euclidean_rhythm.incr_step()
+            if euclidean_rhythm.get_current_step() and did_step:
+                if euclidean_rhythm.randomize_gate_length:
                     self.lxHardware.set_gate(
-                        self.computation_index, euclidean_rythm.randomized_gate_length_ms)
+                        self.computation_index, euclidean_rhythm.randomized_gate_length_ms)
                 else:
                     self.lxHardware.set_gate(
-                        self.computation_index, euclidean_rythm.gate_length_ms)
+                        self.computation_index, euclidean_rhythm.gate_length_ms)
             self.computation_index = self.computation_index + 1
         # tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
         # tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
@@ -888,14 +888,14 @@ class LxEuclidConfig:
             self.clear_led_needed = True
 
     def random_gate_length_update(self):
-        for euclidean_rythm in self.euclideanRythms:
-            if euclidean_rythm.randomize_gate_length:
-                euclidean_rythm.randomized_gate_length_ms = randint(
-                    int(euclidean_rythm.gate_length_ms/2), euclidean_rythm.gate_length_ms)
+        for euclidean_rhythm in self.euclideanRhythms:
+            if euclidean_rhythm.randomize_gate_length:
+                euclidean_rhythm.randomized_gate_length_ms = randint(
+                    int(euclidean_rhythm.gate_length_ms/2), euclidean_rhythm.gate_length_ms)
 
     def reset_steps(self):
-        for euclidean_rythm in self.euclideanRythms:
-            euclidean_rythm.reset_step()
+        for euclidean_rhythm in self.euclideanRhythms:
+            euclidean_rhythm.reset_step()
             
     def test_if_clear_gates_led(self):        
         self.state_lock.acquire()
@@ -999,42 +999,42 @@ class LxEuclidConfig:
         self.dict_data["v_mi"] = self.v_minor
         self.dict_data["v_fi"] = self.v_fix
 
-        for rhythm_index, euclidean_rythm in enumerate(self.euclideanRythms):
+        for rhythm_index, euclidean_rhythm in enumerate(self.euclideanRhythms):
             rhythm_prefix = f"e_r_{rhythm_index}_"
-            self.dict_data[rhythm_prefix+"b"] = euclidean_rythm.beats
-            self.dict_data[rhythm_prefix+"p"] = euclidean_rythm.pulses
-            self.dict_data[rhythm_prefix+"o"] = euclidean_rythm.offset
-            self.dict_data[rhythm_prefix+"pr"] = euclidean_rythm.pulses_probability
-            self.dict_data[rhythm_prefix+"p_i"] = euclidean_rythm.prescaler_index
-            self.dict_data[rhythm_prefix+"g_l_m"] = euclidean_rythm.gate_length_ms
+            self.dict_data[rhythm_prefix+"b"] = euclidean_rhythm.beats
+            self.dict_data[rhythm_prefix+"p"] = euclidean_rhythm.pulses
+            self.dict_data[rhythm_prefix+"o"] = euclidean_rhythm.offset
+            self.dict_data[rhythm_prefix+"pr"] = euclidean_rhythm.pulses_probability
+            self.dict_data[rhythm_prefix+"p_i"] = euclidean_rhythm.prescaler_index
+            self.dict_data[rhythm_prefix+"g_l_m"] = euclidean_rhythm.gate_length_ms
             self.dict_data[rhythm_prefix +
-                      "r_g_l"] = euclidean_rythm.randomize_gate_length
+                      "r_g_l"] = euclidean_rhythm.randomize_gate_length
 
         for preset_index, preset in enumerate(self.presets):
             preset_prefix = f"pr_{preset_index}_"
-            for rhythm_index, preset_euclidean_rythm in enumerate(preset):
+            for rhythm_index, preset_euclidean_rhythm in enumerate(preset):
 
                 rhythm_prefix = f"{preset_prefix}e_r_{rhythm_index}_"
 
-                self.dict_data[rhythm_prefix+"b"] = preset_euclidean_rythm.beats
-                self.dict_data[rhythm_prefix+"p"] = preset_euclidean_rythm.pulses
-                self.dict_data[rhythm_prefix+"o"] = preset_euclidean_rythm.offset
-                self.dict_data[rhythm_prefix+"pr"] = preset_euclidean_rythm.pulses_probability
+                self.dict_data[rhythm_prefix+"b"] = preset_euclidean_rhythm.beats
+                self.dict_data[rhythm_prefix+"p"] = preset_euclidean_rhythm.pulses
+                self.dict_data[rhythm_prefix+"o"] = preset_euclidean_rhythm.offset
+                self.dict_data[rhythm_prefix+"pr"] = preset_euclidean_rhythm.pulses_probability
                 self.dict_data[rhythm_prefix +
-                          "p_i"] = preset_euclidean_rythm.prescaler_index
+                          "p_i"] = preset_euclidean_rhythm.prescaler_index
                 self.dict_data[rhythm_prefix +
-                          "g_l_m"] = preset_euclidean_rythm.gate_length_ms
+                          "g_l_m"] = preset_euclidean_rhythm.gate_length_ms
                 self.dict_data[rhythm_prefix +
-                          "r_g_l"] = preset_euclidean_rythm.randomize_gate_length
+                          "r_g_l"] = preset_euclidean_rhythm.randomize_gate_length
 
         self.dict_data["m_l_p_a"] = self.menu_btn_long_press_action
         self.dict_data["t_l_p_a"] = self.tap_long_press_action
 
         self.dict_data["i_r_a"] = self.inner_rotate_action
-        self.dict_data["i_a_r"] = self.inner_action_rythm
+        self.dict_data["i_a_r"] = self.inner_action_rhythm
 
         self.dict_data["o_r_a"] = self.outer_rotate_action
-        self.dict_data["o_a_r"] = self.outer_action_rythm
+        self.dict_data["o_a_r"] = self.outer_action_rhythm
 
         self.dict_data["t_s"] = self.lxHardware.capacitives_circles.touch_sensitivity
 
@@ -1043,7 +1043,7 @@ class LxEuclidConfig:
         for cv_index, cv_data in enumerate(self.lxHardware.cv_manager.cvs_data):            
             cv_prefix = f"cv_{cv_index}_"
             self.dict_data[cv_prefix+"a"] = cv_data.cv_action
-            self.dict_data[cv_prefix+"r"] = cv_data.cv_action_rythm
+            self.dict_data[cv_prefix+"r"] = cv_data.cv_action_rhythm
             self.dict_data[cv_prefix+"b"] = cv_data.cvs_bound_index
             
     def save_data(self):
@@ -1112,35 +1112,35 @@ class LxEuclidConfig:
                     a[0] +=1
                     return a[0]-1
 
-                for euclidean_rythm in self.euclideanRythms:
+                for euclidean_rhythm in self.euclideanRhythms:
                     
-                    euclidean_rythm.beats = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))                    
-                    euclidean_rythm.pulses = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
-                    euclidean_rythm.offset = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
-                    euclidean_rythm.pulses_probability = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
-                    euclidean_rythm.prescaler_index = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
-                    euclidean_rythm.gate_length_ms = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
-                    euclidean_rythm.randomize_gate_length = bool(self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
+                    euclidean_rhythm.beats = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))                    
+                    euclidean_rhythm.pulses = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                    euclidean_rhythm.offset = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                    euclidean_rhythm.pulses_probability = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                    euclidean_rhythm.prescaler_index = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                    euclidean_rhythm.gate_length_ms = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                    euclidean_rhythm.randomize_gate_length = bool(self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
 
                 for preset in self.presets:
-                    for preset_euclidean_rythm in preset:
-                        preset_euclidean_rythm.beats = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
-                        preset_euclidean_rythm.pulses = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
-                        preset_euclidean_rythm.offset = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
-                        preset_euclidean_rythm.pulses_probability = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
-                        preset_euclidean_rythm.prescaler_index = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
-                        preset_euclidean_rythm.gate_length_ms = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
-                        preset_euclidean_rythm.randomize_gate_length = bool(self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr)))    
+                    for preset_euclidean_rhythm in preset:
+                        preset_euclidean_rhythm.beats = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rhythm.pulses = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rhythm.offset = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rhythm.pulses_probability = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rhythm.prescaler_index = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rhythm.gate_length_ms = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))     
+                        preset_euclidean_rhythm.randomize_gate_length = bool(self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr)))    
 
 
                 self.tap_long_press_action = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
                 self.menu_btn_long_press_action = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
 
                 self.inner_rotate_action = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
-                self.inner_action_rythm = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
+                self.inner_action_rhythm = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
 
                 self.outer_rotate_action = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
-                self.outer_action_rythm = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
+                self.outer_action_rhythm = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
 
                 self.lxHardware.capacitives_circles.touch_sensitivity = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))    
 
@@ -1148,7 +1148,7 @@ class LxEuclidConfig:
                 
                 for cv_data in self.lxHardware.cv_manager.cvs_data:
                         cv_data.cv_action = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
-                        cv_data.cv_action_rythm = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                        cv_data.cv_action_rhythm = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
                         cv_data.cvs_bound_index = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
 
 
@@ -1160,9 +1160,9 @@ class LxEuclidConfig:
                 print("Couldn't load eeprom config because unknown error")
                 print(e)
 
-    def reload_rythms(self):
-        for euclidean_rythm in self.euclideanRythms:
-            euclidean_rythm.set_rythm()
+    def reload_rhythms(self):
+        for euclidean_rhythm in self.euclideanRhythms:
+            euclidean_rhythm.set_rhythm()
             
     def init_cvs_parameters(self):
         for i in range(0,4):
@@ -1174,24 +1174,24 @@ class LxEuclidConfig:
         rising_edge_detected = cv_data[1]
         
         cv_action = self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action
-        cv_action_rythm = self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action_rythm
+        cv_action_rhythm = self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action_rhythm
         
-        if cv_action != CvData.CV_ACTION_NONE and cv_action_rythm != 0:
+        if cv_action != CvData.CV_ACTION_NONE and cv_action_rhythm != 0:
             for euclidean_rhythm_index in range(0,4):
-                if cv_action_rythm & (1<<euclidean_rhythm_index) != 0: # action_rhythm are stored by bit 
+                if cv_action_rhythm & (1<<euclidean_rhythm_index) != 0: # action_rhythm are stored by bit 
                     to_return = True
                     percent_value = self.lxHardware.cv_manager.percent_values[cv_channel]
                     if cv_action == CvData.CV_ACTION_BEATS:
-                        self.euclideanRythms[euclidean_rhythm_index].set_beats_in_percent(
+                        self.euclideanRhythms[euclidean_rhythm_index].set_beats_in_percent(
                             percent_value)
                     elif cv_action == CvData.CV_ACTION_PULSES:
-                        self.euclideanRythms[euclidean_rhythm_index].set_pulses_in_percent(
+                        self.euclideanRhythms[euclidean_rhythm_index].set_pulses_in_percent(
                             percent_value)
                     elif cv_action == CvData.CV_ACTION_ROTATION:
-                        self.euclideanRythms[euclidean_rhythm_index].set_offset_in_percent(
+                        self.euclideanRhythms[euclidean_rhythm_index].set_offset_in_percent(
                             percent_value)
                     elif cv_action == CvData.CV_ACTION_PROBABILITY:
-                        self.euclideanRythms[euclidean_rhythm_index].set_pulses_probability_in_percent(
+                        self.euclideanRhythms[euclidean_rhythm_index].set_pulses_probability_in_percent(
                             percent_value)
         return to_return
 
