@@ -745,15 +745,15 @@ class LxEuclidConfig:
                 if self.param_cvs_page == 0: # action
                     preset_index = angle_to_index(angle_inner,5)
                     self.lxHardware.cv_manager.cvs_data[self.param_cvs_index].cv_action = preset_index
-                    self.save_data()
                 elif self.param_cvs_page == 1: # output
                     out_index = angle_to_index(angle_inner,4)
                     self.lxHardware.cv_manager.cvs_data[self.param_cvs_index].flip_action_rhythm(out_index)
-                    self.save_data()
                 else: # cv bound
                     cv_bound_index = angle_to_index(angle_inner,4)
                     self.lxHardware.cv_manager.cvs_data[self.param_cvs_index].cvs_bound_index = cv_bound_index
-                    self.save_data()
+                
+                self.save_data()
+                self.init_cvs_parameters()
                     
             elif event == LxEuclidConfig.EVENT_BTN_SWITCHES:
                 self.param_cvs_index = data
@@ -1163,6 +1163,10 @@ class LxEuclidConfig:
     def reload_rythms(self):
         for euclidean_rythm in self.euclideanRythms:
             euclidean_rythm.set_rythm()
+            
+    def init_cvs_parameters(self):
+        for i in range(0,4):
+            self.update_cvs_parameters([i,False])
 
     def update_cvs_parameters(self, cv_data):
         to_return = False

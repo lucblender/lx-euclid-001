@@ -244,6 +244,8 @@ if __name__ == '__main__':
                 lxHardware.lxHardwareEventFifo.popleft()
             
             LCD.set_need_display()
+            
+            lxEuclidConfig.init_cvs_parameters()
             while True:
                 lxEuclidConfig.test_if_clear_gates_led()
                 if len(lxHardware.lxHardwareEventFifo) > 0:
