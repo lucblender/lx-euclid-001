@@ -9,6 +9,15 @@ MAX = const(1)
 LOW_PERCENTAGE_RISING_THRESHOLD = const(25)
 RISING_DIFFERENCE_THRESHOLD = const(50)
 
+CV_5V = const(2000)
+CV_0V = const(14740)
+CV_1V = const(12192)
+CV_2V = const(9644)
+CV_MINUS_5V = const(27000)
+
+CV_BOUNDS = [[CV_MINUS_5V,CV_5V],[CV_0V,CV_5V],[CV_0V,CV_1V],[CV_0V,CV_2V]]
+
+CV_RHYTHM_MASKS = [const(1),const(2),const(4),const(8)]
 
 class CvData:
     CV_ACTION_NONE = const(0)
@@ -17,19 +26,17 @@ class CvData:
     CV_ACTION_ROTATION = const(3)
     CV_ACTION_PROBABILITY = const(4)
 
-    CV_RHYTHM_1 = const(0)
-    CV_RHYTHM_2 = const(1)
-    CV_RHYTHM_3 = const(2)
-    CV_RHYTHM_4 = const(3)
-
-    CV_5V = const(2000)
-    CV_0V = const(14740)
-    CV_MINUS_5V = const(27000)
-
-    def __init__(self, cv_action, cv_action_rythm, cvs_bound):
+    def __init__(self, cv_action, cv_action_rythm, cvs_bound_index):
         self.cv_action = cv_action
         self.cv_action_rythm = cv_action_rythm
-        self.cvs_bound = cvs_bound
+        self.cvs_bound_index = cvs_bound_index
+    
+    @property    
+    def cvs_bound(self):
+        return CV_BOUNDS[self.cvs_bound_index]
+    
+    def flip_action_rhythm(self, index):
+        self.cv_action_rythm = self.cv_action_rythm ^ CV_RHYTHM_MASKS[index]
 
 
 class CvManager:
@@ -49,12 +56,10 @@ class CvManager:
         self.__raw_values = [0, 0, 0, 0]
         self.percent_values = [0, 0, 0, 0]
 
-        self.cvs_data = [CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=CvData.CV_RHYTHM_1, cvs_bound=[CvData.CV_0V, CvData.CV_5V]),
-                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=CvData.CV_RHYTHM_1, cvs_bound=[
-                                CvData.CV_MINUS_5V, CvData.CV_5V]),
-                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=CvData.CV_RHYTHM_1, cvs_bound=[
-                                CvData.CV_MINUS_5V, CvData.CV_5V]),
-                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=CvData.CV_RHYTHM_1, cvs_bound=[CvData.CV_MINUS_5V, CvData.CV_5V])]
+        self.cvs_data = [CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=1, cvs_bound_index=0),
+                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=2, cvs_bound_index=0),
+                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=4, cvs_bound_index=0),
+                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=8, cvs_bound_index=0)]
 
         self.current_channel_measure = 0
         self.in_measure = False

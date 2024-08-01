@@ -30,7 +30,7 @@ def print_ram(code=""):
 MIN_TAP_DELAY_MS = 20
 MAX_TAP_DELAY_MS = 3000
 LONG_PRESS_MS = 500
-DEBOUNCE_MS = 20
+DEBOUNCE_MS = 50
 
 CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
 
@@ -38,6 +38,7 @@ last_timer_launch_ms = ticks_ms()
 last_capacitive_circles_read_ms = ticks_ms()
 
 btn_menu_press = ticks_ms()
+btn_menu_ack = False
 tap_btn_press = ticks_ms()
 sw_btns_press = [ticks_ms(), ticks_ms(), ticks_ms(), ticks_ms()]
 stop_thread = False
@@ -64,7 +65,7 @@ def debug_print(txt):
 
 
 def lxhardware_changed(handlerEventData):
-    global tap_btn_press, btn_menu_press
+    global tap_btn_press, btn_menu_press, btn_menu_ack
     event = handlerEventData.event
     if event == lxHardware.CLK_RISE:
         if lxEuclidConfig.state in [LxEuclidConfig.STATE_RYTHM_PARAM_INNER_OFFSET_PROBABILITY,LxEuclidConfig.STATE_RYTHM_PARAM_INNER_BEAT_PULSE,LxEuclidConfig.STATE_LIVE]:            
@@ -143,11 +144,14 @@ def lxhardware_changed(handlerEventData):
         tmp_time = ticks_ms()
         if (tmp_time - btn_menu_press) > DEBOUNCE_MS:
             btn_menu_press = tmp_time
+            btn_menu_ack = True
     elif event == lxHardware.BTN_MENU_FALL:
-        if ticks_ms() - btn_menu_press > LONG_PRESS_MS:
-            lxEuclidConfig.on_event(LxEuclidConfig.EVENT_MENU_BTN_LONG)
-        else:
-            lxEuclidConfig.on_event(LxEuclidConfig.EVENT_MENU_BTN)
+        if btn_menu_ack == True:
+            btn_menu_ack = False
+            if ticks_ms() - btn_menu_press > LONG_PRESS_MS and btn_menu_ack:
+                lxEuclidConfig.on_event(LxEuclidConfig.EVENT_MENU_BTN_LONG)
+            else:
+                lxEuclidConfig.on_event(LxEuclidConfig.EVENT_MENU_BTN)
         LCD.set_need_display()
 
 def is_usb_connected():
@@ -234,6 +238,11 @@ if __name__ == '__main__':
                 tap_incr_steps()
 
             wait_display_thread = False
+            
+            #some click might happend because of capacitors loading so empty fifo at boot
+            while(len(lxHardware.lxHardwareEventFifo) > 0):
+                lxHardware.lxHardwareEventFifo.popleft()
+            
             LCD.set_need_display()
             while True:
                 lxEuclidConfig.test_if_clear_gates_led()
@@ -258,7 +267,8 @@ if __name__ == '__main__':
                     # hardware gpio + timer)
                     if ticks_ms() - last_timer_launch_ms >= (tap_delay_ms):
                         tap_incr_steps()
-                        LCD.set_need_display()
+                        if lxEuclidConfig.state == LxEuclidConfig.STATE_LIVE:
+                            LCD.set_need_display()
 
         print("quit")
     #except Exception as e:

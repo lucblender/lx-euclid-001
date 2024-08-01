@@ -739,12 +739,21 @@ class LxEuclidConfig:
                 
         elif self.state == LxEuclidConfig.STATE_PARAM_CVS: #todotodo
             
-            if event == LxEuclidConfig.EVENT_OUTER_CIRCLE_TAP:         
-                angle_outer = self.lxHardware.capacitives_circles.outer_circle_angle
-                preset_index = angle_to_index(angle_outer,5)
-                self.lxHardware.cv_manager.cvs_data[self.param_cvs_index].cv_action = preset_index
-                self.save_data()
-                
+            if event == LxEuclidConfig.EVENT_INNER_CIRCLE_TAP:
+                angle_inner = self.lxHardware.capacitives_circles.inner_circle_angle
+                if self.param_cvs_page == 0: # action
+                    preset_index = angle_to_index(angle_inner,5)
+                    self.lxHardware.cv_manager.cvs_data[self.param_cvs_index].cv_action = preset_index
+                    self.save_data()
+                elif self.param_cvs_page == 1: # output
+                    out_index = angle_to_index(angle_inner,4)
+                    self.lxHardware.cv_manager.cvs_data[self.param_cvs_index].flip_action_rhythm(out_index)
+                    self.save_data()
+                else: # cv bound
+                    cv_bound_index = angle_to_index(angle_inner,4)
+                    self.lxHardware.cv_manager.cvs_data[self.param_cvs_index].cvs_bound_index = cv_bound_index
+                    self.save_data()
+                    
             elif event == LxEuclidConfig.EVENT_BTN_SWITCHES:
                 self.param_cvs_index = data
                 self.lxHardware.clear_sw_leds()
@@ -1034,6 +1043,7 @@ class LxEuclidConfig:
             cv_prefix = f"cv_{cv_index}_"
             self.dict_data[cv_prefix+"a"] = cv_data.cv_action
             self.dict_data[cv_prefix+"r"] = cv_data.cv_action_rythm
+            self.dict_data[cv_prefix+"b"] = cv_data.cvs_bound_index
             
     def save_data(self):
 
@@ -1138,6 +1148,7 @@ class LxEuclidConfig:
                 for cv_data in self.lxHardware.cv_manager.cvs_data:
                         cv_data.cv_action = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
                         cv_data.cv_action_rythm = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                        cv_data.cvs_bound_index = self.lxHardware.get_eeprom_data_int(incr_addr(eeprom_addr))
 
 
                 self.create_memory_dict()
@@ -1156,22 +1167,27 @@ class LxEuclidConfig:
         to_return = False
         cv_channel = cv_data[0]
         rising_edge_detected = cv_data[1]
-        if self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action != CvData.CV_ACTION_NONE:
-            to_return = True
-            rhythm_channel = self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action_rythm
-            percent_value = self.lxHardware.cv_manager.percent_values[cv_channel]
-            if self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action == CvData.CV_ACTION_BEATS:
-                self.euclideanRythms[rhythm_channel].set_beats_in_percent(
-                    percent_value)
-            elif self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action == CvData.CV_ACTION_PULSES:
-                self.euclideanRythms[rhythm_channel].set_pulses_in_percent(
-                    percent_value)
-            elif self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action == CvData.CV_ACTION_ROTATION:
-                self.euclideanRythms[rhythm_channel].set_offset_in_percent(
-                    percent_value)
-            elif self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action == CvData.CV_ACTION_PROBABILITY:
-                self.euclideanRythms[rhythm_channel].set_pulses_probability_in_percent(
-                    percent_value)
+        
+        cv_action = self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action
+        cv_action_rythm = self.lxHardware.cv_manager.cvs_data[cv_channel].cv_action_rythm
+        
+        if cv_action != CvData.CV_ACTION_NONE and cv_action_rythm != 0:
+            for euclidean_rhythm_index in range(0,4):
+                if cv_action_rythm & (1<<euclidean_rhythm_index) != 0: # action_rhythm are stored by bit 
+                    to_return = True
+                    percent_value = self.lxHardware.cv_manager.percent_values[cv_channel]
+                    if cv_action == CvData.CV_ACTION_BEATS:
+                        self.euclideanRythms[euclidean_rhythm_index].set_beats_in_percent(
+                            percent_value)
+                    elif cv_action == CvData.CV_ACTION_PULSES:
+                        self.euclideanRythms[euclidean_rhythm_index].set_pulses_in_percent(
+                            percent_value)
+                    elif cv_action == CvData.CV_ACTION_ROTATION:
+                        self.euclideanRythms[euclidean_rhythm_index].set_offset_in_percent(
+                            percent_value)
+                    elif cv_action == CvData.CV_ACTION_PROBABILITY:
+                        self.euclideanRythms[euclidean_rhythm_index].set_pulses_probability_in_percent(
+                            percent_value)
         return to_return
 
     def get_current_data_pointer(self):

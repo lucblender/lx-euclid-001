@@ -399,18 +399,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
         elif local_state == self.lxEuclidConfig.STATE_PARAM_CVS:
 
             cv_index = self.lxEuclidConfig.param_cvs_index
-            cv_action = self.lxEuclidConfig.lxHardware.cv_manager.cvs_data[cv_index].cv_action
 
             txt_color = self.rythm_colors[3]
             txt_color_highlight = self.rythm_colors_highlight[0]
 
-            txt_colors = [txt_color]*5
-            txt_colors[cv_action] = txt_color_highlight
 
-            self.circle(120, 120, 62, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 62, self.touch_circle_color, True)
             self.circle(120, 120, 62-15, self.black, True)
 
-            self.circle(120, 120, 44, self.touch_circle_color, True)
+            self.circle(120, 120, 44, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 44-15, self.black, True)
 
             cv_index_txt = f"CV {cv_index+1}"
@@ -422,12 +419,34 @@ class LCD_1inch28(framebuf.FrameBuffer):
             page_txt = f"page {page+1}"
             self.font_writer_font6.text(page_txt, 102, 130, page_color)
 
-
-            self.font_writer_freesans20.text("None", 87, 7, txt_colors[0])
-            self.font_writer_freesans20.text("Beat", 193, 80, txt_colors[1])
-            self.font_writer_freesans20.text("Pulse", 160, 184, txt_colors[2])
-            self.font_writer_freesans20.text("Rot", 40, 184, txt_colors[3])
-            self.font_writer_freesans20.text("Prob", 10, 80, txt_colors[4])
+            if page == 0:                
+                txt_colors = [txt_color]*5
+                cv_action = self.lxEuclidConfig.lxHardware.cv_manager.cvs_data[cv_index].cv_action
+                txt_colors[cv_action] = txt_color_highlight
+                self.font_writer_freesans20.text("None", 93, 12, txt_colors[0])
+                self.font_writer_freesans20.text("Beat", 193, 80, txt_colors[1])
+                self.font_writer_freesans20.text("Pulse", 160, 184, txt_colors[2])
+                self.font_writer_freesans20.text("Rot", 40, 184, txt_colors[3])
+                self.font_writer_freesans20.text("Prob", 10, 80, txt_colors[4])
+            elif page == 1:              
+                txt_colors = [txt_color]*4
+                #txt_colors[cv_action] = txt_color_highlight
+                action_rythm = self.lxEuclidConfig.lxHardware.cv_manager.cvs_data[cv_index].cv_action_rythm
+                for i in range(0,4):
+                    if action_rythm & (1<<i) != 0: # action_rhythm are stored by bit 
+                        txt_colors[i] = txt_color_highlight
+                self.font_writer_freesans20.text("Out 0", 93, 12, txt_colors[0])
+                self.font_writer_freesans20.text("Out 1", 190, 110, txt_colors[1])
+                self.font_writer_freesans20.text("Out 2", 93, 213, txt_colors[2])  
+                self.font_writer_freesans20.text("Out 3", 2, 110, txt_colors[3])              
+            else:              
+                txt_colors = [txt_color]*4
+                cvs_bound_index = self.lxEuclidConfig.lxHardware.cv_manager.cvs_data[cv_index].cvs_bound_index
+                txt_colors[cvs_bound_index] = txt_color_highlight
+                self.font_writer_freesans20.text("-5..5V", 95, 12, txt_colors[0])
+                self.font_writer_freesans20.text("0..5V", 190, 110, txt_colors[1])
+                self.font_writer_freesans20.text("0..1V", 101, 213, txt_colors[2])
+                self.font_writer_freesans20.text("0..2V", 2, 110, txt_colors[3])
 
         elif local_state == self.lxEuclidConfig.STATE_PARAM_PRESETS:
 
@@ -450,7 +469,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             if page == 0:
                 self.font_writer_freesans20.text("Load", 99, 67, self.black)
             else:
-                self.font_writer_freesans20.text("Save", 100, 67, self.black)
+                self.font_writer_freesans20.text("Save", 98, 67, self.black)
                 
             
             self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
