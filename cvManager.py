@@ -26,9 +26,9 @@ class CvData:
     CV_ACTION_ROTATION = const(3)
     CV_ACTION_PROBABILITY = const(4)
 
-    def __init__(self, cv_action, cv_action_rythm, cvs_bound_index):
+    def __init__(self, cv_action, cv_action_rhythm, cvs_bound_index):
         self.cv_action = cv_action
-        self.cv_action_rythm = cv_action_rythm
+        self.cv_action_rhythm = cv_action_rhythm
         self.cvs_bound_index = cvs_bound_index
     
     @property    
@@ -36,7 +36,7 @@ class CvData:
         return CV_BOUNDS[self.cvs_bound_index]
     
     def flip_action_rhythm(self, index):
-        self.cv_action_rythm = self.cv_action_rythm ^ CV_RHYTHM_MASKS[index]
+        self.cv_action_rhythm = self.cv_action_rhythm ^ CV_RHYTHM_MASKS[index]
 
 
 class CvManager:
@@ -56,10 +56,10 @@ class CvManager:
         self.__raw_values = [0, 0, 0, 0]
         self.percent_values = [0, 0, 0, 0]
 
-        self.cvs_data = [CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=1, cvs_bound_index=0),
-                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=2, cvs_bound_index=0),
-                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=4, cvs_bound_index=0),
-                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rythm=8, cvs_bound_index=0)]
+        self.cvs_data = [CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rhythm=1, cvs_bound_index=0),
+                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rhythm=2, cvs_bound_index=0),
+                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rhythm=4, cvs_bound_index=0),
+                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rhythm=8, cvs_bound_index=0)]
 
         self.current_channel_measure = 0
         self.in_measure = False
