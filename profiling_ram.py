@@ -20,8 +20,8 @@ print_ram("import lxEuclidConfig")
 from lxHardware import LxHardware
 print_ram("import LxHardware")
 
-lxHardware = LxHardware()
+lx_hardware = LxHardware()
 print_ram("create LxHardware")
 
-lxEuclidConfig = LxEuclidConfig(lxHardware, LCD, [0,0,5])
+lx_euclid_config = LxEuclidConfig(lx_hardware, LCD, [0,0,5])
 print_ram("create lxEuclidConfig")

@@ -192,10 +192,10 @@ class LxHardware:
         # need to do this trickery of sh*t to not have a memory allocation error as show
         # here https://forum.micropython.org/viewtopic.php?t=4027
         self.callback = self.call_handlers
-        self.lxEuclidConfig = None
+        self.lx_euclid_config = None
 
-    def set_lxEuclidConfig(self, lxEuclidConfig):
-        self.lxEuclidConfig = lxEuclidConfig
+    def set_lx_euclid_config(self, lx_euclid_config):
+        self.lx_euclid_config = lx_euclid_config
 
     def clk_pin_change(self, pin):
         try:
@@ -203,9 +203,9 @@ class LxHardware:
                 return
             self.clk_pin_status = self.clk_pin.value()
             if not self.clk_pin.value():
-                if self.lxEuclidConfig is not None:
-                    if self.lxEuclidConfig.clk_mode == self.lxEuclidConfig.CLK_IN:
-                        self.lxEuclidConfig.incr_steps()
+                if self.lx_euclid_config is not None:
+                    if self.lx_euclid_config.clk_mode == self.lx_euclid_config.CLK_IN:
+                        self.lx_euclid_config.incr_steps()
             self.lxHardwareEventFifo.append(self.clk_rise_event)
         except Exception as e:
             print(e)
