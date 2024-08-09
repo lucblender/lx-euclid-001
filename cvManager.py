@@ -19,12 +19,17 @@ CV_BOUNDS = [[CV_MINUS_5V,CV_5V],[CV_0V,CV_5V],[CV_0V,CV_1V],[CV_0V,CV_2V]]
 
 CV_RHYTHM_MASKS = [const(1),const(2),const(4),const(8)]
 
-class CvData:
+class CvAction:
     CV_ACTION_NONE = const(0)
-    CV_ACTION_BEATS = const(1)
-    CV_ACTION_PULSES = const(2)
-    CV_ACTION_ROTATION = const(3)
-    CV_ACTION_PROBABILITY = const(4)
+    CV_ACTION_RESET = const(1)
+    CV_ACTION_BEATS = const(2)
+    CV_ACTION_PULSES = const(3)
+    CV_ACTION_ROTATION = const(4)
+    CV_ACTION_PROBABILITY = const(5)
+    CV_ACTION_FILL = const(6)
+    CV_ACTION_MUTE = const(7)
+
+class CvData:
 
     def __init__(self, cv_action, cv_action_rhythm, cvs_bound_index):
         self.cv_action = cv_action
@@ -56,10 +61,10 @@ class CvManager:
         self.__raw_values = [0, 0, 0, 0]
         self.percent_values = [0, 0, 0, 0]
 
-        self.cvs_data = [CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rhythm=1, cvs_bound_index=0),
-                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rhythm=2, cvs_bound_index=0),
-                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rhythm=4, cvs_bound_index=0),
-                         CvData(cv_action=CvData.CV_ACTION_NONE, cv_action_rhythm=8, cvs_bound_index=0)]
+        self.cvs_data = [CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=1, cvs_bound_index=0),
+                         CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=2, cvs_bound_index=0),
+                         CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=4, cvs_bound_index=0),
+                         CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=8, cvs_bound_index=0)]
 
         self.current_channel_measure = 0
         self.in_measure = False
