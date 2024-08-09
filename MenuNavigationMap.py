@@ -29,32 +29,17 @@ def get_menu_navigation_map():
     outputs["Out 4"] = out.copy()
     my_dict["Outputs"] = outputs
 
-    my_dict["Clock"] = OrderedDict({"data_pointer": None,
-                                    "Clock source": {
+    my_dict["Clock source"] = OrderedDict({"data_pointer": None,
                                         "values": ["Tap btn", "Clock input"],
                                         "attribute_name": "clk_mode"
-                                    }})
+                                    })
 
-    interface_dict = OrderedDict()
-    interface_dict["Menu Button"] = {"data_pointer": None,
-                                     "Long Press": {
-                                         "values": ["None", "Reset", "Switch Preset"],
-                                         "attribute_name": "encoder_long_press_action"
-                                     },
-                                     }
-    interface_dict["Tap Button"] = {"data_pointer": None,
-                                    "Long Press": {
-                                        "values": ["None", "Reset", "Switch Preset"],
-                                        "attribute_name": "tap_long_press_action"
-                                    },
-                                    }
-    interface_dict["Touch"] = {"data_pointer": None,
-                               "Sensitivity": {
-                                   "values": ["Low", "Medium", "High"],
-                                   "attribute_name": "touch_sensitivity"
-                               },
-                               }
 
-    my_dict["Interface"] = interface_dict
+
+    my_dict["Touch sensitivity"] = {"data_pointer": None,
+                           "values": ["Low", "Medium", "High"],
+                           "attribute_name": "touch_sensitivity"
+                       }
+
 
     return my_dict

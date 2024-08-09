@@ -388,11 +388,9 @@ class LxEuclidConfig:
         self.menu_navigation_map["Outputs"]["Out 3"][data_pointer_key] = self.euclidean_rhythms[2]
         self.menu_navigation_map["Outputs"]["Out 4"][data_pointer_key] = self.euclidean_rhythms[3]
 
-        self.menu_navigation_map["Clock"][data_pointer_key] = self
-
-        self.menu_navigation_map["Interface"]["Menu Button"][data_pointer_key] = self
-        self.menu_navigation_map["Interface"]["Tap Button"][data_pointer_key] = self
-        self.menu_navigation_map["Interface"]["Touch"][data_pointer_key] = self.lx_hardware.capacitives_circles
+        self.menu_navigation_map["Clock source"][data_pointer_key] = self
+        
+        self.menu_navigation_map["Touch sensitivity"][data_pointer_key] = self.lx_hardware.capacitives_circles
 
         self.current_menu_len = len(self.menu_navigation_map)
         self.current_menu_selected = 0
@@ -883,7 +881,7 @@ class LxEuclidConfig:
                 success = self.menu_back_pressed()
                 if not success:
                     self.state_lock.acquire()
-                    self.state = LxEuclidConfig.STATE_LIVE
+                    self.state = LxEuclidConstant.STATE_LIVE
                     self.state_lock.release()
                     self.lx_hardware.clear_tap_led()
                     self.lx_hardware.clear_menu_led()
