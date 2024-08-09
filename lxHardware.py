@@ -7,6 +7,8 @@ import rp2
 from capacitivesCircles import CapacitivesCircles
 from cvManager import CvManager
 
+from lxEuclidConfig import LxEuclidConstant
+
 from eeprom_i2c import EEPROM, T24C64
 
 CLK_IN = const(18)
@@ -204,7 +206,7 @@ class LxHardware:
             self.clk_pin_status = self.clk_pin.value()
             if not self.clk_pin.value():
                 if self.lx_euclid_config is not None:
-                    if self.lx_euclid_config.clk_mode == self.lx_euclid_config.CLK_IN:
+                    if self.lx_euclid_config.clk_mode == LxEuclidConstant.CLK_IN:
                         self.lx_euclid_config.incr_steps()
             self.lxHardwareEventFifo.append(self.clk_rise_event)
         except Exception as e:

@@ -502,9 +502,9 @@ class LxEuclidConfig:
                 self.sm_rhythm_param_counter = data
                 self.menu_lock.release()
                 
-            elif event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH,LxEuclidConstant.EVENT_OUTER_CIRCLE_TOUCH]:
+            elif event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TAP,LxEuclidConstant.EVENT_OUTER_CIRCLE_TAP]:
                 
-                if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH:
+                if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                     rotate_action = self.inner_rotate_action
                     action_rhythm = self.inner_action_rhythm
                 else:
