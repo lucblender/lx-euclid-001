@@ -368,8 +368,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             if self.lx_euclid_config.need_circle_action_display:
                 txt = self.lx_euclid_config.action_display_info
                 txt_len = self.font_writer_freesans20.stringlen(txt)
-                if self.lx_euclid_config.highlight_color_euclid:
-                    color = self.rhythm_colors[self.lx_euclid_config.action_display_index]
+                color = self.rhythm_colors[self.lx_euclid_config.action_display_index]
                 self.font_writer_freesans20.text(
                     txt, 120-int(txt_len/2), 110, color)
         elif local_state == LxEuclidConstant.STATE_MENU_SELECT:

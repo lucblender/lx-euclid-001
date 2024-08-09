@@ -34,12 +34,9 @@ def get_menu_navigation_map():
                                         "attribute_name": "clk_mode"
                                     })
 
-
-
     my_dict["Touch sensitivity"] = {"data_pointer": None,
                            "values": ["Low", "Medium", "High"],
                            "attribute_name": "touch_sensitivity"
                        }
-
 
     return my_dict

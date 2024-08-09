@@ -87,6 +87,8 @@ def lxhardware_changed(handlerEventData):
                 tap_delay_ms = temp_tap_delay
                 if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
                     tap_incr_steps()
+                    if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
+                        LCD.set_need_display()
             last_tap_ms = temp_last_tap_ms
 
         LCD.set_need_display()
@@ -253,7 +255,7 @@ if __name__ == '__main__':
                     # hardware gpio + timer)
                     if ticks_ms() - last_timer_launch_ms >= (tap_delay_ms):
                         tap_incr_steps()
-                        if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
+                        if lx_euclid_config.state in [LxEuclidConstant.STATE_LIVE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
                             LCD.set_need_display()
 
         print("quit")
