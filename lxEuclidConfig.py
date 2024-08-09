@@ -287,10 +287,6 @@ class LxEuclidConstant:
     TAP_MODE = const(0)
     CLK_IN = const(1)
 
-    LONG_PRESS_ACTION_NONE = const(0)
-    LONG_PRESS_ACTION_RESET = const(1)
-    LONG_PRESS_ACTION_SWITCH_PRESET = const(2)
-
     CIRCLE_ACTION_NONE = const(0)
     CIRCLE_ACTION_ROTATE = const(1)
     CIRCLE_ACTION_PULSES = const(2)
@@ -314,20 +310,16 @@ class LxEuclidConstant:
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
-    EVENT_MENU_BTN_LONG = const(2)
-    EVENT_TAP_BTN = const(3)
-    EVENT_TAP_BTN_LONG = const(4)
-    EVENT_INNER_CIRCLE_INCR = const(5)
-    EVENT_INNER_CIRCLE_DECR = const(6)
-    EVENT_OUTER_CIRCLE_INCR = const(7)
-    EVENT_OUTER_CIRCLE_DECR = const(8)
-    EVENT_INNER_CIRCLE_TOUCH = const(9)
-    EVENT_OUTER_CIRCLE_TOUCH = const(10)
-    EVENT_INNER_CIRCLE_TAP = const(11)
-    EVENT_OUTER_CIRCLE_TAP = const(12)
-
-    EVENT_BTN_SWITCHES = const(13)
-    EVENT_BTN_SWITCHES_LONG = const(14)
+    EVENT_TAP_BTN = const(2)
+    EVENT_INNER_CIRCLE_INCR = const(3)
+    EVENT_INNER_CIRCLE_DECR = const(4)
+    EVENT_OUTER_CIRCLE_INCR = const(5)
+    EVENT_OUTER_CIRCLE_DECR = const(6)
+    EVENT_INNER_CIRCLE_TOUCH = const(7)
+    EVENT_OUTER_CIRCLE_TOUCH = const(8)
+    EVENT_INNER_CIRCLE_TAP = const(9)
+    EVENT_OUTER_CIRCLE_TAP = const(10)
+    EVENT_BTN_SWITCHES = const(11)
 
     MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
 
@@ -399,9 +391,6 @@ class LxEuclidConfig:
 
         self._save_preset_index = 0
         self._load_preset_index = 0
-
-        self.menu_btn_long_press_action = LxEuclidConstant.LONG_PRESS_ACTION_RESET
-        self.tap_long_press_action = LxEuclidConstant.LONG_PRESS_ACTION_NONE
 
         self.inner_rotate_action = LxEuclidConstant.CIRCLE_ACTION_NONE
         self.inner_action_rhythm = LxEuclidConstant.CIRCLE_RHYTHM_1
@@ -489,22 +478,6 @@ class LxEuclidConfig:
                 self.lx_hardware.set_tap_led()
                 self.state_lock.release()
                 self.sm_rhythm_param_counter = 0
-            elif event == LxEuclidConstant.EVENT_MENU_BTN_LONG:
-                if self.menu_btn_long_press_action == LxEuclidConstant.LONG_PRESS_ACTION_NONE:
-                    pass
-                elif self.menu_btn_long_press_action == LxEuclidConstant.LONG_PRESS_ACTION_RESET:
-                    self.reset_steps()
-                elif self.menu_btn_long_press_action == LxEuclidConstant.LONG_PRESS_ACTION_SWITCH_PRESET:
-                    # pass load index from 0 to 1 and 1 to 0
-                    self.load_preset_index = 1 - self.load_preset_index
-            elif event == LxEuclidConstant.EVENT_TAP_BTN_LONG:
-                if self.tap_long_press_action == LxEuclidConstant.LONG_PRESS_ACTION_NONE:
-                    pass
-                elif self.tap_long_press_action == LxEuclidConstant.LONG_PRESS_ACTION_RESET:
-                    self.reset_steps()
-                elif self.tap_long_press_action == LxEuclidConstant.LONG_PRESS_ACTION_SWITCH_PRESET:
-                    # pass load index from 0 to 1 and 1 to 0
-                    self.load_preset_index = 1 - self.load_preset_index
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES:
 
                 self.state_lock.acquire()
@@ -853,7 +826,7 @@ class LxEuclidConfig:
                 )
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
-            if event == LxEuclidConstant.EVENT_MENU_BTN or event == LxEuclidConstant.EVENT_MENU_BTN_LONG:
+            if event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.menu_lock.acquire()
                 parameter_set = self.menu_enter_pressed()
                 if parameter_set:
@@ -1047,9 +1020,6 @@ class LxEuclidConfig:
                 self.dict_data[rhythm_prefix +
                           "r_g_l"] = preset_euclidean_rhythm.randomize_gate_length
 
-        self.dict_data["m_l_p_a"] = self.menu_btn_long_press_action
-        self.dict_data["t_l_p_a"] = self.tap_long_press_action
-
         self.dict_data["i_r_a"] = self.inner_rotate_action
         self.dict_data["i_a_r"] = self.inner_action_rhythm
 
@@ -1151,10 +1121,6 @@ class LxEuclidConfig:
                         preset_euclidean_rhythm.prescaler_index = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))
                         preset_euclidean_rhythm.gate_length_ms = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))
                         preset_euclidean_rhythm.randomize_gate_length = bool(self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
-
-
-                self.tap_long_press_action = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))
-                self.menu_btn_long_press_action = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))
 
                 self.inner_rotate_action = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))
                 self.inner_action_rhythm = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))

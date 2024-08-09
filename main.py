@@ -29,7 +29,6 @@ def print_ram(code=""):
 
 MIN_TAP_DELAY_MS = 20
 MAX_TAP_DELAY_MS = 3000
-LONG_PRESS_MS = 500
 DEBOUNCE_MS = 20
 
 CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
@@ -77,24 +76,20 @@ def lxhardware_changed(handlerEventData):
     elif event == lx_hardware.BTN_TAP_RISE:
         tap_btn_press = ticks_ms()
     elif event == lx_hardware.BTN_TAP_FALL:
-        if ticks_ms() - tap_btn_press > LONG_PRESS_MS:
-            lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN_LONG)
+        global last_tap_ms, tap_delay_ms
+        if lx_euclid_config.state != LxEuclidConstant.STATE_LIVE:
+            lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN)
             LCD.set_need_display()
         else:
-            global last_tap_ms, tap_delay_ms
-            if lx_euclid_config.state != LxEuclidConstant.STATE_LIVE:
-                lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN)
-                LCD.set_need_display()
-            else:
-                temp_last_tap_ms = ticks_ms()
-                temp_tap_delay = temp_last_tap_ms - last_tap_ms
-                if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
-                    tap_delay_ms = temp_tap_delay
-                    if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                        tap_incr_steps()
-                last_tap_ms = temp_last_tap_ms
+            temp_last_tap_ms = ticks_ms()
+            temp_tap_delay = temp_last_tap_ms - last_tap_ms
+            if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
+                tap_delay_ms = temp_tap_delay
+                if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+                    tap_incr_steps()
+            last_tap_ms = temp_last_tap_ms
 
-            LCD.set_need_display()
+        LCD.set_need_display()
     elif event == lx_hardware.INNER_CIRCLE_INCR:
         lx_euclid_config.on_event(
             LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, handlerEventData.data)
@@ -131,27 +126,16 @@ def lxhardware_changed(handlerEventData):
         tmp_time = ticks_ms()
         if (tmp_time - sw_btns_press[handlerEventData.data]) > DEBOUNCE_MS:
             sw_btns_press[handlerEventData.data] = tmp_time
-    elif event == lx_hardware.BTN_SWITCHES_FALL:
-        if ticks_ms() - sw_btns_press[handlerEventData.data] > LONG_PRESS_MS:
-            lx_euclid_config.on_event(
-                LxEuclidConstant.EVENT_BTN_SWITCHES_LONG, handlerEventData.data)
-            LCD.set_need_display()
-        else:
-            lx_euclid_config.on_event(
-                LxEuclidConstant.EVENT_BTN_SWITCHES, handlerEventData.data)
-            LCD.set_need_display()
+    elif event == lx_hardware.BTN_SWITCHES_FALL:        
+        lx_euclid_config.on_event(
+            LxEuclidConstant.EVENT_BTN_SWITCHES, handlerEventData.data)
+        LCD.set_need_display()
     elif event == lx_hardware.BTN_MENU_RISE:
         tmp_time = ticks_ms()
         if (tmp_time - btn_menu_press) > DEBOUNCE_MS:
             btn_menu_press = tmp_time
-            btn_menu_ack = True
-    elif event == lx_hardware.BTN_MENU_FALL:
-        if btn_menu_ack == True:
-            btn_menu_ack = False
-            if ticks_ms() - btn_menu_press > LONG_PRESS_MS and btn_menu_ack:
-                lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN_LONG)
-            else:
-                lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
+    elif event == lx_hardware.BTN_MENU_FALL:        
+        lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
         LCD.set_need_display()
 
 def is_usb_connected():
