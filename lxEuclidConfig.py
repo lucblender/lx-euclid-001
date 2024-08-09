@@ -87,6 +87,9 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.current_step = 0
         self.prescaler = PRESCALER_LIST[prescaler_index]
         self.prescaler_rhythm_counter = 0
+        
+        self.is_mute = False
+        self.is_fill = False
 
         self.rhythm = []
         self.set_rhythm()
@@ -99,6 +102,22 @@ class EuclideanRhythm(EuclideanRhythmParameters):
     def prescaler_index(self, prescaler_index):
         self._prescaler_index = prescaler_index
         self.prescaler = PRESCALER_LIST[self._prescaler_index]
+        
+    def mute(self):
+        self.is_mute = True
+        self.set_rhythm()
+        
+    def unmute(self):
+        self.is_mute = False
+        self.set_rhythm()
+        
+    def fill(self):
+        self.is_fill = True
+        self.set_rhythm()
+        
+    def unfill(self):
+        self.is_fill = False
+        self.set_rhythm()
 
     def set_offset(self, offset):
         self.offset = offset % self.beats
@@ -225,7 +244,11 @@ class EuclideanRhythm(EuclideanRhythmParameters):
     def __set_rhythm_bjorklund(self):
         if self.pulses > self.beats:
             raise ValueError
-        if self.pulses == 0:
+        if self.is_mute == True:
+            self.rhythm = [0]*self.beats
+        elif self.is_fill == True:
+            self.rhythm = [1]*self.beats
+        elif self.pulses == 0:
             self.rhythm = [0]*self.beats
         else:
             pattern = []
