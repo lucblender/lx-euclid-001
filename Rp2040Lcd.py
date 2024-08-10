@@ -415,7 +415,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             page_txt = f"page {page+1}"
             self.font_writer_font6.text(page_txt, 102, 130, page_color)
             
-            if self.lx_euclid_config.param_pads_inner_outer:
+            if self.lx_euclid_config.param_pads_inner_outer == 0:
                 inner_outer_txt = "inner"
             else:
                 inner_outer_txt = "outer"
@@ -544,7 +544,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             # TODO Disabled during parameters self.display_rhythm_circles()
-            self.display_enter_return_txt()
 
             self.lx_euclid_config.menu_lock.acquire()
             # get all data from lx_euclid_config in local variables
@@ -654,7 +653,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     str(o), 120-int(o_len/2), 90, highlight_color)
             self.display_rhythm_circles()
-            self.display_enter_return_txt()
 
         self.show()
 
@@ -693,8 +691,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     highlight_color = self.grey
 
             self.circle(120, 120, radius, beat_color, False)
-
-            len_euclidiean_rhythm = len(euclidieanRhythm.rhythm)
+                  
+            local_current_step = euclidieanRhythm.current_step            
+            local_offset = euclidieanRhythm.offset
+            local_rhythm = euclidieanRhythm.rhythm.copy()      
+            
+            len_euclidiean_rhythm = len(local_rhythm)            
             degree_step = 360/len_euclidiean_rhythm
 
             coord = None
@@ -703,51 +705,39 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 coords = local_beat_coord[rhythm_index][1]
             else:
                 for index in range(0, len_euclidiean_rhythm):
-                    try:
-                        coord = polar_to_cartesian(
-                            radius, index*degree_step-90)
-                        coords.append(coord)
-                    except:  # add this try except in the case we do a modification of rhythm while trying to display it
-                        # print("miss in for index in range(0, len_euclidiean_rhythm):")
-                        pass
+                    coord = polar_to_cartesian(radius, index*degree_step-90)
+                    coords.append(coord)
+                 
                 local_beat_coord[rhythm_index][0] = len_euclidiean_rhythm
                 local_beat_coord[rhythm_index][1] = coords.copy()
 
             a = ticks_ms()
+            
             for index in range(0, len_euclidiean_rhythm):
-                try:
-                    coord = coords[index]
+                coord = coords[index]
 
-                    final_beat_color = beat_color
+                final_beat_color = beat_color
 
-                    if index == euclidieanRhythm.current_step:
-                        self.circle(coord[0]+120, coord[1] +
-                                    120, 10, highlight_color, True)
-                        final_beat_color = beat_color_hightlight
+                if index == local_current_step:
+                    self.circle(coord[0]+120, coord[1] +
+                                120, 10, highlight_color, True)
+                    final_beat_color = beat_color_hightlight
 
-                    filled = euclidieanRhythm.rhythm[(
-                        index-euclidieanRhythm.offset) % len_euclidiean_rhythm]
+                filled = local_rhythm[(
+                    index-local_offset) % len_euclidiean_rhythm]
 
-                    self.circle(coord[0]+120, coord[1]+120,
-                                8, final_beat_color, filled)
-                    if filled == 0:
-                        self.circle(coord[0]+120, coord[1] +
-                                    120, 7, self.black, True)
-                except Exception:  # add this try except in the case we do a modification of rhythm while trying to display it
-                    # print("miss in 2nd for index in range(0, len_euclidiean_rhythm):")
-                    pass
+                self.circle(coord[0]+120, coord[1]+120,
+                            8, final_beat_color, filled)
+                if filled == 0:
+                    self.circle(coord[0]+120, coord[1] +
+                                120, 7, self.black, True)
+
 
             radius = radius - offset_radius
             rhythm_index = rhythm_index + 1
 
             debug_print("display rhythm", ticks_ms()-a)
         debug_print("display_rhythm_circles", ticks_ms()-pre_tick)
-
-    def display_enter_return_txt(self):
-        return
-
-        # self.font_writer_font6.text("tap return",40,200,self.rhythm_colors[2])
-        # self.font_writer_font6.text("enc enter",135,200,self.rhythm_colors[2])
 
     # # Draw the approximate pie slice
     # # Define a function to draw an approximate pie slice

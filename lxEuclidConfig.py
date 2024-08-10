@@ -87,6 +87,13 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.current_step = 0
         self.prescaler = PRESCALER_LIST[prescaler_index]
         self.prescaler_rhythm_counter = 0
+        
+        # this var is used to know if we need to keep the pulses stable to 0 and 1 even if
+        # it's supposed to change by cv or pads
+        self.pulses_set_0_1 = False
+        
+        if self.pulses <= 1:
+            self.pulses_set_0_1 = True  
 
         self.is_mute = False
         self.is_fill = False
@@ -141,8 +148,8 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
     def incr_beats(self):
         if self.beats != MAX_BEATS:
-            self.beats = self.beats + 1
-            if self.pulses > 1: # only re-compute pulses number if it's different from 0 and 1
+            self.beats = self.beats + 1            
+            if not self.pulses_set_0_1:
                 self.set_pulses_per_ratio()
             self.set_rhythm()
 
@@ -154,7 +161,9 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.pulses = self.beats
         if self.offset > self.beats:
             self.offset = self.beats
-        self.set_pulses_per_ratio()
+            
+        if not self.pulses_set_0_1:
+            self.set_pulses_per_ratio()
         self.set_rhythm()
 
     def set_beats_in_percent(self, percent):
@@ -162,7 +171,9 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.beats = max(1, min(temp_beats, MAX_BEATS))
         if self.offset > self.beats:
             self.offset = self.beats
-        self.set_pulses_per_ratio()
+            
+        if not self.pulses_set_0_1:
+            self.set_pulses_per_ratio()
         self.set_rhythm()
 
     def set_pulses_per_ratio(self):
@@ -178,6 +189,10 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.pulses = self.pulses + 1
         if self.pulses > self.beats:
             self.pulses = self.beats
+        if self.pulses <= 1:
+            self.pulses_set_0_1 = True
+        else:            
+            self.pulses_set_0_1 = False
         self.__pulses_ratio = self.pulses / self.beats
         self.set_rhythm()
 
@@ -185,6 +200,10 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.pulses = self.pulses - 1
         if self.pulses < 0:
             self.pulses = 0
+        if self.pulses <= 1:
+            self.pulses_set_0_1 = True
+        else:            
+            self.pulses_set_0_1 = False
         self.__pulses_ratio = self.pulses / self.beats
         self.set_rhythm()
 
@@ -533,7 +552,7 @@ class LxEuclidConfig:
                         self.action_display_index = 4
             elif event in [LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR, LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR]:
                 
-                if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH:
+                if event in [LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR]:
                     rotate_action = self.inner_rotate_action
                     action_rhythm = self.inner_action_rhythm
                     incr_event = LxEuclidConstant.EVENT_INNER_CIRCLE_INCR
@@ -542,8 +561,8 @@ class LxEuclidConfig:
                     rotate_action = self.outer_rotate_action
                     action_rhythm = self.outer_action_rhythm 
                     incr_event = LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR
-                    decr_event = LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR  
-                
+                    decr_event = LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR
+                   
                 if rotate_action in [LxEuclidConstant.CIRCLE_ACTION_BEATS,LxEuclidConstant.CIRCLE_ACTION_PULSES,LxEuclidConstant.CIRCLE_ACTION_ROTATE,LxEuclidConstant.CIRCLE_ACTION_PROB] and action_rhythm  != 0:
                     for euclidean_rhythm_index in range(0,4):
                         if action_rhythm & (1<<euclidean_rhythm_index) != 0:
