@@ -1,76 +1,104 @@
 
-
-
 # lx-euclid-001
 
-# Installation of code and updates
+The lx-euclid is based on the [rp2040](https://www.raspberrypi.com/products/rp2040/) and programmed in micropython.
 
-## Install an update from an original module
+Learn more about micropython on the rp2040 [here](https://www.raspberrypi.com/documentation/microcontrollers/micropython.html).
+
+- [lx-euclid-001](#lx-euclid-001)
+- [Installation of last firmware](#installation-of-last-firmware)
+- [Build an UF2 image from source](#build-an-uf2-image-from-source)
+  - [Requirement](#requirement)
+    - [Main repository : lx-euclid-001](#main-repository--lx-euclid-001)
+    - [Micropython](#micropython)
+    - [dir2uf2](#dir2uf2)
+  - [Build the image with provided shell script](#build-the-image-with-provided-shell-script)
+
+# Installation of last firmware
 
 Download the last UF2 image in the [releases](https://github.com/lucblender/lx-euclid-001/releases/)
 
-Remove the module from your eurorack system, carefully plug the USB-C cable on the screen and plug it to your computer while carefully pressing the boot button on the screen. *Put a gentle pressure on the screen when pressing the boot button, the screen is fragile!*
+- Power off your eurorack system
+- Remove the module from your eurorack system
+- Plug the USB-C cable in the module and plug it to your computer **while** pressing the USB boot button
+  - When connected to your computer, a drive should open (like a USB stick)
+- Drag and drop the downloaded UF2 file
+  - After this action, the module will reboot with the new software
+- Remove USB-C cable, rewire your module into your eurorack system and power up your rack
 
-When connected to your computer, a drive should open (like an usb-stick) and you can drag and drop the downloaded UF2 file. After this action, the module will reboot with the new software
+# Build an UF2 image from source
 
-## Install micropython and the python source
-**This chapter is for advanced programmer only that want to play with the current indev code or want to create custom micropython firmware.**
-Download the last micropython image for the rp2040 on the [official raspberry pi website](https://www.raspberrypi.com/documentation/microcontrollers/micropython.html).
+**This chapter is for advanced programmer only that want to play with the current *develop* code or want to create custom micropython firmware.**
 
-Remove the module from your eurorack system, carefully plug the USB-C cable on the screen and plug it to your computer while carefully pressing the boot button on the screen. *Put a gentle pressure on the screen when pressing the boot button, the screen is fragile!*
+The following instruction are for Linux users. For Windows user, Ubuntu WSL is highly recommended.
 
-When connected to your computer, a drive should open (like an usb-stick) and you can drag and drop the official micropython UF2 image file. After this action, the module will reboot with the new software.
+## Requirement
 
-When rebooted, your module has micropython installed. You can now drop all the files on the rp2040 with your favourite IDE  (Thonny, Visual Studio Code, ...).
+To build and UF2 image, you will need:
 
-You can either install all the \*.py files from the root directory or all the bytecode files from the [binaries](binaries/) directory.
+- [This repository](#main-repository--lx-euclid-001)
+  - micropython sources
+  - build scripts
+- [Micropython sources](#micropython)
+  - Will allow you to create a custom micropython UF2
+- [dir2uf2](#dir2uf2)
+  - Python based tool to pack a directory of files into a LFSV2 filesystem and save as .uf2
 
-**Warning: having all the files in \*.py won't work because of the RAM size, it's necessary. Put only the files you  will want to edit in \*.py extension and the files you won't edit in \*.mpy extension**
+### Main repository : lx-euclid-001
 
-You will also need all the \*.bin files (pictures files) installed at the root of your rp2040:
-- [helixbyte_r5g6b5.bin](binaries/helixbyte_r5g6b5.bin)
-- [parameter_selected.bin](binaries/parameter_selected.bin)
-- [parameter_unselected.bin](binaries/parameter_unselected.bin)
+```git clone https://github.com/lucblender/lx-euclid-001.git```
 
-## Build micropython custom uf2
+### Micropython
 
-Taken from [Raspberry Pi Pico Python SDK pdf book](https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf).
+More detailed information can be found in the [Raspberry Pi Pico Python SDK PDF book](https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf).
 
-Install micropython and submodules p5:
-```
+Install micropython and submodules:
+
+``` shell
 git clone https://github.com/micropython/micropython.git --branch master
 cd micropython
 make -C ports/rp2 submodules
 
 ```
 
-From there, you'll need to execute shells scripts from ```shell scripts```directory.
-Open copy-python-files.sh , change source_directory on line 4 and destination_directory line 7.
-And open build-uf2.sh and change output uf2 destination file on line 5.
+### dir2uf2
 
-When done you can execute the two scripts. First will copy python files into micropython git folders and second will build an uf2 image of micropython containing our files and copy it to our destination:
+dir2uf2 require python to work.
+
+``` shell
+sudo apt-get install python3
+sudo apt-get install python3-pip
 ```
-./copy-python-files.sh
+
+When python3 is installed, you can clone the git and install the required python packages:y
+
+``` shell
+git clone git@github.com:Gadgetoid/dir2uf2.git
+cd dir2uf2
+pip3 install -r requirements-micropython-1.23.0.txt
+```
+
+## Build the image with provided shell script
+
+The shell script [build-uf2.sh](/shell%20scripts/build-uf2.sh) will create a complete UF2 image ready for upload to the lx-euclid module. This script will:
+
+- Copy all the python source of this repository into the micropython repository rp2 port
+- Build a first UF2 micropython image including lx-euclid code
+- Copy needed binaries (pictures in bin format) into the dir2uf2 directory
+- Create the final UF2 image derived from the micropython image with binaries in the filesystem
+- Copy this UF2 image in the desired path
+
+Many from this script require path to specific directories. All those paths needs to be edited and added to the [lx-euclid.env](/shell%20scripts/lx-euclid.env) file:
+
+- line 3, LX_EUCLID_REPO_DIRECTORY : this repository path
+- line 5, MICROPYTHON_DIRECTORY : micropython repository path
+- line 7, DIR_2_UF2_FOLDER : dir2uf2 repository path
+- line 9, UF2_OUTPUT_FILE : output file path
+
+When the [lx-euclid.env](/shell%20scripts/lx-euclid.env) file is correctly edited, you can launch the compilation with:
+
+```shell
 ./build-uf2.sh
 ```
 
-
-## Completely  reset a module
-
-If you made the module by yourself or have any software problem, you may need to reset the whole module. Download the [flash_nuke.uf2](https://cdn-learn.adafruit.com/assets/assets/000/099/419/original/flash_nuke.uf2?1613329170) image. This image will completely delete all data from the flash of the processor.
-
-Remove the module from your eurorack system, carefully plug the USB-C cable on the screen and plug it to your computer while carefully pressing the boot button on the screen. *Put a gentle pressure on the screen when pressing the boot button, the screen is fragile!*
-
-When connected to your computer, a drive should open (like an usb-stick) and you can drag and drop the *flash_nuke.uf2* file.
-
-Your module is now ready for a new installation.
-
-You can either do the micropython installation as described in the [Install micropython and the python source](#install-micropython-and-the-python-source) 
-or the [Install an update from a original module]( #install-an-update-from-a-original-module).
-
-For the latter you will need to do an extra step since some files are prepackaged in the flash when the device is produced, and we started the procedure by "nuking" the whole flash, so we removed those precious files.
-
-You will need to connect your module with an USB-C cable to your computer and add the following file with the software of your choice (Thonny, Visual Studio Code, ...):
-- [helixbyte_r5g6b5.bin](binaries/helixbyte_r5g6b5.bin)
-- [parameter_selected.bin](binaries/parameter_selected.bin)
-- [parameter_unselected.bin](binaries/parameter_unselected.bin)
+With your newly created UF2 image, you can upload it to the lx-euclid module following the instruction in the [Installation of last firmware](#installation-of-last-firmware) chapter.
