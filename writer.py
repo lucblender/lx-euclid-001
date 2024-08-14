@@ -1,5 +1,6 @@
 import framebuf
 
+
 class Writer():
     text_row = 0        # attributes common to all Writer instances
     text_col = 0
@@ -26,17 +27,17 @@ class Writer():
         else:
             raise ValueError('Font must be horizontally mapped.')
         if verbose:
-            print('Orientation: {} Reversal: {}'.format('horiz' \
-                if font.hmap() else 'vert', font.reverse()))
+            print('Orientation: {} Reversal: {}'.format('horiz'
+                                                        if font.hmap() else 'vert', font.reverse()))
         self.screenwidth = device.width  # In pixels
         self.screenheight = device.height
-        
+
         _, char_height, _ = self.font.get_ch("1")
         self.char_height = char_height
 
-    def text(self, txt, x, y,color=0x0000):
-        self.set_textpos(x,y)
-        self.printstring(txt,color)
+    def text(self, txt, x, y, color=0x0000):
+        self.set_textpos(x, y)
+        self.printstring(txt, color)
 
     def _newline(self):
         height = self.font.height()
@@ -48,9 +49,9 @@ class Writer():
                 self.device.scroll(0, margin)
                 Writer.text_row += margin
 
-    def printstring(self, string,color=0x0000):
+    def printstring(self, string, color=0x0000):
         for char in string:
-            self._printchar(char,color)
+            self._printchar(char, color)
 
     # Method using blitting. Efficient rendering for monochrome displays.
     # Tested on SSD1306. Invert is for black-on-white rendering.
@@ -78,12 +79,12 @@ class Writer():
         palette = framebuf.FrameBuffer(buffer, 1, 1, framebuf.RGB565)
 
         # we use color 0 as transparent color in the blit... so I change color 0 to 1. We don't have full black but eh, it works
-#         if color == 0:
-#             color = 1
+        if color == 0:
+            color = 1
 
         palette.fill(color)
 
-        self.device.blit(fbc, Writer.text_col, Writer.text_row, 0,palette)
+        self.device.blit(fbc, Writer.text_col, Writer.text_row, 0, palette)
         Writer.text_col += char_width
 
     def stringlen(self, string):

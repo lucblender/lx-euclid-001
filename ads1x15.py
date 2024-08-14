@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
-import utime as time
 
 _REGISTER_MASK = const(0x03)
 _REGISTER_CONVERT = const(0x00)
@@ -132,19 +131,23 @@ class ADS1115:
         self.address = address
         self.gain = gain
         self.temp2 = bytearray(2)
+        self.in_read_non_blocking = False
 
     def _write_register(self, register, value):
-        self.temp2[0] = value >> 8
-        self.temp2[1] = value & 0xff
-        self.i2c.writeto_mem(self.address, register, self.temp2)
+        try:
+            self.temp2[0] = value >> 8
+            self.temp2[1] = value & 0xff
+            self.i2c.writeto_mem(self.address, register, self.temp2)
+            return True
+        except:
+            return False
 
     def _read_register(self, register):
-        self.i2c.readfrom_mem_into(self.address, register, self.temp2)
-        return (self.temp2[0] << 8) | self.temp2[1]
-
-    def raw_to_v(self, raw):
-        v_p_b = _GAINS_V[self.gain] / 32768
-        return raw * v_p_b
+        try:
+            self.i2c.readfrom_mem_into(self.address, register, self.temp2)
+            return (self.temp2[0] << 8) | self.temp2[1]
+        except:
+            return None
 
     def set_conv(self, rate=4, channel1=0, channel2=None):
         """Set mode for read_rev"""
@@ -153,46 +156,24 @@ class ADS1115:
                      _MODE_SINGLE | _OS_SINGLE | _GAINS[self.gain] |
                      _CHANNELS[(channel1, channel2)])
 
-    def read(self, rate=4, channel1=0, channel2=None):
+    def read_non_blocking(self, rate=4, channel1=0, channel2=None):
         """Read voltage between a channel and GND.
            Time depends on conversion rate."""
-        self._write_register(_REGISTER_CONFIG, (_CQUE_NONE | _CLAT_NONLAT |
-                             _CPOL_ACTVLOW | _CMODE_TRAD | _RATES[rate] |
-                             _MODE_SINGLE | _OS_SINGLE | _GAINS[self.gain] |
-                             _CHANNELS[(channel1, channel2)]))
-        while not self._read_register(_REGISTER_CONFIG) & _OS_NOTBUSY:
-            time.sleep_ms(1)
-        res = self._read_register(_REGISTER_CONVERT)
-        return res if res < 32768 else res - 65536
-
-    def read_rev(self):
-        """Read voltage between a channel and GND. and then start
-           the next conversion."""
-        res = self._read_register(_REGISTER_CONVERT)
-        self._write_register(_REGISTER_CONFIG, self.mode)
-        return res if res < 32768 else res - 65536
-
-    def alert_start(self, rate=4, channel1=0, channel2=None,
-                    threshold_high=0x4000, threshold_low=0, latched=False) :
-        """Start continuous measurement, set ALERT pin on threshold."""
-        self._write_register(_REGISTER_LOWTHRESH, threshold_low)
-        self._write_register(_REGISTER_HITHRESH, threshold_high)
-        self._write_register(_REGISTER_CONFIG, _CQUE_1CONV |
-                             _CLAT_LATCH if latched else _CLAT_NONLAT |
-                             _CPOL_ACTVLOW | _CMODE_TRAD | _RATES[rate] |
-                             _MODE_CONTIN | _GAINS[self.gain] |
-                             _CHANNELS[(channel1, channel2)])
-
-    def conversion_start(self, rate=4, channel1=0, channel2=None):
-        """Start continuous measurement, trigger on ALERT/RDY pin."""
-        self._write_register(_REGISTER_LOWTHRESH, 0)
-        self._write_register(_REGISTER_HITHRESH, 0x8000)
-        self._write_register(_REGISTER_CONFIG, _CQUE_1CONV | _CLAT_NONLAT |
-                             _CPOL_ACTVLOW | _CMODE_TRAD | _RATES[rate] |
-                             _MODE_CONTIN | _GAINS[self.gain] |
-                             _CHANNELS[(channel1, channel2)])
-
-    def alert_read(self):
-        """Get the last reading from the continuous measurement."""
-        res = self._read_register(_REGISTER_CONVERT)
-        return res if res < 32768 else res - 65536
+        if not self.in_read_non_blocking:
+            write_status = self._write_register(_REGISTER_CONFIG, (_CQUE_NONE | _CLAT_NONLAT |
+                                                                   _CPOL_ACTVLOW | _CMODE_TRAD | _RATES[rate] |
+                                                                   _MODE_SINGLE | _OS_SINGLE | _GAINS[self.gain] |
+                                                                   _CHANNELS[(channel1, channel2)]))
+            if write_status:
+                self.in_read_non_blocking = True
+        else:
+            config_register = self._read_register(_REGISTER_CONFIG)
+            if config_register is not None and config_register & _OS_NOTBUSY:
+                res = self._read_register(_REGISTER_CONVERT)
+                if res is not None:
+                    self.in_read_non_blocking = False
+                    return res if res < 32768 else res - 65536
+                else:
+                    return None
+            else:
+                return None
