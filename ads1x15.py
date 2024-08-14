@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
-import utime as time
 
 _REGISTER_MASK = const(0x03)
 _REGISTER_CONVERT = const(0x00)
@@ -160,19 +159,19 @@ class ADS1115:
     def read_non_blocking(self, rate=4, channel1=0, channel2=None):
         """Read voltage between a channel and GND.
            Time depends on conversion rate."""
-        if self.in_read_non_blocking == False:
+        if not self.in_read_non_blocking:
             write_status = self._write_register(_REGISTER_CONFIG, (_CQUE_NONE | _CLAT_NONLAT |
-                                 _CPOL_ACTVLOW | _CMODE_TRAD | _RATES[rate] |
-                                 _MODE_SINGLE | _OS_SINGLE | _GAINS[self.gain] |
-                                 _CHANNELS[(channel1, channel2)]))
-            if write_status == True:
+                                                                   _CPOL_ACTVLOW | _CMODE_TRAD | _RATES[rate] |
+                                                                   _MODE_SINGLE | _OS_SINGLE | _GAINS[self.gain] |
+                                                                   _CHANNELS[(channel1, channel2)]))
+            if write_status:
                 self.in_read_non_blocking = True
         else:
-            config_register = self._read_register(_REGISTER_CONFIG) 
-            if config_register != None and config_register & _OS_NOTBUSY:
+            config_register = self._read_register(_REGISTER_CONFIG)
+            if config_register is not None and config_register & _OS_NOTBUSY:
                 res = self._read_register(_REGISTER_CONVERT)
-                if res != None:
-                    self.in_read_non_blocking  = False
+                if res is not None:
+                    self.in_read_non_blocking = False
                     return res if res < 32768 else res - 65536
                 else:
                     return None

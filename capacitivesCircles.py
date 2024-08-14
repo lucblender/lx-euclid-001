@@ -1,5 +1,5 @@
-from machine import Pin, I2C
-from utime import sleep, ticks_ms
+from utime import ticks_ms
+from _thread import allocate_lock
 
 from mpr121 import MPR121
 
@@ -40,11 +40,26 @@ class CapacitivesCircles():
         self.last_inner_circle_angle_timestamp_ms = ticks_ms()
         self.last_outer_circle_angle_timestamp_ms = ticks_ms()
 
-        self.touch_sensitivity = 0
+        self.touch_sensitivity_lock = allocate_lock()
+        self._touch_sensitivity = 0
 
         self.calibration_array = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         if self.is_mpr_detected:
             self.calibration_sensor()
+
+    @property
+    def touch_sensitivity(self):
+        to_return = 0
+        self.touch_sensitivity_lock.acquire()
+        to_return = self._touch_sensitivity
+        self.touch_sensitivity_lock.release()
+        return to_return
+
+    @touch_sensitivity.setter
+    def touch_sensitivity(self, touch_sensitivity):
+        self.touch_sensitivity_lock.acquire()
+        self._touch_sensitivity = touch_sensitivity
+        self.touch_sensitivity_lock.release()
 
     # During calibration, do NOT touch the Capacitives Circles
     def calibration_sensor(self):
@@ -63,6 +78,7 @@ class CapacitivesCircles():
 
     def get_touch_circles_updates(self):
         if self.is_mpr_detected:
+            local_touch_sensitivity = self.touch_sensitivity
             datas = []
             inner_circle_len = 0
             outer_circle_len = 0
@@ -136,10 +152,10 @@ class CapacitivesCircles():
                         delta = self.last_inner_circle_angle-angle
                         # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
                         # and vice versa
-                        if (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[self.touch_sensitivity] and delta < 340) or delta < -340:
+                        if (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] and delta < 340) or delta < -340:
                             incr_decr_event = CapacitivesCircles.INNER_CIRCLE_INCR_EVENT
                             self.last_inner_circle_angle = angle
-                        elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[self.touch_sensitivity] or delta > 340:
+                        elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] or delta > 340:
                             incr_decr_event = CapacitivesCircles.INNER_CIRCLE_DECR_EVENT
                             self.last_inner_circle_angle = angle
                     else:
@@ -155,10 +171,10 @@ class CapacitivesCircles():
                         delta = self.last_outer_circle_angle-angle
                         # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
                         # and vice versa
-                        if (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[self.touch_sensitivity] and delta < 340) or delta < -340:
+                        if (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] and delta < 340) or delta < -340:
                             incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT
                             self.last_outer_circle_angle = angle
-                        elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[self.touch_sensitivity] or delta > 340:
+                        elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] or delta > 340:
                             incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT
                             self.last_outer_circle_angle = angle
                     else:
@@ -172,11 +188,3 @@ class CapacitivesCircles():
             return inner_angle_updated, outer_angle_updated, incr_decr_event, angle
         else:
             return False, False, CapacitivesCircles.NO_INCR_DECR_EVENT, 0
-
-
-if __name__ == '__main__':
-    capacitivesCircles = CapacitivesCircles(I2C(0, sda=Pin(0), scl=Pin(1)))
-
-    while True:
-        sleep(0.05)
-        test_data = capacitivesCircles.get_touch_circles_updates()
