@@ -146,16 +146,14 @@ class LxHardware:
         sw_led_1 = Pin(SW_LED1, Pin.OUT)
         sw_led_2 = Pin(SW_LED2, Pin.OUT)
         sw_led_3 = Pin(SW_LED3, Pin.OUT)
-        
+
         self.sw_leds = [sw_led_0, sw_led_1, sw_led_2, sw_led_3]
         for sw_led in self.sw_leds:
             sw_led.value(0)
-            
-            
-        
+
         self.led_menu = Pin(LED_MENU, Pin.OUT)
         self.led_tap = Pin(LED_TAP, Pin.OUT)
-        
+
         self.led_menu.value(0)
         self.led_tap.value(0)
 
@@ -190,10 +188,6 @@ class LxHardware:
 
         self.cv_manager = CvManager(self.i2c)
 
-        self.handlers = []
-        # need to do this trickery of sh*t to not have a memory allocation error as show
-        # here https://forum.micropython.org/viewtopic.php?t=4027
-        self.callback = self.call_handlers
         self.lx_euclid_config = None
 
     def set_lx_euclid_config(self, lx_euclid_config):
@@ -217,20 +211,15 @@ class LxHardware:
             return
         self.rst_pin_status = self.rst_pin.value()
         if not self.rst_pin.value():
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.RST_RISE))
             self.lxHardwareEventFifo.append(self.rst_rise_event)
 
     def btn_tap_pin_change(self, pin):
-        # print("btn_tap_pin_change",mem32[0xd0000000])
         if self.btn_tap_pin_status == self.btn_tap_pin.value():
             return
         self.btn_tap_pin_status = self.btn_tap_pin.value()
         if self.btn_tap_pin.value():
-            # can't f*cking use schedule because of this sh*t https://github.com/micropython/micropython/issues/10690
-            # micropython.schedule(self.callback, LxHardware.fall_event)
             self.lxHardwareEventFifo.append(self.btn_fall_event)
         else:
-            # micropython.schedule(self.callback, LxHardware.rise_event)
             self.lxHardwareEventFifo.append(self.btn_rise_event)
 
     def btn_channel_change(self, pin):
@@ -280,21 +269,16 @@ class LxHardware:
     def set_gate(self, gate_index, time_tenth_ms):
         time = time_tenth_ms * 10
         self.sms[gate_index].put(time)
-        # self.gates[gate_index].value(1)
 
-    def clear_gate(self, gate_index):
-        pass
-        # self.gates[gate_index].value(0)
-        
     def set_tap_led(self):
         self.led_tap.value(1)
-        
+
     def clear_tap_led(self):
         self.led_tap.value(0)
-        
+
     def set_menu_led(self):
         self.led_menu.value(1)
-        
+
     def clear_menu_led(self):
         self.led_menu.value(0)
 
@@ -303,35 +287,27 @@ class LxHardware:
         circles_data = self.capacitives_circles.get_touch_circles_updates()
         self.i2c_lock.release()
         if circles_data[2] == CapacitivesCircles.INNER_CIRCLE_INCR_EVENT:
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_INCR, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_INCR, circles_data))
         elif circles_data[2] == CapacitivesCircles.INNER_CIRCLE_DECR_EVENT:
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_DECR, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_DECR, circles_data))
         elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT:
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_INCR, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_INCR, circles_data))
         elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT:
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_DECR, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_DECR, circles_data))
         elif circles_data[0]:
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_TOUCH, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_TOUCH, circles_data))
         elif circles_data[1]:
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
         elif not circles_data[0] and self.inner_previous_state:
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.INNER_CIRCLE_TOUCH, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_TAP, circles_data))
         elif not circles_data[1] and self.outer_previous_sate:
-            # micropython.schedule(self.call_handlers, HandlerEventData(LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_TAP, circles_data))
 
@@ -343,13 +319,6 @@ class LxHardware:
         to_return = self.cv_manager.update_cvs_read_non_blocking()
         self.i2c_lock.release()
         return to_return
-
-    def add_handler(self, handler):
-        self.handlers.append(handler)
-
-    def call_handlers(self, handlerEventData):
-        for handler in self.handlers:
-            handler(handlerEventData)
 
     def get_eeprom_data_int(self, address):
         self.i2c_lock.acquire()

@@ -1,4 +1,4 @@
-from utime import sleep, ticks_ms
+from utime import ticks_ms
 from _thread import allocate_lock
 
 from mpr121 import MPR121
@@ -46,7 +46,7 @@ class CapacitivesCircles():
         self.calibration_array = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         if self.is_mpr_detected:
             self.calibration_sensor()
-            
+
     @property
     def touch_sensitivity(self):
         to_return = 0
@@ -56,7 +56,7 @@ class CapacitivesCircles():
         return to_return
 
     @touch_sensitivity.setter
-    def touch_sensitivity(self, touch_sensitivity): 
+    def touch_sensitivity(self, touch_sensitivity):
         self.touch_sensitivity_lock.acquire()
         self._touch_sensitivity = touch_sensitivity
         self.touch_sensitivity_lock.release()

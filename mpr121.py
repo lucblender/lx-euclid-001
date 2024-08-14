@@ -181,29 +181,3 @@ class MPR121:
     def all_filtered_data(self):
         """Returns all electrodes filtered data"""
         return ustruct.unpack("<HHHHHHHHHHHH", self.i2c.readfrom_mem(0x5a, 0x04, 24))
-
-    def baseline_data(self, electrode):
-        """Returns baseline data value for the specified electrode (0-11)"""
-        if not 0 <= electrode <= 11:
-            raise ValueError('Electrode must be in range 0-11.')
-        return self._register8(MPR121_BASELINE_VALUE + electrode) << 2
-
-    def touched(self):
-        """Returns a 12-bit value representing which electrodes are touched. LSB = electrode 0"""
-        return self._register16(MPR121_TOUCH_STATUS)
-
-    def is_touched(self, electrode):
-        """Returns True when the specified electrode is being touched"""
-        if not 0 <= electrode <= 11:
-            raise ValueError('Electrode must be in range 0-11.')
-        t = self.touched()
-        return (t & (1 << electrode)) != 0
-
-    def get_all_states(self):
-        value = self.touched()
-        value = "{:012b}".format(value)
-        result = []
-        for i in range(12):
-            if value[i] == '1':
-                result.append(11-i)
-        return result

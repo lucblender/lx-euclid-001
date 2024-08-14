@@ -15,9 +15,11 @@ CV_1V = const(12192)
 CV_2V = const(9644)
 CV_MINUS_5V = const(27000)
 
-CV_BOUNDS = [[CV_MINUS_5V,CV_5V],[CV_0V,CV_5V],[CV_0V,CV_1V],[CV_0V,CV_2V]]
+CV_BOUNDS = [[CV_MINUS_5V, CV_5V], [
+    CV_0V, CV_5V], [CV_0V, CV_1V], [CV_0V, CV_2V]]
 
-CV_RHYTHM_MASKS = [const(1),const(2),const(4),const(8)]
+CV_RHYTHM_MASKS = [const(1), const(2), const(4), const(8)]
+
 
 class CvAction:
     CV_ACTION_NONE = const(0)
@@ -29,24 +31,24 @@ class CvAction:
     CV_ACTION_FILL = const(6)
     CV_ACTION_MUTE = const(7)
 
+
 class CvData:
 
     def __init__(self, cv_action, cv_action_rhythm, cvs_bound_index):
         self.cv_action = cv_action
         self.cv_action_rhythm = cv_action_rhythm
         self.cvs_bound_index = cvs_bound_index
-    
-    @property    
+
+    @property
     def cvs_bound(self):
         return CV_BOUNDS[self.cvs_bound_index]
-    
+
     def flip_action_rhythm(self, index):
         self.cv_action_rhythm = self.cv_action_rhythm ^ CV_RHYTHM_MASKS[index]
 
 
 class CvManager:
     ADC_ADDR = const(0x48)
-    # 5V ~=0 -5V ~=25200
 
     def __init__(self, i2c):
         self.i2c = i2c
@@ -62,8 +64,10 @@ class CvManager:
         self.percent_values = [0, 0, 0, 0]
 
         self.cvs_data = [CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=1, cvs_bound_index=0),
-                         CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=2, cvs_bound_index=0),
-                         CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=4, cvs_bound_index=0),
+                         CvData(cv_action=CvAction.CV_ACTION_NONE,
+                                cv_action_rhythm=2, cvs_bound_index=0),
+                         CvData(cv_action=CvAction.CV_ACTION_NONE,
+                                cv_action_rhythm=4, cvs_bound_index=0),
                          CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=8, cvs_bound_index=0)]
 
         self.current_channel_measure = 0

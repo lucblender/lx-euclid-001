@@ -37,7 +37,6 @@ last_timer_launch_ms = ticks_ms()
 last_capacitive_circles_read_ms = ticks_ms()
 
 btn_menu_press = ticks_ms()
-btn_menu_ack = False
 tap_btn_press = ticks_ms()
 sw_btns_press = [ticks_ms(), ticks_ms(), ticks_ms(), ticks_ms()]
 stop_thread = False
@@ -45,7 +44,7 @@ wait_display_thread = True
 
 lx_hardware = LxHardware()
 gc.collect()
-lx_euclid_config = LxEuclidConfig(lx_hardware, LCD, [MAJOR,MINOR,FIX])
+lx_euclid_config = LxEuclidConfig(lx_hardware, LCD, [MAJOR, MINOR, FIX])
 
 lx_hardware.set_lx_euclid_config(lx_euclid_config)
 
@@ -64,10 +63,10 @@ def debug_print(txt):
 
 
 def lxhardware_changed(handlerEventData):
-    global tap_btn_press, btn_menu_press, btn_menu_ack
+    global tap_btn_press, btn_menu_press
     event = handlerEventData.event
     if event == lx_hardware.CLK_RISE:
-        if lx_euclid_config.state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY,LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE,LxEuclidConstant.STATE_LIVE]:
+        if lx_euclid_config.state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_LIVE]:
             LCD.set_need_display()
         lx_euclid_config.random_gate_length_update()
     elif event == lx_hardware.RST_RISE:
@@ -128,7 +127,7 @@ def lxhardware_changed(handlerEventData):
         tmp_time = ticks_ms()
         if (tmp_time - sw_btns_press[handlerEventData.data]) > DEBOUNCE_MS:
             sw_btns_press[handlerEventData.data] = tmp_time
-    elif event == lx_hardware.BTN_SWITCHES_FALL:        
+    elif event == lx_hardware.BTN_SWITCHES_FALL:
         lx_euclid_config.on_event(
             LxEuclidConstant.EVENT_BTN_SWITCHES, handlerEventData.data)
         LCD.set_need_display()
@@ -136,9 +135,10 @@ def lxhardware_changed(handlerEventData):
         tmp_time = ticks_ms()
         if (tmp_time - btn_menu_press) > DEBOUNCE_MS:
             btn_menu_press = tmp_time
-    elif event == lx_hardware.BTN_MENU_FALL:        
+    elif event == lx_hardware.BTN_MENU_FALL:
         lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
         LCD.set_need_display()
+
 
 def is_usb_connected():
     SIE_STATUS = const(0x50110000+0x50)
@@ -152,7 +152,7 @@ def is_usb_connected():
 
 
 def display_thread():
-    global wait_display_thread, stop_thread, lx_hardware, last_capacitive_circles_read_ms, in_lxhardware_changed
+    global last_capacitive_circles_read_ms
     while wait_display_thread:
         sleep(0.1)
     while not stop_thread:
@@ -202,13 +202,14 @@ def append_error(error):
     error_file.write("\n")
     error_file.close()
 
+
 gc.collect()
 print_ram()
 gc.collect()
 start_new_thread(display_thread, ())
 
 if __name__ == '__main__':
-   # try:
+    try:
         gc.collect()
         print_ram()
 
@@ -225,8 +226,8 @@ if __name__ == '__main__':
 
             wait_display_thread = False
 
-            #some click might happend because of capacitors loading so empty fifo at boot
-            while(len(lx_hardware.lxHardwareEventFifo) > 0):
+            # some click might happend because of capacitors loading so empty fifo at boot
+            while len(lx_hardware.lxHardwareEventFifo) > 0:
                 lx_hardware.lxHardwareEventFifo.popleft()
 
             LCD.set_need_display()
@@ -259,7 +260,5 @@ if __name__ == '__main__':
                             LCD.set_need_display()
 
         print("quit")
-    #except Exception as e:
-    #    append_error(e)
-
-
+    except Exception as e:
+        append_error(e)
