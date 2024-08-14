@@ -19,6 +19,9 @@ BL = const(25)
 
 DEBUG = False
 
+LX_LOGO = const("helixbyte_r5g6b5.bin")
+PARAM = const("param.bin")
+
 
 def debug_print(*txt):
     if DEBUG:
@@ -104,21 +107,21 @@ class LCD_1inch28(framebuf.FrameBuffer):
         missing_files = ""
 
         try:
-            open("helixbyte_r5g6b5.bin", "r")
+            open(LX_LOGO, "r")
         except OSError:
-            missing_files += "helixbyte_r5g6b5.bin\n"
+            missing_files += LX_LOGO+"\n"
 
         try:
-            open("parameter_unselected.bin", "r")
+            open(PARAM, "r")
         except OSError:
-            missing_files += "parameter_unselected.bin\n"
+            missing_files += PARAM+"\n"
 
         self.display_lxb_logo(version, missing_files)
         gc.collect()
 
         try:
             self.parameter_unselected = pict_to_fbuff(
-                "parameter_unselected.bin", 40, 40)
+                PARAM, 40, 40)
         except Exception:
             self.parameter_unselected = None
 
@@ -323,7 +326,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         else:
             width = 100
             heigth = 74
-            lxb_fbuf = pict_to_fbuff("helixbyte_r5g6b5.bin", heigth, width)
+            lxb_fbuf = pict_to_fbuff(LX_LOGO, heigth, width)
 
             self.blit(lxb_fbuf, 120-int(heigth/2), 120-int(width/2))
         self.show()

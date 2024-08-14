@@ -1145,20 +1145,13 @@ class LxEuclidConfig:
         version_eeprom = f"v{eeprom_v_major}.{eeprom_v_minor}.{eeprom_v_fix}"
         print("version_eeprom", version_eeprom)
 
-        if eeprom_v_major+eeprom_v_minor+eeprom_v_fix == 0:
-            print("Eeprom not initialized, saving all data")
+        if self.v_fix is not eeprom_v_fix or self.v_minor is not eeprom_v_minor or self.v_major is not eeprom_v_major:
+            version_main = f"v{self.v_major}.{self.v_minor}.{self.v_fix}"
+            print("Error: memory version is different",
+                  version_main, version_eeprom)
+            print("Eeprom will be re-initialized, saving all data")
             self.save_data()
         else:
-            if self.v_fix is not eeprom_v_fix or self.v_minor is not eeprom_v_minor or self.v_major is not eeprom_v_major:
-                version_main = f"v{self.v_major}.{self.v_minor}.{self.v_fix}"
-                self.lx_hardware.set_eeprom_data_int(
-                    MAJOR_E_ADDR, self.v_major)
-                self.lx_hardware.set_eeprom_data_int(
-                    MINOR_E_ADDR, self.v_minor)
-                self.lx_hardware.set_eeprom_data_int(FIX_E_ADDR, self.v_fix)
-
-                print("Warning: memory version is different",
-                      version_main, version_eeprom)
             try:
 
                 eeprom_addr = [FIX_E_ADDR+1]

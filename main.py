@@ -8,6 +8,10 @@ MINOR = 0
 FIX = 5
 ADD = "_dev"
 
+MEMORY_MAJOR = 1
+MEMORY_MINOR = 0
+MEMORY_FIX = 0
+
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
                             # once used, the lxb pic buffer is thrown away
@@ -44,7 +48,7 @@ wait_display_thread = True
 
 lx_hardware = LxHardware()
 gc.collect()
-lx_euclid_config = LxEuclidConfig(lx_hardware, LCD, [MAJOR, MINOR, FIX])
+lx_euclid_config = LxEuclidConfig(lx_hardware, LCD, [MEMORY_MAJOR, MEMORY_MINOR, MEMORY_FIX])
 
 lx_hardware.set_lx_euclid_config(lx_euclid_config)
 
