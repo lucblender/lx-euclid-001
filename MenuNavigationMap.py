@@ -8,10 +8,15 @@ def get_menu_navigation_map():
 
     out = OrderedDict()
     out["data_pointer"] = None
+    out["Algorithm "] = {
+        "values": ["Euclidean", "Exponential Eucl.", "Invert Exponential", "Symmetrical Exp."],
+        "attribute_name": "algo_index"
+    }
     out["Prescaler"] = {
         "values": ["1", "2", "3", "4", "8", "16"],
         "attribute_name": "prescaler_index"
     }
+
     out["Gate Length"] = {
         "min": 10,
         "max": 250,
@@ -30,13 +35,13 @@ def get_menu_navigation_map():
     my_dict["Outputs"] = outputs
 
     my_dict["Clock source"] = OrderedDict({"data_pointer": None,
-                                        "values": ["Tap btn", "Clock input"],
-                                        "attribute_name": "clk_mode"
-                                    })
+                                           "values": ["Tap btn", "Clock input"],
+                                           "attribute_name": "clk_mode"
+                                           })
 
     my_dict["Touch sensitivity"] = {"data_pointer": None,
-                           "values": ["Low", "Medium", "High"],
-                           "attribute_name": "touch_sensitivity"
-                       }
+                                    "values": ["Low", "Medium", "High"],
+                                    "attribute_name": "touch_sensitivity"
+                                    }
 
     return my_dict
