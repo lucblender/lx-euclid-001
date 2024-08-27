@@ -476,10 +476,10 @@ class LxEuclidConfig:
 
         data_pointer_key = "data_pointer"
 
-        self.menu_navigation_map["Outputs"]["Out 1"][data_pointer_key] = self.euclidean_rhythms[0]
-        self.menu_navigation_map["Outputs"]["Out 2"][data_pointer_key] = self.euclidean_rhythms[1]
-        self.menu_navigation_map["Outputs"]["Out 3"][data_pointer_key] = self.euclidean_rhythms[2]
-        self.menu_navigation_map["Outputs"]["Out 4"][data_pointer_key] = self.euclidean_rhythms[3]
+        self.menu_navigation_map["Channels"]["Ch1"][data_pointer_key] = self.euclidean_rhythms[0]
+        self.menu_navigation_map["Channels"]["Ch2"][data_pointer_key] = self.euclidean_rhythms[1]
+        self.menu_navigation_map["Channels"]["Ch3"][data_pointer_key] = self.euclidean_rhythms[2]
+        self.menu_navigation_map["Channels"]["Ch4"][data_pointer_key] = self.euclidean_rhythms[3]
 
         self.menu_navigation_map["Clock source"][data_pointer_key] = self
 
@@ -512,6 +512,8 @@ class LxEuclidConfig:
         self.param_pads_inner_outer = 0
 
         self.computation_index = 0  # used in interrupt function that can't create memory
+        
+        self.tap_delay_ms = 125 # default tap tempo 120bmp 125ms for 16th note
 
         # list used to test if data changed and needs to be stocked in memory
         self.previous_dict_data_list = []
@@ -587,8 +589,8 @@ class LxEuclidConfig:
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
 
-                self.lx_hardware.clear_tap_led()
                 self.lx_hardware.set_sw_leds(data)
+                self.lx_hardware.set_tap_led()
 
                 self.menu_lock.acquire()
                 self.sm_rhythm_param_counter = data
@@ -688,16 +690,6 @@ class LxEuclidConfig:
                         self.action_display_index = 4
 
             # END STATE LIVE
-            elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
-                self.menu_lock.acquire()
-                self.sm_rhythm_param_counter = (
-                    self.sm_rhythm_param_counter+1) % 5
-                self.menu_lock.release()
-            elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
-                self.menu_lock.acquire()
-                self.sm_rhythm_param_counter = (
-                    self.sm_rhythm_param_counter-1) % 5
-                self.menu_lock.release()
         elif self.state == LxEuclidConstant.STATE_MENU_SELECT:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
@@ -831,6 +823,7 @@ class LxEuclidConfig:
                 self.state_lock.release()
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
+                self.lx_hardware.clear_sw_leds()
 
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.param_presets_page = (
@@ -840,7 +833,26 @@ class LxEuclidConfig:
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY
+                self.state_lock.release()                
+            elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
+
+                self.lx_hardware.clear_sw_leds() 
+                self.lx_hardware.set_sw_leds(data)
+
+                self.menu_lock.acquire()
+                self.sm_rhythm_param_counter = data
+                self.menu_lock.release()
+            elif event == LxEuclidConstant.EVENT_TAP_BTN:
+                self.save_data()
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_LIVE
+                self.state_lock.release()
+                self.lx_hardware.clear_tap_led()
+                self.lx_hardware.clear_menu_led()
+                self.lx_hardware.clear_sw_leds()
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_beats(
                 )
@@ -860,7 +872,28 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
                 self.state_lock.release()
-                self.lx_hardware.clear_sw_leds(data)
+                self.lx_hardware.clear_sw_leds() 
+                self.lx_hardware.clear_menu_led()               
+                self.lx_hardware.clear_tap_led()
+            elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
+                self.state_lock.release()
+
+                self.lx_hardware.clear_sw_leds() 
+                self.lx_hardware.set_sw_leds(data)
+
+                self.menu_lock.acquire()
+                self.sm_rhythm_param_counter = data
+                self.menu_lock.release()
+            elif event == LxEuclidConstant.EVENT_TAP_BTN:
+                self.save_data()
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_LIVE
+                self.state_lock.release()
+                self.lx_hardware.clear_tap_led()
+                self.lx_hardware.clear_menu_led()
+                self.lx_hardware.clear_sw_leds()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_offset(
                 )
@@ -1095,6 +1128,10 @@ class LxEuclidConfig:
             self.dict_data[cv_prefix+"a"] = cv_data.cv_action
             self.dict_data[cv_prefix+"r"] = cv_data.cv_action_rhythm
             self.dict_data[cv_prefix+"b"] = cv_data.cvs_bound_index
+        #split tap tempo in lsb and msb    
+        local_tap_tempo = self.tap_delay_ms
+        self.dict_data["t_t_l"] = local_tap_tempo & 0xff
+        self.dict_data["t_t_h"] = (local_tap_tempo >> 8) & 0xff
 
     def save_data(self):
 
@@ -1221,6 +1258,12 @@ class LxEuclidConfig:
                         incr_addr(eeprom_addr))
                     cv_data.cvs_bound_index = self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr))
+                    
+                #get back splitted tap tempo in lsb and msb    
+                tap_tempo_lsb = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                tap_tempo_msb = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                
+                self.tap_delay_ms = tap_tempo_lsb + (tap_tempo_msb<<8)
 
                 self.create_memory_dict()
                 self.previous_dict_data_list = list(self.dict_data.values())
