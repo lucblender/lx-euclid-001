@@ -512,6 +512,8 @@ class LxEuclidConfig:
         self.param_pads_inner_outer = 0
 
         self.computation_index = 0  # used in interrupt function that can't create memory
+        
+        self.tap_delay_ms = 125 # default tap tempo 120bmp 125ms for 16th note
 
         # list used to test if data changed and needs to be stocked in memory
         self.previous_dict_data_list = []
@@ -1095,6 +1097,10 @@ class LxEuclidConfig:
             self.dict_data[cv_prefix+"a"] = cv_data.cv_action
             self.dict_data[cv_prefix+"r"] = cv_data.cv_action_rhythm
             self.dict_data[cv_prefix+"b"] = cv_data.cvs_bound_index
+        #split tap tempo in lsb and msb    
+        local_tap_tempo = self.tap_delay_ms
+        self.dict_data["t_t_l"] = local_tap_tempo & 0xff
+        self.dict_data["t_t_h"] = (local_tap_tempo >> 8) & 0xff
 
     def save_data(self):
 
@@ -1221,6 +1227,12 @@ class LxEuclidConfig:
                         incr_addr(eeprom_addr))
                     cv_data.cvs_bound_index = self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr))
+                    
+                #get back splitted tap tempo in lsb and msb    
+                tap_tempo_lsb = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                tap_tempo_msb = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))
+                
+                self.tap_delay_ms = tap_tempo_lsb + (tap_tempo_msb<<8)
 
                 self.create_memory_dict()
                 self.previous_dict_data_list = list(self.dict_data.values())

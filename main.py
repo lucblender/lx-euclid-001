@@ -10,7 +10,7 @@ ADD = "_dev"
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 0
-MEMORY_FIX = 0
+MEMORY_FIX = 1
 
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
@@ -32,7 +32,7 @@ def print_ram(code=""):
 
 
 MIN_TAP_DELAY_MS = 20
-MAX_TAP_DELAY_MS = 3000
+MAX_TAP_DELAY_MS = 8000 # equivalent to 2s (rhythm 4/4)
 DEBOUNCE_MS = 20
 
 CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
@@ -53,7 +53,6 @@ lx_euclid_config = LxEuclidConfig(lx_hardware, LCD, [MEMORY_MAJOR, MEMORY_MINOR,
 lx_hardware.set_lx_euclid_config(lx_euclid_config)
 
 last_tap_ms = 0
-tap_delay_ms = 125
 # timer_incr_steps_tap_mode = Timer()
 
 DEBUG = True
@@ -79,7 +78,7 @@ def lxhardware_changed(handlerEventData):
     elif event == lx_hardware.BTN_TAP_RISE:
         tap_btn_press = ticks_ms()
     elif event == lx_hardware.BTN_TAP_FALL:
-        global last_tap_ms, tap_delay_ms
+        global last_tap_ms
         if lx_euclid_config.state != LxEuclidConstant.STATE_LIVE:
             lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN)
             LCD.set_need_display()
@@ -87,7 +86,8 @@ def lxhardware_changed(handlerEventData):
             temp_last_tap_ms = ticks_ms()
             temp_tap_delay = temp_last_tap_ms - last_tap_ms
             if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
-                tap_delay_ms = temp_tap_delay / 4 # here the tap tempo time is divided by 4, for a 4/4 rhythm
+                lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4) # here the tap tempo time is divided by 4, for a 4/4 rhythm
+                lx_euclid_config.save_data() # tap tempo is saved in eeprom
                 if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
                     tap_incr_steps()
                     if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
@@ -258,7 +258,7 @@ if __name__ == '__main__':
                     # we force it to relaunch --> lol now we can't use Timer .....
                     # The bug only occure when the soft is on high demand (eg high interrupt number because of
                     # hardware gpio + timer)
-                    if ticks_ms() - last_timer_launch_ms >= (tap_delay_ms):
+                    if ticks_ms() - last_timer_launch_ms >= (lx_euclid_config.tap_delay_ms):
                         tap_incr_steps()
                         if lx_euclid_config.state in [LxEuclidConstant.STATE_LIVE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
                             LCD.set_need_display()
@@ -266,5 +266,3 @@ if __name__ == '__main__':
         print("quit")
     except Exception as e:
         append_error(e)
-
-
