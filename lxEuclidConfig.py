@@ -589,8 +589,8 @@ class LxEuclidConfig:
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
 
-                self.lx_hardware.clear_tap_led()
                 self.lx_hardware.set_sw_leds(data)
+                self.lx_hardware.set_tap_led()
 
                 self.menu_lock.acquire()
                 self.sm_rhythm_param_counter = data
@@ -690,16 +690,6 @@ class LxEuclidConfig:
                         self.action_display_index = 4
 
             # END STATE LIVE
-            elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
-                self.menu_lock.acquire()
-                self.sm_rhythm_param_counter = (
-                    self.sm_rhythm_param_counter+1) % 5
-                self.menu_lock.release()
-            elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
-                self.menu_lock.acquire()
-                self.sm_rhythm_param_counter = (
-                    self.sm_rhythm_param_counter-1) % 5
-                self.menu_lock.release()
         elif self.state == LxEuclidConstant.STATE_MENU_SELECT:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
@@ -833,6 +823,7 @@ class LxEuclidConfig:
                 self.state_lock.release()
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
+                self.lx_hardware.clear_sw_leds()
 
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.param_presets_page = (
@@ -842,7 +833,26 @@ class LxEuclidConfig:
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY
+                self.state_lock.release()                
+            elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
+
+                self.lx_hardware.clear_sw_leds() 
+                self.lx_hardware.set_sw_leds(data)
+
+                self.menu_lock.acquire()
+                self.sm_rhythm_param_counter = data
+                self.menu_lock.release()
+            elif event == LxEuclidConstant.EVENT_TAP_BTN:
+                self.save_data()
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_LIVE
+                self.state_lock.release()
+                self.lx_hardware.clear_tap_led()
+                self.lx_hardware.clear_menu_led()
+                self.lx_hardware.clear_sw_leds()
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_beats(
                 )
@@ -862,7 +872,28 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
                 self.state_lock.release()
-                self.lx_hardware.clear_sw_leds(data)
+                self.lx_hardware.clear_sw_leds() 
+                self.lx_hardware.clear_menu_led()               
+                self.lx_hardware.clear_tap_led()
+            elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
+                self.state_lock.release()
+
+                self.lx_hardware.clear_sw_leds() 
+                self.lx_hardware.set_sw_leds(data)
+
+                self.menu_lock.acquire()
+                self.sm_rhythm_param_counter = data
+                self.menu_lock.release()
+            elif event == LxEuclidConstant.EVENT_TAP_BTN:
+                self.save_data()
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_LIVE
+                self.state_lock.release()
+                self.lx_hardware.clear_tap_led()
+                self.lx_hardware.clear_menu_led()
+                self.lx_hardware.clear_sw_leds()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_offset(
                 )
