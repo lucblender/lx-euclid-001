@@ -53,7 +53,7 @@ lx_euclid_config = LxEuclidConfig(lx_hardware, LCD, [MEMORY_MAJOR, MEMORY_MINOR,
 lx_hardware.set_lx_euclid_config(lx_euclid_config)
 
 last_tap_ms = 0
-tap_delay_ms = 500
+tap_delay_ms = 125
 # timer_incr_steps_tap_mode = Timer()
 
 DEBUG = True
@@ -87,7 +87,7 @@ def lxhardware_changed(handlerEventData):
             temp_last_tap_ms = ticks_ms()
             temp_tap_delay = temp_last_tap_ms - last_tap_ms
             if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
-                tap_delay_ms = temp_tap_delay
+                tap_delay_ms = temp_tap_delay / 4 # here the tap tempo time is divided by 4, for a 4/4 rhythm
                 if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
                     tap_incr_steps()
                     if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
@@ -266,3 +266,5 @@ if __name__ == '__main__':
         print("quit")
     except Exception as e:
         append_error(e)
+
+
