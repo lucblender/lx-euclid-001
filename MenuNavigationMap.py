@@ -12,7 +12,7 @@ def get_menu_navigation_map():
         "values": ["Euclidean", "Exponential Eucl.", "Invert Exponential", "Symmetrical Exp."],
         "attribute_name": "algo_index"
     }
-    out["Prescaler"] = {
+    out["Clock Division"] = {
         "values": ["1", "2", "3", "4", "8", "16"],
         "attribute_name": "prescaler_index"
     }
@@ -28,14 +28,14 @@ def get_menu_navigation_map():
         "attribute_name": "randomize_gate_length"
     }
 
-    outputs["Out 1"] = out
-    outputs["Out 2"] = out.copy()
-    outputs["Out 3"] = out.copy()
-    outputs["Out 4"] = out.copy()
-    my_dict["Outputs"] = outputs
+    outputs["Ch1"] = out
+    outputs["Ch2"] = out.copy()
+    outputs["Ch3"] = out.copy()
+    outputs["Ch4"] = out.copy()
+    my_dict["Channels"] = outputs
 
     my_dict["Clock source"] = OrderedDict({"data_pointer": None,
-                                           "values": ["Tap btn", "Clock input"],
+                                           "values": ["Internal", "External"],
                                            "attribute_name": "clk_mode"
                                            })
 

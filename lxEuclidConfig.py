@@ -476,10 +476,10 @@ class LxEuclidConfig:
 
         data_pointer_key = "data_pointer"
 
-        self.menu_navigation_map["Outputs"]["Out 1"][data_pointer_key] = self.euclidean_rhythms[0]
-        self.menu_navigation_map["Outputs"]["Out 2"][data_pointer_key] = self.euclidean_rhythms[1]
-        self.menu_navigation_map["Outputs"]["Out 3"][data_pointer_key] = self.euclidean_rhythms[2]
-        self.menu_navigation_map["Outputs"]["Out 4"][data_pointer_key] = self.euclidean_rhythms[3]
+        self.menu_navigation_map["Channels"]["Ch1"][data_pointer_key] = self.euclidean_rhythms[0]
+        self.menu_navigation_map["Channels"]["Ch2"][data_pointer_key] = self.euclidean_rhythms[1]
+        self.menu_navigation_map["Channels"]["Ch3"][data_pointer_key] = self.euclidean_rhythms[2]
+        self.menu_navigation_map["Channels"]["Ch4"][data_pointer_key] = self.euclidean_rhythms[3]
 
         self.menu_navigation_map["Clock source"][data_pointer_key] = self
 
