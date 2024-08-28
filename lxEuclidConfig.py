@@ -234,7 +234,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             to_return = True
 
         self.prescaler_rhythm_counter = self.prescaler_rhythm_counter+1
-        if self.prescaler_rhythm_counter == self.prescaler:
+        if self.prescaler_rhythm_counter >= self.prescaler:
             self.prescaler_rhythm_counter = 0
         return to_return
 
