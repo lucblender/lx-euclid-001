@@ -742,17 +742,46 @@ class LxEuclidConfig:
                 if self.param_pads_page == 0:  # action
                     rotate_action_index = angle_to_index(angle_inner, 8)
                     if self.param_pads_inner_outer == 0:  # inner
+                        previous_rotate_action = self.inner_rotate_action
+                        action_rhythm = self.inner_action_rhythm
                         self.inner_rotate_action = rotate_action_index
                     else:  # outer
+                        previous_rotate_action = self.outer_rotate_action 
+                        action_rhythm = self.outer_action_rhythm
                         self.outer_rotate_action = rotate_action_index
+                        
+                    # make sure to reset fill and mute if we remove it from a rotate action    
+                    if previous_rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
+                        for euclidean_rhythm_index in range(0, 4):
+                            if action_rhythm & (1 << euclidean_rhythm_index) != 0:
+                                self.euclidean_rhythms[euclidean_rhythm_index].unfill()                                
+                    elif previous_rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
+                        for euclidean_rhythm_index in range(0, 4):
+                            if action_rhythm & (1 << euclidean_rhythm_index) != 0:
+                                self.euclidean_rhythms[euclidean_rhythm_index].unmute()
+                        
                 elif self.param_pads_page == 1:  # output
                     out_index = angle_to_index(angle_inner, 4)
                     if self.param_pads_inner_outer == 0:  # inner
+                        previous_inner_action_rhythm = self.inner_action_rhythm 
                         self.inner_action_rhythm = self.inner_action_rhythm ^ (
                             1 << out_index)
+                        # we removed a channel from a pad action, we need to clean it
+                        if (self.inner_action_rhythm > previous_inner_action_rhythm) == 0: 
+                            if self.inner_rotate_action  == LxEuclidConstant.CIRCLE_ACTION_FILL:
+                                self.euclidean_rhythms[out_index].unfill()
+                            elif self.inner_rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
+                                self.euclidean_rhythms[out_index].unmute()
                     else:  # outer
+                        previous_outer_action_rhythm = self.outer_action_rhythm 
                         self.outer_action_rhythm = self.outer_action_rhythm ^ (
                             1 << out_index)
+                        # we removed a channel from a pad action, we need to clean it
+                        if (self.outer_action_rhythm > previous_outer_action_rhythm) == 0: 
+                            if self.outer_rotate_action  == LxEuclidConstant.CIRCLE_ACTION_FILL:
+                                self.euclidean_rhythms[out_index].unfill()
+                            elif self.outer_rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
+                                self.euclidean_rhythms[out_index].unmute()
                 self.save_data()
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.param_pads_page = (self.param_pads_page+1) % PADS_PAGE_MAX
@@ -774,11 +803,31 @@ class LxEuclidConfig:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 if self.param_cvs_page == 0:  # action
                     preset_index = angle_to_index(angle_inner, 8)
+                    previous_cv_action = self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cv_action
+                    cv_action_rhythm = self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cv_action_rhythm
+                    
                     self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cv_action = preset_index
+                    
+                    # make sure to reset fill and mute if we remove it from a cv action
+                    if previous_cv_action == CvAction.CV_ACTION_FILL:
+                        for euclidean_rhythm_index in range(0, 4):
+                            if cv_action_rhythm & (1 << euclidean_rhythm_index) != 0:
+                                self.euclidean_rhythms[euclidean_rhythm_index].unfill()
+                    elif previous_cv_action == CvAction.CV_ACTION_MUTE:
+                        for euclidean_rhythm_index in range(0, 4):
+                            if cv_action_rhythm & (1 << euclidean_rhythm_index) != 0:
+                                self.euclidean_rhythms[euclidean_rhythm_index].unmute()
+                        
                 elif self.param_cvs_page == 1:  # output
                     out_index = angle_to_index(angle_inner, 4)
-                    self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].flip_action_rhythm(
+                    flip_result = self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].flip_action_rhythm(
                         out_index)
+                    if flip_result == 0: # we removed a channel from a cv action, we need to clean it
+                        cv_action = self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cv_action
+                        if cv_action == CvAction.CV_ACTION_FILL:
+                            self.euclidean_rhythms[out_index].unfill()
+                        elif cv_action == CvAction.CV_ACTION_MUTE:
+                            self.euclidean_rhythms[out_index].unmute()
                 else:  # cv bound
                     cv_bound_index = angle_to_index(angle_inner, 4)
                     self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cvs_bound_index = cv_bound_index

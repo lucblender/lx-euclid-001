@@ -711,6 +711,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
                     highlight_color = self.grey
+            elif local_state == LxEuclidConstant.STATE_LIVE:
+                if euclidieanRhythm.is_mute:
+                    beat_color = self.grey
+                    beat_color_hightlight = self.grey                    
+                elif euclidieanRhythm.is_fill:
+                    beat_color = self.rhythm_colors_highlight[rhythm_index]
+                    beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
+                    
 
             self.circle(120, 120, radius, beat_color, False)
 

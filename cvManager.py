@@ -44,7 +44,9 @@ class CvData:
         return CV_BOUNDS[self.cvs_bound_index]
 
     def flip_action_rhythm(self, index):
+        previous_cv_action_rhythm = self.cv_action_rhythm
         self.cv_action_rhythm = self.cv_action_rhythm ^ CV_RHYTHM_MASKS[index]
+        return self.cv_action_rhythm > previous_cv_action_rhythm
 
 
 class CvManager:
