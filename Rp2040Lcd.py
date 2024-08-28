@@ -76,7 +76,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.red = const(0xf800)
         self.white = const(0xffff)
         self.black = const(0x0000)
-        self.grey = rgb888_to_rgb565(54, 54, 54)
+        self.grey = rgb888_to_rgb565(85, 85, 85)
         self.touch_circle_color_highlight = rgb888_to_rgb565(255, 221, 0)
         self.touch_circle_color = rgb888_to_rgb565(176, 157, 34)
 
@@ -86,6 +86,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.rhythm_colors_highlight = [rgb888_to_rgb565(253, 168, 94), rgb888_to_rgb565(
             255, 83, 61), rgb888_to_rgb565(176, 196, 255), rgb888_to_rgb565(195, 250, 240), self.white]
+        
+        self.un_selected_color = self.grey
+        self.selected_color = self.rhythm_colors_highlight[3]
 
         self.fill(self.white)
         self.show()
@@ -384,7 +387,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 42-13, self.black, True)
 
-            txt_color = self.rhythm_colors[3]
+            txt_color = self.selected_color
 
             self.font_writer_freesans20.text(
                 "Presets", 80, 12, txt_color)
@@ -402,8 +405,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.blit(self.parameter_unselected, 100, 100)
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PADS:
-            txt_color = self.rhythm_colors[3]
-            txt_color_highlight = self.rhythm_colors_highlight[0]
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
 
             self.circle(120, 120, 58, self.touch_circle_color, True)
             self.circle(120, 120, 58-13, self.black, True)
@@ -411,7 +414,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 42-13, self.black, True)
 
-            self.font_writer_freesans20.text("Macro", 94, 110, txt_color)
+            self.font_writer_freesans20.text("Macro", 94, 110, txt_color_highlight)
 
             page = self.lx_euclid_config.param_pads_page
             page_color = self.rhythm_colors_highlight[0]
@@ -469,8 +472,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             cv_index = self.lx_euclid_config.param_cvs_index
 
-            txt_color = self.rhythm_colors[3]
-            txt_color_highlight = self.rhythm_colors_highlight[0]
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
 
             self.circle(120, 120, 58, self.touch_circle_color, True)
             self.circle(120, 120, 58-13, self.black, True)
@@ -479,7 +482,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 42-13, self.black, True)
 
             cv_index_txt = f"CV {cv_index+1}"
-            self.font_writer_freesans20.text(cv_index_txt, 100, 110, txt_color)
+            self.font_writer_freesans20.text(cv_index_txt, 100, 110, txt_color_highlight)
 
             page = self.lx_euclid_config.param_cvs_page
             page_color = self.rhythm_colors_highlight[0]
@@ -536,7 +539,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS:
 
-            txt_color = self.rhythm_colors[3]
+            txt_color = self.selected_color
 
             self.circle(120, 120, 82, self.touch_circle_color, True)
             self.circle(120, 120, 60, self.black, True)
@@ -600,7 +603,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                         txt = current_keys[menu_index]
                         txt_color = self.white
                         if in_last_sub_menu and current_menu_value == menu_index:
-                            txt_color = self.rhythm_colors_highlight[0]
+                            txt_color = self.selected_color
                         txt = "> "+txt+" <"
                         txt_len = self.font_writer_freesans20.stringlen(txt)
                         self.font_writer_freesans20.text(
@@ -608,9 +611,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     else:
 
                         txt = current_keys[menu_index]
-                        txt_color = self.rhythm_colors[3]
+                        txt_color = self.un_selected_color
                         if in_last_sub_menu and current_menu_value == menu_index:
-                            txt_color = self.rhythm_colors_highlight[0]
+                            txt_color = self.selected_color
                         txt_len = self.font_writer_freesans20.stringlen(txt)
                         self.font_writer_freesans20.text(
                             txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, txt_color)
