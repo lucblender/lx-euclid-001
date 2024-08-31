@@ -9,14 +9,10 @@ MAX = const(1)
 LOW_PERCENTAGE_RISING_THRESHOLD = const(25)
 RISING_DIFFERENCE_THRESHOLD = const(50)
 
-CV_5V = const(2000)
-CV_0V = const(14740)
-CV_1V = const(12192)
-CV_2V = const(9644)
-CV_MINUS_5V = const(27000)
-
-CV_BOUNDS = [[CV_MINUS_5V, CV_5V], [
-    CV_0V, CV_5V], [CV_0V, CV_1V], [CV_0V, CV_2V]]
+# f(x) ~= -2379x+14777
+CV_5V = const(2882)
+CV_0V = const(14777)
+CV_MINUS_5V = const(26672)
 
 CV_RHYTHM_MASKS = [const(1), const(2), const(4), const(8)]
 
@@ -34,17 +30,15 @@ class CvAction:
 
 class CvData:
 
-    def __init__(self, cv_action, cv_action_rhythm, cvs_bound_index):
+    def __init__(self, cv_action, cv_action_rhythm):
         self.cv_action = cv_action
         self.cv_action_rhythm = cv_action_rhythm
-        self.cvs_bound_index = cvs_bound_index
-
-    @property
-    def cvs_bound(self):
-        return CV_BOUNDS[self.cvs_bound_index]
+        self.cvs_bound = [CV_MINUS_5V, CV_5V]
 
     def flip_action_rhythm(self, index):
+        previous_cv_action_rhythm = self.cv_action_rhythm
         self.cv_action_rhythm = self.cv_action_rhythm ^ CV_RHYTHM_MASKS[index]
+        return self.cv_action_rhythm > previous_cv_action_rhythm
 
 
 class CvManager:
@@ -63,12 +57,12 @@ class CvManager:
         self.__raw_values = [0, 0, 0, 0]
         self.percent_values = [0, 0, 0, 0]
 
-        self.cvs_data = [CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=1, cvs_bound_index=0),
+        self.cvs_data = [CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=1),
                          CvData(cv_action=CvAction.CV_ACTION_NONE,
-                                cv_action_rhythm=2, cvs_bound_index=0),
+                                cv_action_rhythm=2),
                          CvData(cv_action=CvAction.CV_ACTION_NONE,
-                                cv_action_rhythm=4, cvs_bound_index=0),
-                         CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=8, cvs_bound_index=0)]
+                                cv_action_rhythm=4),
+                         CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=8)]
 
         self.current_channel_measure = 0
         self.in_measure = False
@@ -95,7 +89,9 @@ class CvManager:
 
         return to_return
 
+    # percent are both positive and negative: -5V = -100%; 0V = 0%; 5V = 100%;
     def __compute_percent_cv(self, channel):
         value = 100-int((self.cvs_data[channel].cvs_bound[MAX]-self.__raw_values[channel])/(
-            self.cvs_data[channel].cvs_bound[MAX]-self.cvs_data[channel].cvs_bound[MIN])*100)
-        self.percent_values[channel] = max(0, (min(100, value)))
+            self.cvs_data[channel].cvs_bound[MAX]-self.cvs_data[channel].cvs_bound[MIN])*200)
+
+        self.percent_values[channel] = max(-100, (min(100, value)))

@@ -4,13 +4,13 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 1
+MINOR = 2
 FIX = 0
 ADD = "_dev"
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 0
-MEMORY_FIX = 1
+MEMORY_FIX = 2
 
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
@@ -21,18 +21,16 @@ gc.collect()
 from lxEuclidConfig import LxEuclidConfig, LxEuclidConstant
 from lxHardware import LxHardware
 from utime import sleep, ticks_ms
-from machine import mem32
 from sys import print_exception
 from io import StringIO
 from _thread import start_new_thread
-from micropython import const
 
 def print_ram(code=""):
     print(code, "free ram: ", gc.mem_free(), ", alloc ram: ", gc.mem_alloc())
 
 
 MIN_TAP_DELAY_MS = 20
-MAX_TAP_DELAY_MS = 8000 # equivalent to 2s (rhythm 4/4)
+MAX_TAP_DELAY_MS = 8000  # equivalent to 2s (rhythm 4/4)
 DEBOUNCE_MS = 20
 
 CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
@@ -48,7 +46,8 @@ wait_display_thread = True
 
 lx_hardware = LxHardware()
 gc.collect()
-lx_euclid_config = LxEuclidConfig(lx_hardware, LCD, [MEMORY_MAJOR, MEMORY_MINOR, MEMORY_FIX])
+lx_euclid_config = LxEuclidConfig(
+    lx_hardware, LCD, [MEMORY_MAJOR, MEMORY_MINOR, MEMORY_FIX])
 
 lx_hardware.set_lx_euclid_config(lx_euclid_config)
 
@@ -86,8 +85,9 @@ def lxhardware_changed(handlerEventData):
             temp_last_tap_ms = ticks_ms()
             temp_tap_delay = temp_last_tap_ms - last_tap_ms
             if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
-                lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4) # here the tap tempo time is divided by 4, for a 4/4 rhythm
-                lx_euclid_config.save_data() # tap tempo is saved in eeprom
+                # here the tap tempo time is divided by 4, for a 4/4 rhythm
+                lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
+                lx_euclid_config.save_data()  # tap tempo is saved in eeprom
                 if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
                     tap_incr_steps()
                     if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
@@ -142,17 +142,6 @@ def lxhardware_changed(handlerEventData):
     elif event == lx_hardware.BTN_MENU_FALL:
         lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
         LCD.set_need_display()
-
-
-def is_usb_connected():
-    SIE_STATUS = const(0x50110000+0x50)
-    CONNECTED = const(1 << 16)
-    SUSPENDED = const(1 << 4)
-
-    if (mem32[SIE_STATUS] & (CONNECTED | SUSPENDED)) == CONNECTED:
-        return True
-    else:
-        return False
 
 
 def display_thread():
@@ -217,51 +206,46 @@ if __name__ == '__main__':
         gc.collect()
         print_ram()
 
-        if is_usb_connected() and lx_hardware.get_btn_tap_pin_value() == 0:
-            stop_thread = True
-            wait_display_thread = False
-            LCD.display_programming_mode()
-        else:
-            if not lx_hardware.capacitives_circles.is_mpr_detected:
-                LCD.display_error("No touch sensor\ndetected")
+        if not lx_hardware.capacitives_circles.is_mpr_detected:
+            LCD.display_error("No touch sensor\ndetected")
+
+        if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+            tap_incr_steps()
+
+        wait_display_thread = False
+
+        # some click might happend because of capacitors loading so empty fifo at boot
+        while len(lx_hardware.lxHardwareEventFifo) > 0:
+            lx_hardware.lxHardwareEventFifo.popleft()
+
+        LCD.set_need_display()
+
+        lx_euclid_config.init_cvs_parameters()
+        while True:
+            lx_euclid_config.test_if_clear_gates_led()
+            if len(lx_hardware.lxHardwareEventFifo) > 0:
+                in_lxhardware_changed = True
+                lxhardware_changed(
+                    lx_hardware.lxHardwareEventFifo.popleft())
+                in_lxhardware_changed = False
+            else:
+                has_cvs_changed = lx_hardware.update_cv_values()
+                if has_cvs_changed is not None:
+                    need_lcd_update = lx_euclid_config.update_cvs_parameters(
+                        has_cvs_changed)
+                    if need_lcd_update:
+                        LCD.set_need_display()
 
             if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                tap_incr_steps()
-
-            wait_display_thread = False
-
-            # some click might happend because of capacitors loading so empty fifo at boot
-            while len(lx_hardware.lxHardwareEventFifo) > 0:
-                lx_hardware.lxHardwareEventFifo.popleft()
-
-            LCD.set_need_display()
-
-            lx_euclid_config.init_cvs_parameters()
-            while True:
-                lx_euclid_config.test_if_clear_gates_led()
-                if len(lx_hardware.lxHardwareEventFifo) > 0:
-                    in_lxhardware_changed = True
-                    lxhardware_changed(
-                        lx_hardware.lxHardwareEventFifo.popleft())
-                    in_lxhardware_changed = False
-                else:
-                    has_cvs_changed = lx_hardware.update_cv_values()
-                    if has_cvs_changed is not None:
-                        need_lcd_update = lx_euclid_config.update_cvs_parameters(
-                            has_cvs_changed)
-                        if need_lcd_update:
-                            LCD.set_need_display()
-
-                if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                    # due to some micropython bug  (https://forum.micropython.org/viewtopic.php?f=21&t=12639)
-                    # sometimes timer can stop to work.... if the timer is not called after 1.2x its required time
-                    # we force it to relaunch --> lol now we can't use Timer .....
-                    # The bug only occure when the soft is on high demand (eg high interrupt number because of
-                    # hardware gpio + timer)
-                    if ticks_ms() - last_timer_launch_ms >= (lx_euclid_config.tap_delay_ms):
-                        tap_incr_steps()
-                        if lx_euclid_config.state in [LxEuclidConstant.STATE_LIVE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
-                            LCD.set_need_display()
+                # due to some micropython bug  (https://forum.micropython.org/viewtopic.php?f=21&t=12639)
+                # sometimes timer can stop to work.... if the timer is not called after 1.2x its required time
+                # we force it to relaunch --> lol now we can't use Timer .....
+                # The bug only occure when the soft is on high demand (eg high interrupt number because of
+                # hardware gpio + timer)
+                if ticks_ms() - last_timer_launch_ms >= (lx_euclid_config.tap_delay_ms):
+                    tap_incr_steps()
+                    if lx_euclid_config.state in [LxEuclidConstant.STATE_LIVE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
+                        LCD.set_need_display()
 
         print("quit")
     except Exception as e:

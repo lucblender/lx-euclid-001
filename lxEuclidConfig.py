@@ -16,7 +16,7 @@ MAJOR_E_ADDR = const(0)
 MINOR_E_ADDR = const(1)
 FIX_E_ADDR = const(2)
 
-CV_PAGE_MAX = 3
+CV_PAGE_MAX = 2
 PRESET_PAGE_MAX = 2
 PADS_PAGE_MAX = 2
 
@@ -91,6 +91,24 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.prescaler = PRESCALER_LIST[prescaler_index]
         self.prescaler_rhythm_counter = 0
 
+        # var used in get_current_step function. Since it's called in interrupt we can't create memory
+        # so we create those buffer before
+        self.get_current_step_offset = 0
+        self.get_current_step_beats = 0
+        self.global_cv_offset = 0
+        self.global_cv_probability = 0
+
+        # CV linked attributes
+        self.has_cv_beat = False
+        self.has_cv_pulse = False
+        self.has_cv_offset = False
+        self.has_cv_prob = False
+
+        self.cv_percent_beat = int(0)
+        self.cv_percent_pulse = int(0)
+        self.cv_percent_offset = int(0)
+        self.cv_percent_prob = int(0)
+
         # this var is used to know if we need to keep the pulses stable to 0 and 1 even if
         # it's supposed to change by cv or pads
         self.pulses_set_0_1 = False
@@ -146,8 +164,17 @@ class EuclideanRhythm(EuclideanRhythmParameters):
     def decr_offset(self,):
         self.offset = (self.offset - 1) % self.beats
 
-    def set_offset_in_percent(self, percent):
-        self.offset = int(self.beats*percent/100)
+    def set_cv_percent_offset(self, percent):
+        self.cv_percent_offset = percent
+        # compute direcctly the global offset for later use in the interrupt function
+        self.global_cv_offset = self.offset + \
+            int(len(self.rhythm)*self.cv_percent_offset/100)
+
+    def set_cv_percent_probability(self, percent):
+        self.cv_percent_prob = percent
+        # compute direcctly the global probability for later use in the interrupt function
+        probability = self.pulses_probability+self.cv_percent_prob
+        self.global_cv_probability = min(100, (max(0, probability)))
 
     def incr_beats(self):
         if self.beats != MAX_BEATS:
@@ -169,23 +196,22 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.set_pulses_per_ratio()
         self.set_rhythm()
 
-    def set_beats_in_percent(self, percent):
-        temp_beats = int(percent*MAX_BEATS/100)
-        self.beats = max(1, min(temp_beats, MAX_BEATS))
-        if self.offset > self.beats:
-            self.offset = self.beats
+    def set_cv_percent_beat(self, percent):
+        self.cv_percent_beat = percent
 
         if not self.pulses_set_0_1:
             self.set_pulses_per_ratio()
         self.set_rhythm()
 
-    def set_pulses_per_ratio(self):
-        computed_pulses_per_ratio = round(self.beats*self.__pulses_ratio)
-        self.pulses = max(1, (min(self.beats, computed_pulses_per_ratio)))
+    def __compute_pulses_per_ratio(self, local_beat):
+        computed_pulses_per_ratio = round(local_beat*self.__pulses_ratio)
+        return max(1, (min(local_beat, computed_pulses_per_ratio)))
 
-    def set_pulses_in_percent(self, percent):
-        self.__pulses_ratio = percent/100
-        self.set_pulses_per_ratio()
+    def set_pulses_per_ratio(self):
+        self.pulses = self.__compute_pulses_per_ratio(self.beats)
+
+    def set_cv_percent_pulse(self, percent):
+        self.cv_percent_pulse = percent
         self.set_rhythm()
 
     def incr_pulses(self):
@@ -218,15 +244,12 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         if self.pulses_probability != 0:
             self.pulses_probability = self.pulses_probability - 5
 
-    def set_pulses_probability_in_percent(self, percent):
-        self.pulses_probability = int(percent/5)*5
-
     def incr_step(self):
         to_return = False
         if self.prescaler_rhythm_counter == 0:
             self.current_step = self.current_step + 1
 
-            beat_limit = self.beats-1
+            beat_limit = len(self.rhythm)-1
 
             if self.current_step > beat_limit:
                 self.current_step = 0
@@ -234,7 +257,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             to_return = True
 
         self.prescaler_rhythm_counter = self.prescaler_rhythm_counter+1
-        if self.prescaler_rhythm_counter == self.prescaler:
+        if self.prescaler_rhythm_counter >= self.prescaler:
             self.prescaler_rhythm_counter = 0
         return to_return
 
@@ -255,51 +278,89 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.prescaler_rhythm_counter = 0
 
     def get_current_step(self):
-        to_return = self.rhythm[(
-            self.current_step-self.offset) % len(self.rhythm)]
-        if to_return == 0:
-            return 0
-        else:
-            if self.pulses_probability == 100:
-                return to_return
-            elif randint(0, 100) < self.pulses_probability:
-                return to_return
-            else:
+        try:
+            self.get_current_step_offset = self.offset
+            self.get_current_step_beats = len(self.rhythm)
+            if self.has_cv_offset:
+                self.get_current_step_offset = self.global_cv_offset
+
+            to_return = self.rhythm[(
+                self.current_step-self.get_current_step_offset) % self.get_current_step_beats]
+
+            if to_return == 0:
                 return 0
+            else:
+                if self.has_cv_prob:
+                    if self.global_cv_probability == 100:
+                        return to_return
+                    elif randint(0, 100) < self.global_cv_probability:
+                        return to_return
+                    else:
+                        return 0
+                else:
+                    if self.pulses_probability == 100:
+                        return to_return
+                    elif randint(0, 100) < self.pulses_probability:
+                        return to_return
+                    else:
+                        return 0
+        except Exception as e:
+            print(e, "x")
 
     def set_rhythm(self):
-        if self.pulses > self.beats:
-            raise ValueError
+        local_beats = self.beats
+        local_pulse = self.pulses
+
+        if self.has_cv_beat:
+            local_beats = local_beats+int(MAX_BEATS*self.cv_percent_beat/100)
+            if not self.pulses_set_0_1:
+                local_pulse = self.__compute_pulses_per_ratio(local_beats)
+        if self.has_cv_pulse:
+            local_pulse = local_pulse + \
+                int(local_beats*self.cv_percent_pulse/100)
+        # range back beats from 1 to MAX_BEATS
+        if local_beats > MAX_BEATS:
+            local_beats = MAX_BEATS
+        elif local_beats < 0:
+            local_beats = 1
+
+       # range back from 0 to current beat number
+        if local_pulse > local_beats:
+            local_pulse = local_beats
+        elif local_pulse < 0:
+            local_pulse = 0
+
         if self.is_mute:
-            self.rhythm = [0]*self.beats
+            self.rhythm = [0]*local_beats
         elif self.is_fill:
-            self.rhythm = [1]*self.beats
-        elif self.pulses == 0:
-            self.rhythm = [0]*self.beats
-        elif self.pulses == 1:
-            self.rhythm = [1]*1+[0]*(self.beats-1)
-        elif self.beats == self.pulses:
-            self.rhythm = [1]*self.beats
+            self.rhythm = [1]*local_beats
+        elif local_pulse == 0:
+            self.rhythm = [0]*local_beats
+        elif local_pulse == 1:
+            self.rhythm = [1]*1+[0]*(local_beats-1)
+        elif local_beats == local_pulse:
+            self.rhythm = [1]*local_beats
         else:
             if self.algo_index == 0:
-                self.__set_rhythm_bjorklund()
+                self.rhythm = self.__set_rhythm_bjorklund(
+                    local_beats, local_pulse)
             elif self.algo_index == 1:
                 self.rhythm = self.__exponential_rhythm(
-                    self.beats, self.pulses)
+                    local_beats, local_pulse)
             elif self.algo_index == 2:
                 self.rhythm = self.__exponential_rhythm(
-                    self.beats, self.pulses, True)
+                    local_beats, local_pulse, True)
             else:
                 self.rhythm = self.__symmetric_exponential(
-                    self.beats, self.pulses)
+                    local_beats, local_pulse)
 
     # from https://github.com/brianhouse/bjorklund/tree/master
-    def __set_rhythm_bjorklund(self):
+    def __set_rhythm_bjorklund(self, beats, pulses):
         pattern = []
         counts = []
         remainders = []
-        divisor = self.beats - self.pulses
-        remainders.append(self.pulses)
+        divisor = beats - pulses
+        remainders.append(pulses)
         level = 0
         while True:
             counts.append(divisor // remainders[level])
@@ -324,7 +385,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         build(level)
         i = pattern.index(1)
         pattern = pattern[i:] + pattern[0:i]
-        self.rhythm = pattern
+        return pattern
 
     def __exponential_rhythm(self, beats, pulses, reverse=False):
         if pulses == 0:
@@ -512,8 +573,8 @@ class LxEuclidConfig:
         self.param_pads_inner_outer = 0
 
         self.computation_index = 0  # used in interrupt function that can't create memory
-        
-        self.tap_delay_ms = 125 # default tap tempo 120bmp 125ms for 16th note
+
+        self.tap_delay_ms = 125  # default tap tempo 120bmp 125ms for 16th note
 
         # list used to test if data changed and needs to be stocked in memory
         self.previous_dict_data_list = []
@@ -742,17 +803,48 @@ class LxEuclidConfig:
                 if self.param_pads_page == 0:  # action
                     rotate_action_index = angle_to_index(angle_inner, 8)
                     if self.param_pads_inner_outer == 0:  # inner
+                        previous_rotate_action = self.inner_rotate_action
+                        action_rhythm = self.inner_action_rhythm
                         self.inner_rotate_action = rotate_action_index
                     else:  # outer
+                        previous_rotate_action = self.outer_rotate_action
+                        action_rhythm = self.outer_action_rhythm
                         self.outer_rotate_action = rotate_action_index
+
+                    # make sure to reset fill and mute if we remove it from a rotate action
+                    if previous_rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
+                        for euclidean_rhythm_index in range(0, 4):
+                            if action_rhythm & (1 << euclidean_rhythm_index) != 0:
+                                self.euclidean_rhythms[euclidean_rhythm_index].unfill(
+                                )
+                    elif previous_rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
+                        for euclidean_rhythm_index in range(0, 4):
+                            if action_rhythm & (1 << euclidean_rhythm_index) != 0:
+                                self.euclidean_rhythms[euclidean_rhythm_index].unmute(
+                                )
+
                 elif self.param_pads_page == 1:  # output
                     out_index = angle_to_index(angle_inner, 4)
                     if self.param_pads_inner_outer == 0:  # inner
+                        previous_inner_action_rhythm = self.inner_action_rhythm
                         self.inner_action_rhythm = self.inner_action_rhythm ^ (
                             1 << out_index)
+                        # we removed a channel from a pad action, we need to clean it
+                        if (self.inner_action_rhythm > previous_inner_action_rhythm) == 0:
+                            if self.inner_rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
+                                self.euclidean_rhythms[out_index].unfill()
+                            elif self.inner_rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
+                                self.euclidean_rhythms[out_index].unmute()
                     else:  # outer
+                        previous_outer_action_rhythm = self.outer_action_rhythm
                         self.outer_action_rhythm = self.outer_action_rhythm ^ (
                             1 << out_index)
+                        # we removed a channel from a pad action, we need to clean it
+                        if (self.outer_action_rhythm > previous_outer_action_rhythm) == 0:
+                            if self.outer_rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
+                                self.euclidean_rhythms[out_index].unfill()
+                            elif self.outer_rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
+                                self.euclidean_rhythms[out_index].unmute()
                 self.save_data()
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.param_pads_page = (self.param_pads_page+1) % PADS_PAGE_MAX
@@ -774,14 +866,62 @@ class LxEuclidConfig:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 if self.param_cvs_page == 0:  # action
                     preset_index = angle_to_index(angle_inner, 8)
+                    previous_cv_action = self.lx_hardware.cv_manager.cvs_data[
+                        self.param_cvs_index].cv_action
+                    cv_action_rhythm = self.lx_hardware.cv_manager.cvs_data[
+                        self.param_cvs_index].cv_action_rhythm
+
                     self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cv_action = preset_index
+
+                    # make sure to reset fill and mute if we remove it from a cv action
+                    for euclidean_rhythm_index in range(0, 4):
+                        if cv_action_rhythm & (1 << euclidean_rhythm_index) != 0:
+                            if previous_cv_action == CvAction.CV_ACTION_FILL:
+                                self.euclidean_rhythms[euclidean_rhythm_index].unfill(
+                                )
+                            elif previous_cv_action == CvAction.CV_ACTION_MUTE:
+                                self.euclidean_rhythms[euclidean_rhythm_index].unmute(
+                                )
+                            elif previous_cv_action == CvAction.CV_ACTION_BEATS:
+                                self.euclidean_rhythms[euclidean_rhythm_index].has_cv_beat = False
+                                self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
+                                )
+                                print("897")
+                            elif previous_cv_action == CvAction.CV_ACTION_PULSES:
+                                self.euclidean_rhythms[euclidean_rhythm_index].has_cv_pulse = False
+                                self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
+                                )
+                            elif previous_cv_action == CvAction.CV_ACTION_ROTATION:
+                                self.euclidean_rhythms[euclidean_rhythm_index].has_cv_offset = False
+                                self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
+                                )
+                            elif previous_cv_action == CvAction.CV_ACTION_PROBABILITY:
+                                self.euclidean_rhythms[euclidean_rhythm_index].has_cv_prob = False
+                                self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
+                                )
+
                 elif self.param_cvs_page == 1:  # output
                     out_index = angle_to_index(angle_inner, 4)
-                    self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].flip_action_rhythm(
+                    flip_result = self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].flip_action_rhythm(
                         out_index)
-                else:  # cv bound
-                    cv_bound_index = angle_to_index(angle_inner, 4)
-                    self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cvs_bound_index = cv_bound_index
+                    if flip_result == 0:  # we removed a channel from a cv action, we need to clean it
+                        cv_action = self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cv_action
+                        if cv_action == CvAction.CV_ACTION_FILL:
+                            self.euclidean_rhythms[out_index].unfill()
+                        elif cv_action == CvAction.CV_ACTION_MUTE:
+                            self.euclidean_rhythms[out_index].unmute()
+                        elif cv_action == CvAction.CV_ACTION_BEATS:
+                            self.euclidean_rhythms[out_index].has_cv_beat = False
+                            self.euclidean_rhythms[out_index].set_rhythm()
+                        elif cv_action == CvAction.CV_ACTION_PULSES:
+                            self.euclidean_rhythms[out_index].has_cv_pulse = False
+                            self.euclidean_rhythms[out_index].set_rhythm()
+                        elif cv_action == CvAction.CV_ACTION_ROTATION:
+                            self.euclidean_rhythms[out_index].has_cv_offset = False
+                            self.euclidean_rhythms[out_index].set_rhythm()
+                        elif cv_action == CvAction.CV_ACTION_PROBABILITY:
+                            self.euclidean_rhythms[out_index].has_cv_prob = False
+                            self.euclidean_rhythms[out_index].set_rhythm()
 
                 self.save_data()
                 self.init_cvs_parameters()
@@ -833,13 +973,13 @@ class LxEuclidConfig:
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY
-                self.state_lock.release()                
+                self.state_lock.release()
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
 
-                self.lx_hardware.clear_sw_leds() 
+                self.lx_hardware.clear_sw_leds()
                 self.lx_hardware.set_sw_leds(data)
 
                 self.menu_lock.acquire()
@@ -872,15 +1012,15 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
                 self.state_lock.release()
-                self.lx_hardware.clear_sw_leds() 
-                self.lx_hardware.clear_menu_led()               
+                self.lx_hardware.clear_sw_leds()
+                self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_tap_led()
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
 
-                self.lx_hardware.clear_sw_leds() 
+                self.lx_hardware.clear_sw_leds()
                 self.lx_hardware.set_sw_leds(data)
 
                 self.menu_lock.acquire()
@@ -955,8 +1095,7 @@ class LxEuclidConfig:
                     self.lx_hardware.set_gate(
                         self.computation_index, euclidean_rhythm.gate_length_ms)
             self.computation_index = self.computation_index + 1
-        # tim_callback_clear_gates = Timer(period=T_GATE_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_gates)
-        # tim_callback_clear_gates = Timer(period=T_CLK_LED_ON_MS, mode=Timer.ONE_SHOT, callback=self.callback_clear_led)
+
         if self.state == LxEuclidConstant.STATE_LIVE:
             self.lx_hardware.set_tap_led()
             self.last_gate_led_event = ticks_ms()
@@ -1127,8 +1266,7 @@ class LxEuclidConfig:
             cv_prefix = f"cv_{cv_index}_"
             self.dict_data[cv_prefix+"a"] = cv_data.cv_action
             self.dict_data[cv_prefix+"r"] = cv_data.cv_action_rhythm
-            self.dict_data[cv_prefix+"b"] = cv_data.cvs_bound_index
-        #split tap tempo in lsb and msb    
+        # split tap tempo in lsb and msb
         local_tap_tempo = self.tap_delay_ms
         self.dict_data["t_t_l"] = local_tap_tempo & 0xff
         self.dict_data["t_t_h"] = (local_tap_tempo >> 8) & 0xff
@@ -1256,14 +1394,14 @@ class LxEuclidConfig:
                         incr_addr(eeprom_addr))
                     cv_data.cv_action_rhythm = self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr))
-                    cv_data.cvs_bound_index = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
-                    
-                #get back splitted tap tempo in lsb and msb    
-                tap_tempo_lsb = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))
-                tap_tempo_msb = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))
-                
-                self.tap_delay_ms = tap_tempo_lsb + (tap_tempo_msb<<8)
+
+                # get back splitted tap tempo in lsb and msb
+                tap_tempo_lsb = self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr))
+                tap_tempo_msb = self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr))
+
+                self.tap_delay_ms = tap_tempo_lsb + (tap_tempo_msb << 8)
 
                 self.create_memory_dict()
                 self.previous_dict_data_list = list(self.dict_data.values())
@@ -1298,16 +1436,20 @@ class LxEuclidConfig:
                         self.euclidean_rhythms[euclidean_rhythm_index].reset_step(
                         )
                     elif cv_action == CvAction.CV_ACTION_BEATS:
-                        self.euclidean_rhythms[euclidean_rhythm_index].set_beats_in_percent(
+                        self.euclidean_rhythms[euclidean_rhythm_index].has_cv_beat = True
+                        self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_beat(
                             percent_value)
                     elif cv_action == CvAction.CV_ACTION_PULSES:
-                        self.euclidean_rhythms[euclidean_rhythm_index].set_pulses_in_percent(
+                        self.euclidean_rhythms[euclidean_rhythm_index].has_cv_pulse = True
+                        self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_pulse(
                             percent_value)
                     elif cv_action == CvAction.CV_ACTION_ROTATION:
-                        self.euclidean_rhythms[euclidean_rhythm_index].set_offset_in_percent(
+                        self.euclidean_rhythms[euclidean_rhythm_index].has_cv_offset = True
+                        self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_offset(
                             percent_value)
                     elif cv_action == CvAction.CV_ACTION_PROBABILITY:
-                        self.euclidean_rhythms[euclidean_rhythm_index].set_pulses_probability_in_percent(
+                        self.euclidean_rhythms[euclidean_rhythm_index].has_cv_prob = True
+                        self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_probability(
                             percent_value)
                     elif cv_action == CvAction.CV_ACTION_FILL:
                         if percent_value > LOW_PERCENTAGE_RISING_THRESHOLD:
