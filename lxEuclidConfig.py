@@ -16,7 +16,7 @@ MAJOR_E_ADDR = const(0)
 MINOR_E_ADDR = const(1)
 FIX_E_ADDR = const(2)
 
-CV_PAGE_MAX = 3
+CV_PAGE_MAX = 2
 PRESET_PAGE_MAX = 2
 PADS_PAGE_MAX = 2
 
@@ -90,6 +90,17 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.current_step = 0
         self.prescaler = PRESCALER_LIST[prescaler_index]
         self.prescaler_rhythm_counter = 0
+        
+        # CV linked attributes
+        has_cv_beat = False
+        has_cv_pulse = False
+        has_cv_offset = False
+        has_cv_prob = False
+        
+        cv_percent_beat = int(0)
+        cv_percent_pulse = int(0)
+        cv_percent_offset = int(0)
+        cv_percent_prob = int(0)
 
         # this var is used to know if we need to keep the pulses stable to 0 and 1 even if
         # it's supposed to change by cv or pads
@@ -282,7 +293,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.rhythm = [1]*self.beats
         else:
             if self.algo_index == 0:
-                self.__set_rhythm_bjorklund()
+                self.rhythm = self.__set_rhythm_bjorklund(self.beats, self.pulses)
             elif self.algo_index == 1:
                 self.rhythm = self.__exponential_rhythm(
                     self.beats, self.pulses)
@@ -294,12 +305,12 @@ class EuclideanRhythm(EuclideanRhythmParameters):
                     self.beats, self.pulses)
 
     # from https://github.com/brianhouse/bjorklund/tree/master
-    def __set_rhythm_bjorklund(self):
+    def __set_rhythm_bjorklund(self, beats, pulses):
         pattern = []
         counts = []
         remainders = []
-        divisor = self.beats - self.pulses
-        remainders.append(self.pulses)
+        divisor = beats - pulses
+        remainders.append(pulses)
         level = 0
         while True:
             counts.append(divisor // remainders[level])
@@ -324,7 +335,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         build(level)
         i = pattern.index(1)
         pattern = pattern[i:] + pattern[0:i]
-        self.rhythm = pattern
+        return pattern
 
     def __exponential_rhythm(self, beats, pulses, reverse=False):
         if pulses == 0:
@@ -828,9 +839,6 @@ class LxEuclidConfig:
                             self.euclidean_rhythms[out_index].unfill()
                         elif cv_action == CvAction.CV_ACTION_MUTE:
                             self.euclidean_rhythms[out_index].unmute()
-                else:  # cv bound
-                    cv_bound_index = angle_to_index(angle_inner, 4)
-                    self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cvs_bound_index = cv_bound_index
 
                 self.save_data()
                 self.init_cvs_parameters()
@@ -1176,7 +1184,6 @@ class LxEuclidConfig:
             cv_prefix = f"cv_{cv_index}_"
             self.dict_data[cv_prefix+"a"] = cv_data.cv_action
             self.dict_data[cv_prefix+"r"] = cv_data.cv_action_rhythm
-            self.dict_data[cv_prefix+"b"] = cv_data.cvs_bound_index
         #split tap tempo in lsb and msb    
         local_tap_tempo = self.tap_delay_ms
         self.dict_data["t_t_l"] = local_tap_tempo & 0xff
@@ -1304,8 +1311,6 @@ class LxEuclidConfig:
                     cv_data.cv_action = self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr))
                     cv_data.cv_action_rhythm = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
-                    cv_data.cvs_bound_index = self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr))
                     
                 #get back splitted tap tempo in lsb and msb    

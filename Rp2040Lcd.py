@@ -523,19 +523,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     "Ch3", 101, 213, txt_colors[2])
                 self.font_writer_freesans20.text(
                     "Ch4", 2, 110, txt_colors[3])
-            else:
-                txt_colors = [txt_color]*4
-                cvs_bound_index = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
-                    cv_index].cvs_bound_index
-                txt_colors[cvs_bound_index] = txt_color_highlight
-                self.font_writer_freesans20.text(
-                    "-5..5V", 95, 12, txt_colors[0])
-                self.font_writer_freesans20.text(
-                    "0..5V", 190, 110, txt_colors[1])
-                self.font_writer_freesans20.text(
-                    "0..1V", 101, 213, txt_colors[2])
-                self.font_writer_freesans20.text(
-                    "0..2V", 2, 110, txt_colors[3])
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS:
 

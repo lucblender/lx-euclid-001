@@ -34,14 +34,10 @@ class CvAction:
 
 class CvData:
 
-    def __init__(self, cv_action, cv_action_rhythm, cvs_bound_index):
+    def __init__(self, cv_action, cv_action_rhythm):
         self.cv_action = cv_action
         self.cv_action_rhythm = cv_action_rhythm
-        self.cvs_bound_index = cvs_bound_index
-
-    @property
-    def cvs_bound(self):
-        return CV_BOUNDS[self.cvs_bound_index]
+        self.cvs_bound = [CV_MINUS_5V, CV_5V]
 
     def flip_action_rhythm(self, index):
         previous_cv_action_rhythm = self.cv_action_rhythm
@@ -65,12 +61,12 @@ class CvManager:
         self.__raw_values = [0, 0, 0, 0]
         self.percent_values = [0, 0, 0, 0]
 
-        self.cvs_data = [CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=1, cvs_bound_index=0),
+        self.cvs_data = [CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=1),
                          CvData(cv_action=CvAction.CV_ACTION_NONE,
-                                cv_action_rhythm=2, cvs_bound_index=0),
+                                cv_action_rhythm=2),
                          CvData(cv_action=CvAction.CV_ACTION_NONE,
-                                cv_action_rhythm=4, cvs_bound_index=0),
-                         CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=8, cvs_bound_index=0)]
+                                cv_action_rhythm=4),
+                         CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=8)]
 
         self.current_channel_measure = 0
         self.in_measure = False
