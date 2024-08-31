@@ -91,16 +91,23 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.prescaler = PRESCALER_LIST[prescaler_index]
         self.prescaler_rhythm_counter = 0
         
-        # CV linked attributes
-        has_cv_beat = False
-        has_cv_pulse = False
-        has_cv_offset = False
-        has_cv_prob = False
+        # var used in get_current_step function. Since it's called in interrupt we can't create memory
+        # so we create those buffer before
+        self.get_current_step_offset = 0
+        self.get_current_step_beats = 0
+        self.global_cv_offset = 0
+        self.global_cv_probability = 0
         
-        cv_percent_beat = int(0)
-        cv_percent_pulse = int(0)
-        cv_percent_offset = int(0)
-        cv_percent_prob = int(0)
+        # CV linked attributes
+        self.has_cv_beat = False
+        self.has_cv_pulse = False
+        self.has_cv_offset = False
+        self.has_cv_prob = False
+        
+        self.cv_percent_beat = int(0)
+        self.cv_percent_pulse = int(0)
+        self.cv_percent_offset = int(0)
+        self.cv_percent_prob = int(0)
 
         # this var is used to know if we need to keep the pulses stable to 0 and 1 even if
         # it's supposed to change by cv or pads
@@ -114,7 +121,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
         self.rhythm = []
         self.set_rhythm()
-
+        
     @property
     def prescaler_index(self):
         return self._prescaler_index
@@ -157,8 +164,21 @@ class EuclideanRhythm(EuclideanRhythmParameters):
     def decr_offset(self,):
         self.offset = (self.offset - 1) % self.beats
 
-    def set_offset_in_percent(self, percent):
-        self.offset = int(self.beats*percent/100)
+    #def set_offset_in_percent(self, percent):
+    #    self.offset = int(self.beats*percent/100)
+        
+    def set_cv_percent_offset(self, percent):
+        self.cv_percent_offset = percent
+        # compute direcctly the global offset for later use in the interrupt function
+        self.global_cv_offset = self.offset+int(len(self.rhythm)*self.cv_percent_offset/100)
+        
+    def set_cv_percent_probability(self, percent):
+        self.cv_percent_prob = percent
+        # compute direcctly the global probability for later use in the interrupt function
+        probability = self.pulses_probability+self.cv_percent_prob        
+        self.global_cv_probability = min(100,(max(0,probability)))
+        print("global_cv_probability",self.global_cv_probability)
+
 
     def incr_beats(self):
         if self.beats != MAX_BEATS:
@@ -179,25 +199,39 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         if not self.pulses_set_0_1:
             self.set_pulses_per_ratio()
         self.set_rhythm()
-
-    def set_beats_in_percent(self, percent):
-        temp_beats = int(percent*MAX_BEATS/100)
-        self.beats = max(1, min(temp_beats, MAX_BEATS))
-        if self.offset > self.beats:
-            self.offset = self.beats
-
+        
+    def set_cv_percent_beat(self,percent):
+        self.cv_percent_beat = percent
+        
         if not self.pulses_set_0_1:
             self.set_pulses_per_ratio()
         self.set_rhythm()
 
-    def set_pulses_per_ratio(self):
-        computed_pulses_per_ratio = round(self.beats*self.__pulses_ratio)
-        self.pulses = max(1, (min(self.beats, computed_pulses_per_ratio)))
+    #def set_beats_in_percent(self, percent):
+    #    temp_beats = int(percent*MAX_BEATS/100)
+    #    self.beats = max(1, min(temp_beats, MAX_BEATS))
+    #    if self.offset > self.beats:
+    #        self.offset = self.beats
 
-    def set_pulses_in_percent(self, percent):
-        self.__pulses_ratio = percent/100
-        self.set_pulses_per_ratio()
+    #    if not self.pulses_set_0_1:
+    #        self.set_pulses_per_ratio()
+    #    self.set_rhythm()
+
+    def __compute_pulses_per_ratio(self,local_beat):
+        computed_pulses_per_ratio = round(local_beat*self.__pulses_ratio)
+        return max(1, (min(local_beat, computed_pulses_per_ratio)))
+    
+    def set_pulses_per_ratio(self):
+        self.pulses = self.__compute_pulses_per_ratio(self.beats)
+
+    def set_cv_percent_pulse(self, percent):        
+        self.cv_percent_pulse = percent
         self.set_rhythm()
+
+   # def set_pulses_in_percent(self, percent):
+   #     self.__pulses_ratio = percent/100
+   #     self.set_pulses_per_ratio()
+   #     self.set_rhythm()
 
     def incr_pulses(self):
         self.pulses = self.pulses + 1
@@ -229,15 +263,12 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         if self.pulses_probability != 0:
             self.pulses_probability = self.pulses_probability - 5
 
-    def set_pulses_probability_in_percent(self, percent):
-        self.pulses_probability = int(percent/5)*5
-
     def incr_step(self):
         to_return = False
         if self.prescaler_rhythm_counter == 0:
             self.current_step = self.current_step + 1
 
-            beat_limit = self.beats-1
+            beat_limit = len(self.rhythm)-1
 
             if self.current_step > beat_limit:
                 self.current_step = 0
@@ -265,44 +296,81 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.current_step = 0
         self.prescaler_rhythm_counter = 0
 
-    def get_current_step(self):
-        to_return = self.rhythm[(
-            self.current_step-self.offset) % len(self.rhythm)]
-        if to_return == 0:
-            return 0
-        else:
-            if self.pulses_probability == 100:
-                return to_return
-            elif randint(0, 100) < self.pulses_probability:
-                return to_return
-            else:
-                return 0
+    def get_current_step(self):        
+        try:
+            self.get_current_step_offset = self.offset
+            self.get_current_step_beats = len(self.rhythm)
+            if self.has_cv_offset: 
+                self.get_current_step_offset = self.global_cv_offset
 
-    def set_rhythm(self):
-        if self.pulses > self.beats:
-            raise ValueError
+            to_return = self.rhythm[(
+                self.current_step-self.get_current_step_offset) % self.get_current_step_beats]
+
+            if to_return == 0:
+                return 0
+            else:
+                if self.has_cv_prob:                      
+                    if self.global_cv_probability == 100:
+                        return to_return                    
+                    elif randint(0, 100) < self.global_cv_probability:
+                        return to_return
+                    else:
+                        return 0
+                else:                
+                    if self.pulses_probability == 100:
+                        return to_return                    
+                    elif randint(0, 100) < self.pulses_probability:
+                        return to_return
+                    else:
+                        return 0
+        except Exception as e:
+            print(e, "x")
+                
+
+    def set_rhythm(self):        
+        local_beats = self.beats
+        local_pulse = self.pulses
+        
+        if self.has_cv_beat:
+            local_beats = local_beats+int(MAX_BEATS*self.cv_percent_beat/100)           
+            if not self.pulses_set_0_1:
+                local_pulse = self.__compute_pulses_per_ratio(local_beats)
+        if self.has_cv_pulse:
+            local_pulse = local_pulse+int(local_beats*self.cv_percent_pulse/100)
+        # range back beats from 1 to MAX_BEATS
+        if local_beats > MAX_BEATS:
+            local_beats = MAX_BEATS
+        elif local_beats < 0:
+            local_beats = 1
+   
+       # range back from 0 to current beat number
+        if local_pulse > local_beats:
+            local_pulse = local_beats
+        elif local_pulse < 0:
+            local_pulse = 0        
+        
         if self.is_mute:
-            self.rhythm = [0]*self.beats
+            self.rhythm = [0]*local_beats
         elif self.is_fill:
-            self.rhythm = [1]*self.beats
-        elif self.pulses == 0:
-            self.rhythm = [0]*self.beats
-        elif self.pulses == 1:
-            self.rhythm = [1]*1+[0]*(self.beats-1)
-        elif self.beats == self.pulses:
-            self.rhythm = [1]*self.beats
+            self.rhythm = [1]*local_beats
+        elif local_pulse == 0:
+            self.rhythm = [0]*local_beats
+        elif local_pulse == 1:
+            self.rhythm = [1]*1+[0]*(local_beats-1)
+        elif local_beats == local_pulse:
+            self.rhythm = [1]*local_beats
         else:
             if self.algo_index == 0:
-                self.rhythm = self.__set_rhythm_bjorklund(self.beats, self.pulses)
+                self.rhythm = self.__set_rhythm_bjorklund(local_beats, local_pulse)
             elif self.algo_index == 1:
                 self.rhythm = self.__exponential_rhythm(
-                    self.beats, self.pulses)
+                    local_beats, local_pulse)
             elif self.algo_index == 2:
                 self.rhythm = self.__exponential_rhythm(
-                    self.beats, self.pulses, True)
+                    local_beats, local_pulse, True)
             else:
                 self.rhythm = self.__symmetric_exponential(
-                    self.beats, self.pulses)
+                    local_beats, local_pulse)
 
     # from https://github.com/brianhouse/bjorklund/tree/master
     def __set_rhythm_bjorklund(self, beats, pulses):
@@ -1352,17 +1420,25 @@ class LxEuclidConfig:
                         self.euclidean_rhythms[euclidean_rhythm_index].reset_step(
                         )
                     elif cv_action == CvAction.CV_ACTION_BEATS:
-                        self.euclidean_rhythms[euclidean_rhythm_index].set_beats_in_percent(
-                            percent_value)
-                    elif cv_action == CvAction.CV_ACTION_PULSES:
-                        self.euclidean_rhythms[euclidean_rhythm_index].set_pulses_in_percent(
-                            percent_value)
+                        #todo set and reset has_cv_beat at the correct place
+                        print("has_cv_beat", euclidean_rhythm_index,percent_value)
+                        self.euclidean_rhythms[euclidean_rhythm_index].has_cv_beat = True
+                        self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_beat(percent_value)
+                    elif cv_action == CvAction.CV_ACTION_PULSES:             
+                        #todo set and reset has_cv_beat at the correct place     
+                        print("before CV_ACTION_PULSES")      
+                        self.euclidean_rhythms[euclidean_rhythm_index].has_cv_pulse = True
+                        self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_pulse(percent_value)
+                        print("after CV_ACTION_PULSES")
                     elif cv_action == CvAction.CV_ACTION_ROTATION:
-                        self.euclidean_rhythms[euclidean_rhythm_index].set_offset_in_percent(
-                            percent_value)
+                        #todo set and reset has_cv_offset at the correct place    
+                        self.euclidean_rhythms[euclidean_rhythm_index].has_cv_offset = True
+                        self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_offset(percent_value)
+                        
                     elif cv_action == CvAction.CV_ACTION_PROBABILITY:
-                        self.euclidean_rhythms[euclidean_rhythm_index].set_pulses_probability_in_percent(
-                            percent_value)
+                        #todo set and reset has_cv_prob at the correct place  
+                        self.euclidean_rhythms[euclidean_rhythm_index].has_cv_prob = True
+                        self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_probability(percent_value)
                     elif cv_action == CvAction.CV_ACTION_FILL:
                         if percent_value > LOW_PERCENTAGE_RISING_THRESHOLD:
                             self.euclidean_rhythms[euclidean_rhythm_index].fill(

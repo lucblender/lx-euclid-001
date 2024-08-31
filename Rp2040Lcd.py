@@ -22,12 +22,6 @@ DEBUG = False
 LX_LOGO = const("helixbyte_r5g6b5.bin")
 PARAM = const("param.bin")
 
-
-def debug_print(*txt):
-    if DEBUG:
-        print(txt)
-
-
 def rgb888_to_rgb565(R: int, G: int, B: int):  # Convert RGB888 to RGB565
     return const((((G & 0b00011100) << 3) + ((B & 0b11111000) >> 3) << 8) + (R & 0b11111000)+((G & 0b11100000) >> 5))
 
@@ -283,7 +277,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.write_cmd(0x29)
 
     def show(self):
-        a = ticks_ms()
         self.write_cmd_data(0x2A, [0x00, 0x00, 0x00, 0xef])
 
         self.write_cmd_data(0x2B, [0x00, 0x00, 0x00, 0xEF])
@@ -295,7 +288,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.cs(0)
         self.spi.write(self.buffer)
         self.cs(1)
-        debug_print("show", ticks_ms()-a)
 
     def circle(self, x, y, radius, color, filled):
         self.ellipse(x, y, radius, radius, color, filled)
@@ -667,15 +659,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.display_rhythm_circles()
 
         self.show()
-
-        debug_print("after show", ticks_ms()-pre_tick)
         self.fill(self.black)
-        debug_print("fill black", ticks_ms()-pre_tick)
-        debug_print("display rhthms", ticks_ms()-pre_tick)
-        debug_print(" ")
 
     def display_rhythm_circles(self):
-        pre_tick = ticks_ms()
         radius = 110
         offset_radius = self.OFFSET_RADIUS_LIVE
         rhythm_index = 0
@@ -713,10 +699,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, radius, beat_color, False)
 
             local_current_step = euclidieanRhythm.current_step
-            local_offset = euclidieanRhythm.offset
+            
+            local_offset = euclidieanRhythm.offset            
+            if euclidieanRhythm.has_cv_offset: 
+                local_offset = euclidieanRhythm.global_cv_offset
+            
             local_rhythm = euclidieanRhythm.rhythm.copy()
 
             len_euclidiean_rhythm = len(local_rhythm)
+            
             degree_step = 360/len_euclidiean_rhythm
 
             coord = None
@@ -730,8 +721,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                 local_beat_coord[rhythm_index][0] = len_euclidiean_rhythm
                 local_beat_coord[rhythm_index][1] = coords.copy()
-
-            a = ticks_ms()
 
             for index in range(0, len_euclidiean_rhythm):
                 coord = coords[index]
@@ -755,8 +744,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
             radius = radius - offset_radius
             rhythm_index = rhythm_index + 1
 
-            debug_print("display rhythm", ticks_ms()-a)
-        debug_print("display_rhythm_circles", ticks_ms()-pre_tick)
 
     # # Draw the approximate pie slice
     # # Define a function to draw an approximate pie slice
@@ -784,4 +771,3 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
     #     # Draw the polygon
     #     self.poly(0, 0, array("h", points), color, True)
-    #     debug_print("draw_approx_pie_slice", ticks_ms()-a)

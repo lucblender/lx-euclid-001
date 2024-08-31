@@ -9,14 +9,10 @@ MAX = const(1)
 LOW_PERCENTAGE_RISING_THRESHOLD = const(25)
 RISING_DIFFERENCE_THRESHOLD = const(50)
 
-CV_5V = const(2000)
-CV_0V = const(14740)
-CV_1V = const(12192)
-CV_2V = const(9644)
-CV_MINUS_5V = const(27000)
-
-CV_BOUNDS = [[CV_MINUS_5V, CV_5V], [
-    CV_0V, CV_5V], [CV_0V, CV_1V], [CV_0V, CV_2V]]
+# f(x) ~= -2379x+14777
+CV_5V = const(2882)
+CV_0V = const(14777)
+CV_MINUS_5V = const(26672)
 
 CV_RHYTHM_MASKS = [const(1), const(2), const(4), const(8)]
 
@@ -93,7 +89,9 @@ class CvManager:
 
         return to_return
 
-    def __compute_percent_cv(self, channel):
+    # percent are both positive and negative: -5V = -100%; 0V = 0%; 5V = 100%;
+    def __compute_percent_cv(self, channel):        
         value = 100-int((self.cvs_data[channel].cvs_bound[MAX]-self.__raw_values[channel])/(
-            self.cvs_data[channel].cvs_bound[MAX]-self.cvs_data[channel].cvs_bound[MIN])*100)
-        self.percent_values[channel] = max(0, (min(100, value)))
+            self.cvs_data[channel].cvs_bound[MAX]-self.cvs_data[channel].cvs_bound[MIN])*200)
+        
+        self.percent_values[channel] = max(-100, (min(100, value)))
