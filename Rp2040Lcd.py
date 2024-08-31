@@ -22,6 +22,7 @@ DEBUG = False
 LX_LOGO = const("helixbyte_r5g6b5.bin")
 PARAM = const("param.bin")
 
+
 def rgb888_to_rgb565(R: int, G: int, B: int):  # Convert RGB888 to RGB565
     return const((((G & 0b00011100) << 3) + ((B & 0b11111000) >> 3) << 8) + (R & 0b11111000)+((G & 0b11100000) >> 5))
 
@@ -80,7 +81,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.rhythm_colors_highlight = [rgb888_to_rgb565(253, 168, 94), rgb888_to_rgb565(
             255, 83, 61), rgb888_to_rgb565(176, 196, 255), rgb888_to_rgb565(195, 250, 240), self.white]
-        
+
         self.un_selected_color = self.grey
         self.selected_color = self.rhythm_colors_highlight[3]
 
@@ -292,11 +293,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def circle(self, x, y, radius, color, filled):
         self.ellipse(x, y, radius, radius, color, filled)
 
-    def display_programming_mode(self):
-        self.fill(self.white)
-        self.text("Programming mode", 30, 60, self.black)
-        self.show()
-
     def display_error(self, error_message):
         self.fill(self.white)
         error_message = error_message.split("\n")
@@ -406,7 +402,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 42-13, self.black, True)
 
-            self.font_writer_freesans20.text("Macro", 94, 110, txt_color_highlight)
+            self.font_writer_freesans20.text(
+                "Macro", 94, 110, txt_color_highlight)
 
             page = self.lx_euclid_config.param_pads_page
             page_color = self.rhythm_colors_highlight[0]
@@ -474,7 +471,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 42-13, self.black, True)
 
             cv_index_txt = f"CV {cv_index+1}"
-            self.font_writer_freesans20.text(cv_index_txt, 100, 110, txt_color_highlight)
+            self.font_writer_freesans20.text(
+                cv_index_txt, 100, 110, txt_color_highlight)
 
             page = self.lx_euclid_config.param_cvs_page
             page_color = self.rhythm_colors_highlight[0]
@@ -690,24 +688,30 @@ class LCD_1inch28(framebuf.FrameBuffer):
             elif local_state == LxEuclidConstant.STATE_LIVE:
                 if euclidieanRhythm.is_mute:
                     beat_color = self.grey
-                    beat_color_hightlight = self.grey                    
+                    beat_color_hightlight = self.grey
                 elif euclidieanRhythm.is_fill:
                     beat_color = self.rhythm_colors_highlight[rhythm_index]
                     beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
-                    
 
             self.circle(120, 120, radius, beat_color, False)
 
             local_current_step = euclidieanRhythm.current_step
-            
-            local_offset = euclidieanRhythm.offset            
-            if euclidieanRhythm.has_cv_offset: 
+
+            local_offset = euclidieanRhythm.offset
+            if euclidieanRhythm.has_cv_offset:
                 local_offset = euclidieanRhythm.global_cv_offset
-            
+
             local_rhythm = euclidieanRhythm.rhythm.copy()
 
             len_euclidiean_rhythm = len(local_rhythm)
-            
+
+            # in the case of an empty rhythm (probably because of multi-threading)
+            # we put a simple rhythm of 1... it's not optimal can cause visual glitch
+            # but this solution saves times and help us stay real-time with rhythm
+            if len_euclidiean_rhythm == 0:
+                len_euclidiean_rhythm = 1
+                local_rhythm = [0]
+
             degree_step = 360/len_euclidiean_rhythm
 
             coord = None
@@ -743,7 +747,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             radius = radius - offset_radius
             rhythm_index = rhythm_index + 1
-
 
     # # Draw the approximate pie slice
     # # Define a function to draw an approximate pie slice

@@ -90,8 +90,8 @@ class CvManager:
         return to_return
 
     # percent are both positive and negative: -5V = -100%; 0V = 0%; 5V = 100%;
-    def __compute_percent_cv(self, channel):        
+    def __compute_percent_cv(self, channel):
         value = 100-int((self.cvs_data[channel].cvs_bound[MAX]-self.__raw_values[channel])/(
             self.cvs_data[channel].cvs_bound[MAX]-self.cvs_data[channel].cvs_bound[MIN])*200)
-        
+
         self.percent_values[channel] = max(-100, (min(100, value)))
