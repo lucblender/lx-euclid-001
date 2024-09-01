@@ -120,6 +120,10 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
         self.is_mute = False
         self.is_fill = False
+        
+        # is used to clear mute and fill only if macro or only if cv
+        self.mute_by_macro = False
+        self.fill_by_macro = False
 
         self.rhythm = []
         self.set_rhythm()
@@ -133,28 +137,34 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self._prescaler_index = prescaler_index
         self.prescaler = PRESCALER_LIST[self._prescaler_index]
 
-    def mute(self):
+    def mute(self, mute_by_macro = False):
         self.is_mute = True
+        self.mute_by_macro = mute_by_macro
         self.set_rhythm()
 
     def unmute(self):
         self.is_mute = False
         self.set_rhythm()
 
-    def invert_mute(self):
+    def invert_mute(self, mute_by_macro = False):
         self.is_mute = not self.is_mute
+        if self.is_mute:
+            self.mute_by_macro = mute_by_macro
         self.set_rhythm()
 
-    def fill(self):
+    def fill(self, fill_by_macro = False):
         self.is_fill = True
+        self.fill_by_macro = fill_by_macro
         self.set_rhythm()
 
     def unfill(self):
         self.is_fill = False
         self.set_rhythm()
 
-    def invert_fill(self):
+    def invert_fill(self, fill_by_macro = False):
         self.is_fill = not self.is_fill
+        if self.is_fill:
+            self.fill_by_macro = fill_by_macro
         self.set_rhythm()
 
     def set_offset(self, offset):
@@ -675,9 +685,9 @@ class LxEuclidConfig:
                     if rotate_action == LxEuclidConstant.CIRCLE_ACTION_RESET:                              
                         self.euclidean_rhythms[menu_selection_index].reset_step()                    
                     elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
-                        self.euclidean_rhythms[menu_selection_index].invert_fill()
+                        self.euclidean_rhythms[menu_selection_index].invert_fill(fill_by_macro = True)
                     elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:                        
-                        self.euclidean_rhythms[menu_selection_index].invert_mute()
+                        self.euclidean_rhythms[menu_selection_index].invert_mute(mute_by_macro = True)
                         
                     self.action_display_index = menu_selection_index
                         
@@ -809,12 +819,12 @@ class LxEuclidConfig:
                     # make sure to reset fill and mute if we remove it from a rotate action
                     if previous_rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
                         for euclidean_rhythm_index in range(0, 4):
-                            if action_rhythm & (1 << euclidean_rhythm_index) != 0:
+                            if self.euclidean_rhythms[euclidean_rhythm_index].fill_by_macro and self.euclidean_rhythms[euclidean_rhythm_index].is_fill:
                                 self.euclidean_rhythms[euclidean_rhythm_index].unfill(
                                 )
                     elif previous_rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
                         for euclidean_rhythm_index in range(0, 4):
-                            if action_rhythm & (1 << euclidean_rhythm_index) != 0:
+                            if self.euclidean_rhythms[euclidean_rhythm_index].mute_by_macro and self.euclidean_rhythms[euclidean_rhythm_index].is_mute:
                                 self.euclidean_rhythms[euclidean_rhythm_index].unmute(
                                 )
 
@@ -824,22 +834,12 @@ class LxEuclidConfig:
                         previous_inner_action_rhythm = self.inner_action_rhythm
                         self.inner_action_rhythm = self.inner_action_rhythm ^ (
                             1 << out_index)
-                        # we removed a channel from a pad action, we need to clean it
-                        if (self.inner_action_rhythm > previous_inner_action_rhythm) == 0:
-                            if self.inner_rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
-                                self.euclidean_rhythms[out_index].unfill()
-                            elif self.inner_rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
-                                self.euclidean_rhythms[out_index].unmute()
+                       
                     else:  # outer
                         previous_outer_action_rhythm = self.outer_action_rhythm
                         self.outer_action_rhythm = self.outer_action_rhythm ^ (
                             1 << out_index)
-                        # we removed a channel from a pad action, we need to clean it
-                        if (self.outer_action_rhythm > previous_outer_action_rhythm) == 0:
-                            if self.outer_rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
-                                self.euclidean_rhythms[out_index].unfill()
-                            elif self.outer_rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
-                                self.euclidean_rhythms[out_index].unmute()
+                       
                 self.save_data()
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.param_pads_page = (self.param_pads_page+1) % PADS_PAGE_MAX
@@ -871,17 +871,16 @@ class LxEuclidConfig:
                     # make sure to reset fill and mute if we remove it from a cv action
                     for euclidean_rhythm_index in range(0, 4):
                         if cv_action_rhythm & (1 << euclidean_rhythm_index) != 0:
-                            if previous_cv_action == CvAction.CV_ACTION_FILL:
+                            if previous_cv_action == CvAction.CV_ACTION_FILL and not self.euclidean_rhythms[euclidean_rhythm_index].fill_by_macro:
                                 self.euclidean_rhythms[euclidean_rhythm_index].unfill(
                                 )
-                            elif previous_cv_action == CvAction.CV_ACTION_MUTE:
+                            elif previous_cv_action == CvAction.CV_ACTION_MUTE and not self.euclidean_rhythms[euclidean_rhythm_index].mute_by_macro:
                                 self.euclidean_rhythms[euclidean_rhythm_index].unmute(
                                 )
                             elif previous_cv_action == CvAction.CV_ACTION_BEATS:
                                 self.euclidean_rhythms[euclidean_rhythm_index].has_cv_beat = False
                                 self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
                                 )
-                                print("897")
                             elif previous_cv_action == CvAction.CV_ACTION_PULSES:
                                 self.euclidean_rhythms[euclidean_rhythm_index].has_cv_pulse = False
                                 self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
@@ -901,9 +900,9 @@ class LxEuclidConfig:
                         out_index)
                     if flip_result == 0:  # we removed a channel from a cv action, we need to clean it
                         cv_action = self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cv_action
-                        if cv_action == CvAction.CV_ACTION_FILL:
+                        if cv_action == CvAction.CV_ACTION_FILL and not self.euclidean_rhythms[out_index].fill_by_macro:
                             self.euclidean_rhythms[out_index].unfill()
-                        elif cv_action == CvAction.CV_ACTION_MUTE:
+                        elif cv_action == CvAction.CV_ACTION_MUTE and not self.euclidean_rhythms[out_index].mute_by_macro:
                             self.euclidean_rhythms[out_index].unmute()
                         elif cv_action == CvAction.CV_ACTION_BEATS:
                             self.euclidean_rhythms[out_index].has_cv_beat = False
