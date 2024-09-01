@@ -72,6 +72,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.white = const(0xffff)
         self.black = const(0x0000)
         self.grey = rgb888_to_rgb565(85, 85, 85)
+        self.light_grey = rgb888_to_rgb565(120,120,120)
         self.touch_circle_color_highlight = rgb888_to_rgb565(255, 221, 0)
         self.touch_circle_color = rgb888_to_rgb565(176, 157, 34)
 
@@ -441,13 +442,19 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                 if self.lx_euclid_config.param_pads_inner_outer == 0:  # inner
                     action_rhythm = self.lx_euclid_config.inner_action_rhythm
+                    rotate_action = self.lx_euclid_config.inner_rotate_action
                 else:  # outer
                     action_rhythm = self.lx_euclid_config.outer_action_rhythm
+                    rotate_action = self.lx_euclid_config.outer_rotate_action
 
                 for i in range(0, 4):
                     # action_rhythm are stored by bit
                     if action_rhythm & (1 << i) != 0:
-                        txt_colors[i] = txt_color_highlight
+                        if rotate_action in [LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_FILL, LxEuclidConstant.CIRCLE_ACTION_MUTE, LxEuclidConstant.CIRCLE_ACTION_RESET]:
+                            txt_colors[i] = self.light_grey                        
+                        else:
+                            txt_colors[i] = txt_color_highlight
+                        
                 self.font_writer_freesans20.text(
                     "Ch1", 101, 12, txt_colors[0])
                 self.font_writer_freesans20.text(

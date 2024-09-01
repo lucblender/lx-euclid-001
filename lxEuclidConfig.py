@@ -25,8 +25,10 @@ PRESCALER_LIST = [1, 2, 3, 4, 8, 16]
 # pass from 360° (in capacitive circle referential) to 0..steps
 
 
-def angle_to_index(angle, steps):
+def angle_to_index(angle, steps, offset_45 = False):
     angle = 180 - angle
+    if offset_45 == True:
+        angle = angle + 45
     step_angle = 360/steps
     return int((int(((angle+(step_angle/2)) % 360)/step_angle)) % steps)
 
@@ -662,33 +664,26 @@ class LxEuclidConfig:
                 if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                     rotate_action = self.inner_rotate_action
                     action_rhythm = self.inner_action_rhythm
+                    angle = self.lx_hardware.capacitives_circles.inner_circle_angle
                 else:
                     rotate_action = self.outer_rotate_action
                     action_rhythm = self.outer_action_rhythm
-                if rotate_action in [LxEuclidConstant.CIRCLE_ACTION_RESET, LxEuclidConstant.CIRCLE_ACTION_FILL, LxEuclidConstant.CIRCLE_ACTION_MUTE] and action_rhythm != 0:
-                    for euclidean_rhythm_index in range(0, 4):
-                        if action_rhythm & (1 << euclidean_rhythm_index) != 0:
-                            if rotate_action == LxEuclidConstant.CIRCLE_ACTION_RESET:  # wip
-                                self.euclidean_rhythms[euclidean_rhythm_index].reset_step(
-                                )
-                            elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
-                                self.euclidean_rhythms[euclidean_rhythm_index].invert_fill(
-                                )
-                            elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
-                                self.euclidean_rhythms[euclidean_rhythm_index].invert_mute(
-                                )
+                    angle = self.lx_hardware.capacitives_circles.outer_circle_angle
+                if rotate_action in [LxEuclidConstant.CIRCLE_ACTION_RESET, LxEuclidConstant.CIRCLE_ACTION_FILL, LxEuclidConstant.CIRCLE_ACTION_MUTE]:
+                    menu_selection_index = angle_to_index(angle, 4)
+                    
+                    if rotate_action == LxEuclidConstant.CIRCLE_ACTION_RESET:                              
+                        self.euclidean_rhythms[menu_selection_index].reset_step()                    
+                    elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
+                        self.euclidean_rhythms[menu_selection_index].invert_fill()
+                    elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:                        
+                        self.euclidean_rhythms[menu_selection_index].invert_mute()
+                        
+                    self.action_display_index = menu_selection_index
+                        
                     self.action_display_info = "~"
                     self.need_circle_action_display = True
-                    if action_rhythm == 1:  # circle action only affect one rhythm
-                        self.action_display_index = 0
-                    elif action_rhythm == 2:
-                        self.action_display_index = 1
-                    elif action_rhythm == 4:
-                        self.action_display_index = 2
-                    elif action_rhythm == 8:
-                        self.action_display_index = 3
-                    else:  # circle action only affect multiple rhythm --> color will be white
-                        self.action_display_index = 4
+                   
             elif event in [LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR, LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR]:
 
                 if event in [LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR]:
