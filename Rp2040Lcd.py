@@ -405,7 +405,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 "Macro", 94, 110, txt_color_highlight)
 
             page = self.lx_euclid_config.param_pads_page
-            page_color = self.rhythm_colors_highlight[0]
+            page_color = self.light_grey
 
             page_txt = f"page {page+1}"
             self.font_writer_font6.text(page_txt, 102, 130, page_color)
@@ -475,12 +475,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             ch_index = self.lx_euclid_config.sm_rhythm_param_counter
 
-            ch_index_txt = f"Ch {ch_index+1}"
+            ch_index_txt = f"Ch{ch_index+1}"
             self.font_writer_freesans20.text(
-                ch_index_txt, 100, 110, txt_color_highlight)
+                ch_index_txt, 103, 110, self.rhythm_colors[ch_index])
 
             page = self.lx_euclid_config.param_channel_config_page
-            page_color = self.rhythm_colors_highlight[0]
+            page_color = self.light_grey
 
             page_txt = f"page {page+1}"
             self.font_writer_font6.text(page_txt, 102, 130, page_color)
@@ -504,7 +504,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                             txt_colors[index] = txt_color_highlight
 
                     self.font_writer_freesans20.text(
-                        "Clear CV", 82, 12, self.white)
+                        "Clear CV", 79, 12, self.white)
                     self.font_writer_freesans20.text(
                         "Rst", 171, 40, txt_colors[1])
                     self.font_writer_freesans20.text(
@@ -558,7 +558,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 36, self.black, True)
 
             page = self.lx_euclid_config.param_presets_page
-            page_color = self.rhythm_colors_highlight[0]
+            page_color = self.light_grey
 
             page_txt = f"page {page+1}"
             self.font_writer_font6.text(page_txt, 102, 130, page_color)
