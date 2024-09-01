@@ -768,7 +768,7 @@ class LxEuclidConfig:
         elif self.state == LxEuclidConstant.STATE_MENU_SELECT:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
-                menu_selection_index = angle_to_index(angle_inner, 4)
+                menu_selection_index = angle_to_index(angle_inner, 3)
 
                 if menu_selection_index == 0:  # Preset
                     self.state_lock.acquire()
