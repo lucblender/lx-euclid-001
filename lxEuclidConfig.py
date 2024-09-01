@@ -4,7 +4,7 @@ from micropython import const
 from utime import ticks_ms
 from ucollections import OrderedDict
 
-from cvManager import CvAction, LOW_PERCENTAGE_RISING_THRESHOLD
+from cvManager import CvAction, CvChannel, LOW_PERCENTAGE_RISING_THRESHOLD
 from MenuNavigationMap import get_menu_navigation_map
 
 T_CLK_LED_ON_MS = const(10)
@@ -16,16 +16,17 @@ MAJOR_E_ADDR = const(0)
 MINOR_E_ADDR = const(1)
 FIX_E_ADDR = const(2)
 
-CV_PAGE_MAX = 2
-PRESET_PAGE_MAX = 2
-PADS_PAGE_MAX = 2
+CV_PAGE_MAX = const(2)
+PRESET_PAGE_MAX = const(2)
+PADS_PAGE_MAX = const(2)
+CHANNEL_PAGE_MAX = const(1)
 
 PRESCALER_LIST = [1, 2, 3, 4, 8, 16]
 
 # pass from 360° (in capacitive circle referential) to 0..steps
 
 
-def angle_to_index(angle, steps, offset_45 = False):
+def angle_to_index(angle, steps, offset_45=False):
     angle = 180 - angle
     if offset_45 == True:
         angle = angle + 45
@@ -120,7 +121,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
         self.is_mute = False
         self.is_fill = False
-        
+
         # is used to clear mute and fill only if macro or only if cv
         self.mute_by_macro = False
         self.fill_by_macro = False
@@ -137,7 +138,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self._prescaler_index = prescaler_index
         self.prescaler = PRESCALER_LIST[self._prescaler_index]
 
-    def mute(self, mute_by_macro = False):
+    def mute(self, mute_by_macro=False):
         self.is_mute = True
         self.mute_by_macro = mute_by_macro
         self.set_rhythm()
@@ -146,13 +147,13 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.is_mute = False
         self.set_rhythm()
 
-    def invert_mute(self, mute_by_macro = False):
+    def invert_mute(self, mute_by_macro=False):
         self.is_mute = not self.is_mute
         if self.is_mute:
             self.mute_by_macro = mute_by_macro
         self.set_rhythm()
 
-    def fill(self, fill_by_macro = False):
+    def fill(self, fill_by_macro=False):
         self.is_fill = True
         self.fill_by_macro = fill_by_macro
         self.set_rhythm()
@@ -161,7 +162,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.is_fill = False
         self.set_rhythm()
 
-    def invert_fill(self, fill_by_macro = False):
+    def invert_fill(self, fill_by_macro=False):
         self.is_fill = not self.is_fill
         if self.is_fill:
             self.fill_by_macro = fill_by_macro
@@ -478,8 +479,8 @@ class LxEuclidConstant:
     STATE_RHYTHM_PARAM_INNER_BEAT_PULSE = const(4)
     STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(5)
     STATE_PARAM_PRESETS = const(6)
-    STATE_PARAM_CVS = const(7)
-    STATE_PARAM_PADS = const(8)
+    STATE_PARAM_PADS = const(7)
+    STATE_CHANNEL_CONFIG = const(8)
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
@@ -584,6 +585,10 @@ class LxEuclidConfig:
         self.param_pads_page = 0
         self.param_pads_inner_outer = 0
 
+        self.param_channel_config_page = 0
+        self.param_channel_config_cv_page = 0
+        self.param_channel_config_action_index = 0
+
         self.computation_index = 0  # used in interrupt function that can't create memory
 
         self.tap_delay_ms = 125  # default tap tempo 120bmp 125ms for 16th note
@@ -664,6 +669,7 @@ class LxEuclidConfig:
 
                 self.lx_hardware.set_sw_leds(data)
                 self.lx_hardware.set_tap_led()
+                self.lx_hardware.set_menu_led()
 
                 self.menu_lock.acquire()
                 self.sm_rhythm_param_counter = data
@@ -681,19 +687,22 @@ class LxEuclidConfig:
                     angle = self.lx_hardware.capacitives_circles.outer_circle_angle
                 if rotate_action in [LxEuclidConstant.CIRCLE_ACTION_RESET, LxEuclidConstant.CIRCLE_ACTION_FILL, LxEuclidConstant.CIRCLE_ACTION_MUTE]:
                     menu_selection_index = angle_to_index(angle, 4)
-                    
-                    if rotate_action == LxEuclidConstant.CIRCLE_ACTION_RESET:                              
-                        self.euclidean_rhythms[menu_selection_index].reset_step()                    
+
+                    if rotate_action == LxEuclidConstant.CIRCLE_ACTION_RESET:
+                        self.euclidean_rhythms[menu_selection_index].reset_step(
+                        )
                     elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
-                        self.euclidean_rhythms[menu_selection_index].invert_fill(fill_by_macro = True)
-                    elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:                        
-                        self.euclidean_rhythms[menu_selection_index].invert_mute(mute_by_macro = True)
-                        
+                        self.euclidean_rhythms[menu_selection_index].invert_fill(
+                            fill_by_macro=True)
+                    elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
+                        self.euclidean_rhythms[menu_selection_index].invert_mute(
+                            mute_by_macro=True)
+
                     self.action_display_index = menu_selection_index
-                        
+
                     self.action_display_info = "~"
                     self.need_circle_action_display = True
-                   
+
             elif event in [LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR, LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR]:
 
                 if event in [LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR]:
@@ -782,17 +791,6 @@ class LxEuclidConfig:
                     self.state = LxEuclidConstant.STATE_PARAM_MENU
                     self.state_lock.release()
                     self.lx_hardware.set_menu_led()
-                else:  # CVs
-                    self.state_lock.acquire()
-                    self.state = LxEuclidConstant.STATE_PARAM_CVS
-                    self.state_lock.release()
-                    self.param_cvs_index = 0
-                    self.lx_hardware.set_sw_leds(0)
-                    self.lx_hardware.set_sw_leds(1)
-                    self.lx_hardware.set_sw_leds(2)
-                    self.lx_hardware.set_sw_leds(3)
-                    self.lx_hardware.set_menu_led()
-                    self.param_cvs_page = 0
 
             elif event == LxEuclidConstant.EVENT_TAP_BTN:
                 self.save_data()
@@ -834,12 +832,12 @@ class LxEuclidConfig:
                         previous_inner_action_rhythm = self.inner_action_rhythm
                         self.inner_action_rhythm = self.inner_action_rhythm ^ (
                             1 << out_index)
-                       
+
                     else:  # outer
                         previous_outer_action_rhythm = self.outer_action_rhythm
                         self.outer_action_rhythm = self.outer_action_rhythm ^ (
                             1 << out_index)
-                       
+
                 self.save_data()
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.param_pads_page = (self.param_pads_page+1) % PADS_PAGE_MAX
@@ -854,85 +852,6 @@ class LxEuclidConfig:
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data < 2:
                 self.param_pads_inner_outer = data
                 self.param_pads_page = 0
-
-        elif self.state == LxEuclidConstant.STATE_PARAM_CVS:
-
-            if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
-                angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
-                if self.param_cvs_page == 0:  # action
-                    preset_index = angle_to_index(angle_inner, 8)
-                    previous_cv_action = self.lx_hardware.cv_manager.cvs_data[
-                        self.param_cvs_index].cv_action
-                    cv_action_rhythm = self.lx_hardware.cv_manager.cvs_data[
-                        self.param_cvs_index].cv_action_rhythm
-
-                    self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cv_action = preset_index
-
-                    # make sure to reset fill and mute if we remove it from a cv action
-                    for euclidean_rhythm_index in range(0, 4):
-                        if cv_action_rhythm & (1 << euclidean_rhythm_index) != 0:
-                            if previous_cv_action == CvAction.CV_ACTION_FILL and not self.euclidean_rhythms[euclidean_rhythm_index].fill_by_macro:
-                                self.euclidean_rhythms[euclidean_rhythm_index].unfill(
-                                )
-                            elif previous_cv_action == CvAction.CV_ACTION_MUTE and not self.euclidean_rhythms[euclidean_rhythm_index].mute_by_macro:
-                                self.euclidean_rhythms[euclidean_rhythm_index].unmute(
-                                )
-                            elif previous_cv_action == CvAction.CV_ACTION_BEATS:
-                                self.euclidean_rhythms[euclidean_rhythm_index].has_cv_beat = False
-                                self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
-                                )
-                            elif previous_cv_action == CvAction.CV_ACTION_PULSES:
-                                self.euclidean_rhythms[euclidean_rhythm_index].has_cv_pulse = False
-                                self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
-                                )
-                            elif previous_cv_action == CvAction.CV_ACTION_ROTATION:
-                                self.euclidean_rhythms[euclidean_rhythm_index].has_cv_offset = False
-                                self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
-                                )
-                            elif previous_cv_action == CvAction.CV_ACTION_PROBABILITY:
-                                self.euclidean_rhythms[euclidean_rhythm_index].has_cv_prob = False
-                                self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
-                                )
-
-                elif self.param_cvs_page == 1:  # output
-                    out_index = angle_to_index(angle_inner, 4)
-                    flip_result = self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].flip_action_rhythm(
-                        out_index)
-                    if flip_result == 0:  # we removed a channel from a cv action, we need to clean it
-                        cv_action = self.lx_hardware.cv_manager.cvs_data[self.param_cvs_index].cv_action
-                        if cv_action == CvAction.CV_ACTION_FILL and not self.euclidean_rhythms[out_index].fill_by_macro:
-                            self.euclidean_rhythms[out_index].unfill()
-                        elif cv_action == CvAction.CV_ACTION_MUTE and not self.euclidean_rhythms[out_index].mute_by_macro:
-                            self.euclidean_rhythms[out_index].unmute()
-                        elif cv_action == CvAction.CV_ACTION_BEATS:
-                            self.euclidean_rhythms[out_index].has_cv_beat = False
-                            self.euclidean_rhythms[out_index].set_rhythm()
-                        elif cv_action == CvAction.CV_ACTION_PULSES:
-                            self.euclidean_rhythms[out_index].has_cv_pulse = False
-                            self.euclidean_rhythms[out_index].set_rhythm()
-                        elif cv_action == CvAction.CV_ACTION_ROTATION:
-                            self.euclidean_rhythms[out_index].has_cv_offset = False
-                            self.euclidean_rhythms[out_index].set_rhythm()
-                        elif cv_action == CvAction.CV_ACTION_PROBABILITY:
-                            self.euclidean_rhythms[out_index].has_cv_prob = False
-                            self.euclidean_rhythms[out_index].set_rhythm()
-
-                self.save_data()
-                self.init_cvs_parameters()
-
-            elif event == LxEuclidConstant.EVENT_BTN_SWITCHES:
-                self.param_cvs_index = data
-                self.param_cvs_page = 0
-
-            elif event == LxEuclidConstant.EVENT_MENU_BTN:
-                self.param_cvs_page = (self.param_cvs_page+1) % CV_PAGE_MAX
-            elif event == LxEuclidConstant.EVENT_TAP_BTN:
-                self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_LIVE
-                self.state_lock.release()
-                self.lx_hardware.clear_tap_led()
-                self.lx_hardware.clear_menu_led()
-                self.lx_hardware.clear_sw_leds()
 
         elif self.state == LxEuclidConstant.STATE_PARAM_PRESETS:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:  # loading saving preset
@@ -968,6 +887,14 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY
                 self.state_lock.release()
+            elif event == LxEuclidConstant.EVENT_MENU_BTN:
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG
+                self.state_lock.release()
+
+                self.param_channel_config_page = 0
+                self.param_channel_config_cv_page = 0
+
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
@@ -1009,6 +936,13 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_sw_leds()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_tap_led()
+            elif event == LxEuclidConstant.EVENT_MENU_BTN:
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG
+                self.state_lock.release()
+
+                self.param_channel_config_page = 0
+                self.param_channel_config_cv_page = 0
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
@@ -1040,6 +974,114 @@ class LxEuclidConfig:
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_pulses_probability(
                 )
+        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:  # TODO
+
+            if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
+                # reset pages
+                self.param_channel_config_page = 0
+                self.param_channel_config_cv_page = 0
+            elif event == LxEuclidConstant.EVENT_MENU_BTN:
+                # increment channel page
+                self.param_channel_config_page = (
+                    self.param_channel_config_page+1) % CHANNEL_PAGE_MAX
+                self.param_channel_config_cv_page = 0
+
+            elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
+                # change rhythm in selection and clear page
+
+                self.param_channel_config_page = 0
+                self.param_channel_config_cv_page = 0
+
+                self.lx_hardware.clear_sw_leds()
+                self.lx_hardware.set_sw_leds(data)
+
+                self.menu_lock.acquire()
+                self.sm_rhythm_param_counter = data
+                self.menu_lock.release()
+            elif event == LxEuclidConstant.EVENT_TAP_BTN:
+                # save data, clear everything, go back to live
+                self.save_data()
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_LIVE
+                self.state_lock.release()
+                self.lx_hardware.clear_tap_led()
+                self.lx_hardware.clear_menu_led()
+                self.lx_hardware.clear_sw_leds()
+            if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
+                angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
+                if self.param_channel_config_page == 0:  # CV
+                    if self.param_channel_config_cv_page == 0:
+
+                        action_index = angle_to_index(angle_inner, 8)  # TODO
+                        if action_index == 0:
+                            # clear all cv_data
+                            cv_actions_channel = self.lx_hardware.cv_manager.cvs_data[
+                                self.sm_rhythm_param_counter].cv_actions_channel
+
+                            # clear all cv_modification
+                            for index, cv_action_channel in enumerate(cv_actions_channel):
+                                if cv_action_channel != CvChannel.CV_CHANNEL_NONE:
+                                    if index == CvAction.CV_ACTION_FILL and not self.euclidean_rhythms[self.sm_rhythm_param_counter].fill_by_macro:
+                                        self.euclidean_rhythms[self.sm_rhythm_param_counter].unfill(
+                                        )
+                                    elif index == CvAction.CV_ACTION_MUTE and not self.euclidean_rhythms[self.sm_rhythm_param_counter].mute_by_macro:
+                                        self.euclidean_rhythms[self.sm_rhythm_param_counter].unmute(
+                                        )
+                                    elif index == CvAction.CV_ACTION_BEATS:
+                                        self.euclidean_rhythms[self.sm_rhythm_param_counter].has_cv_beat = False
+                                        self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                                        )
+                                    elif index == CvAction.CV_ACTION_PULSES:
+                                        self.euclidean_rhythms[self.sm_rhythm_param_counter].has_cv_pulse = False
+                                        self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                                        )
+                                    elif index == CvAction.CV_ACTION_ROTATION:
+                                        self.euclidean_rhythms[self.sm_rhythm_param_counter].has_cv_offset = False
+                                        self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                                        )
+                                    elif index == CvAction.CV_ACTION_PROBABILITY:
+                                        self.euclidean_rhythms[self.sm_rhythm_param_counter].has_cv_prob = False
+                                        self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                                        )
+
+                            self.lx_hardware.cv_manager.cvs_data[self.sm_rhythm_param_counter].clear_cv_actions_channel(
+                            )
+                        else:
+                            self.param_channel_config_action_index = action_index
+                            self.param_channel_config_cv_page = 1
+                    else:
+                        channel_index = angle_to_index(angle_inner, 5)
+                        previous_channel_index = self.lx_hardware.cv_manager.cvs_data[
+                            self.sm_rhythm_param_counter].cv_actions_channel[self.param_channel_config_action_index]
+                        self.lx_hardware.cv_manager.cvs_data[self.sm_rhythm_param_counter].set_cv_actions_channel(
+                            self.param_channel_config_action_index, channel_index)
+                        self.param_channel_config_cv_page = 0
+
+                        if channel_index == CvChannel.CV_CHANNEL_NONE and previous_channel_index != CvChannel.CV_CHANNEL_NONE:
+                            if self.param_channel_config_action_index == CvAction.CV_ACTION_FILL and not self.euclidean_rhythms[self.sm_rhythm_param_counter].fill_by_macro:
+                                self.euclidean_rhythms[self.sm_rhythm_param_counter].unfill(
+                                )
+                            elif self.param_channel_config_action_index == CvAction.CV_ACTION_MUTE and not self.euclidean_rhythms[self.sm_rhythm_param_counter].mute_by_macro:
+                                self.euclidean_rhythms[self.sm_rhythm_param_counter].unmute(
+                                )
+                            elif self.param_channel_config_action_index == CvAction.CV_ACTION_BEATS:
+                                self.euclidean_rhythms[self.sm_rhythm_param_counter].has_cv_beat = False
+                                self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                                )
+                            elif self.param_channel_config_action_index == CvAction.CV_ACTION_PULSES:
+                                self.euclidean_rhythms[self.sm_rhythm_param_counter].has_cv_pulse = False
+                                self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                                )
+                            elif self.param_channel_config_action_index == CvAction.CV_ACTION_ROTATION:
+                                self.euclidean_rhythms[self.sm_rhythm_param_counter].has_cv_offset = False
+                                self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                                )
+                            elif self.param_channel_config_action_index == CvAction.CV_ACTION_PROBABILITY:
+                                self.euclidean_rhythms[self.sm_rhythm_param_counter].has_cv_prob = False
+                                self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                                )
+
+                        self.init_cvs_parameters()  # cv config has change, refresh cv value
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             if event == LxEuclidConstant.EVENT_MENU_BTN:
@@ -1256,10 +1298,12 @@ class LxEuclidConfig:
 
         self.dict_data["c_m"] = self.clk_mode
 
+        # TODO save new action channel
         for cv_index, cv_data in enumerate(self.lx_hardware.cv_manager.cvs_data):
-            cv_prefix = f"cv_{cv_index}_"
-            self.dict_data[cv_prefix+"a"] = cv_data.cv_action
-            self.dict_data[cv_prefix+"r"] = cv_data.cv_action_rhythm
+            for cv_action_index, cv_action_channel in enumerate(cv_data.cv_actions_channel):
+                cv_prefix = f"cv_{cv_index}_{cv_action_index}_"
+                self.dict_data[cv_prefix+"a"] = cv_action_channel
+
         # split tap tempo in lsb and msb
         local_tap_tempo = self.tap_delay_ms
         self.dict_data["t_t_l"] = local_tap_tempo & 0xff
@@ -1383,11 +1427,10 @@ class LxEuclidConfig:
                 self.clk_mode = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
 
-                for cv_data in self.lx_hardware.cv_manager.cvs_data:
-                    cv_data.cv_action = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
-                    cv_data.cv_action_rhythm = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
+                for cv_data in self.lx_hardware.cv_manager.cvs_data:  # TODO retreive new action channel
+                    for i in range(0, CvAction.CV_ACTION_LEN):
+                        cv_data.set_cv_actions_channel(i,
+                                                       self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
 
                 # get back splitted tap tempo in lsb and msb
                 tap_tempo_lsb = self.lx_hardware.get_eeprom_data_int(
@@ -1414,16 +1457,13 @@ class LxEuclidConfig:
 
     def update_cvs_parameters(self, cv_data):
         to_return = False
-        cv_channel = cv_data[0]
+        cv_channel = cv_data[0]  # the cv channel that changed
         rising_edge_detected = cv_data[1]
 
-        cv_action = self.lx_hardware.cv_manager.cvs_data[cv_channel].cv_action
-        cv_action_rhythm = self.lx_hardware.cv_manager.cvs_data[cv_channel].cv_action_rhythm
-
-        if cv_action != CvAction.CV_ACTION_NONE and cv_action_rhythm != 0:
-            for euclidean_rhythm_index in range(0, 4):
-                # action_rhythm are stored by bit
-                if cv_action_rhythm & (1 << euclidean_rhythm_index) != 0:
+        # cv_data is the array of 8
+        for euclidean_rhythm_index, cv_data in enumerate(self.lx_hardware.cv_manager.cvs_data):
+            for cv_action, cv_action_channel in enumerate(cv_data.cv_actions_channel):
+                if (cv_action_channel-1) == cv_channel:  # (cv_action_channel-1) because 0 = None
                     to_return = True
                     percent_value = self.lx_hardware.cv_manager.percent_values[cv_channel]
                     if cv_action == CvAction.CV_ACTION_RESET and rising_edge_detected:
