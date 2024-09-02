@@ -19,7 +19,7 @@ FIX_E_ADDR = const(2)
 CV_PAGE_MAX = const(2)
 PRESET_PAGE_MAX = const(2)
 PADS_PAGE_MAX = const(2)
-CHANNEL_PAGE_MAX = const(2)
+CHANNEL_PAGE_MAX = const(3)
 
 PRESCALER_LIST = [1, 2, 3, 4, 8, 16]
 
@@ -1084,6 +1084,10 @@ class LxEuclidConfig:
                 elif self.param_channel_config_page == 1:  # algo TODO
                     algo_index = angle_to_index(angle_inner, 4)
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index = algo_index
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm()
+                elif self.param_channel_config_page == 2:  # clk division TODO
+                    prescaler_index = angle_to_index(angle_inner, 6)
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].prescaler_index = prescaler_index
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm()
                     
             self.save_data()

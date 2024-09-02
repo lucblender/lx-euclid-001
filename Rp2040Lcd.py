@@ -545,13 +545,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
             elif page == 1:  # algo
                 current_channel_setting = "algo"
                 self.font_writer_font6.text(
-                    current_channel_setting, 111, 95, page_color)
+                    current_channel_setting, 108, 95, page_color)
                 
                 txt_colors = [txt_color]*4
                 
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
-                algo_index = self.lx_euclid_config.euclidean_rhythms[channel_index].algo_index
-                
+                algo_index = self.lx_euclid_config.euclidean_rhythms[channel_index].algo_index                
                 
                 txt_colors[algo_index] = txt_color_highlight
                 
@@ -576,9 +575,28 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 
 
             elif page == 2:  # time division
-                current_channel_setting = "div"
+                current_channel_setting = "clk div"
                 self.font_writer_font6.text(
-                    current_channel_setting, 104, 95, page_color)
+                    current_channel_setting, 101, 95, page_color)
+                txt_colors = [txt_color]*6
+                
+                channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                prescaler_index = self.lx_euclid_config.euclidean_rhythms[channel_index].prescaler_index                
+                
+                txt_colors[prescaler_index] = txt_color_highlight
+                
+                self.font_writer_freesans20.text(
+                    "1", 115,3, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "2", 204, 58, txt_colors[1])
+                self.font_writer_freesans20.text(
+                    "3", 204,160, txt_colors[2])
+                self.font_writer_freesans20.text(
+                    "4", 117, 215, txt_colors[3])
+                self.font_writer_freesans20.text(
+                    "8", 21, 160, txt_colors[4])
+                self.font_writer_freesans20.text(
+                    "16", 21, 58, txt_colors[5])
 
             elif page == 3:  # gate time 
                 current_channel_setting = "time"
