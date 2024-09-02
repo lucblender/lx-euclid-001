@@ -8,10 +8,7 @@ def get_menu_navigation_map():
 
     out = OrderedDict()
     out["data_pointer"] = None
-    out["Algorithm "] = {
-        "values": ["Euclidean", "Exponential Eucl.", "Invert Exponential", "Symmetrical Exp."],
-        "attribute_name": "algo_index"
-    }
+
     out["Clock Division"] = {
         "values": ["1", "2", "3", "4", "8", "16"],
         "attribute_name": "prescaler_index"

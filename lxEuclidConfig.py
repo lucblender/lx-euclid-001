@@ -19,7 +19,7 @@ FIX_E_ADDR = const(2)
 CV_PAGE_MAX = const(2)
 PRESET_PAGE_MAX = const(2)
 PADS_PAGE_MAX = const(2)
-CHANNEL_PAGE_MAX = const(1)
+CHANNEL_PAGE_MAX = const(2)
 
 PRESCALER_LIST = [1, 2, 3, 4, 8, 16]
 
@@ -974,7 +974,7 @@ class LxEuclidConfig:
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_pulses_probability(
                 )
-        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:  # TODO
+        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:
 
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
                 # reset pages
@@ -1011,8 +1011,7 @@ class LxEuclidConfig:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 if self.param_channel_config_page == 0:  # CV
                     if self.param_channel_config_cv_page == 0:
-
-                        action_index = angle_to_index(angle_inner, 8)  # TODO
+                        action_index = angle_to_index(angle_inner, 8)
                         if action_index == 0:
                             # clear all cv_data
                             cv_actions_channel = self.lx_hardware.cv_manager.cvs_data[
@@ -1049,7 +1048,7 @@ class LxEuclidConfig:
                         else:
                             self.param_channel_config_action_index = action_index
                             self.param_channel_config_cv_page = 1
-                    else:
+                    else: # page 2 of cv in config
                         channel_index = angle_to_index(angle_inner, 5)
                         previous_channel_index = self.lx_hardware.cv_manager.cvs_data[
                             self.sm_rhythm_param_counter].cv_actions_channel[self.param_channel_config_action_index]
@@ -1082,6 +1081,12 @@ class LxEuclidConfig:
                                 )
 
                         self.init_cvs_parameters()  # cv config has change, refresh cv value
+                elif self.param_channel_config_page == 1:  # algo TODO
+                    algo_index = angle_to_index(angle_inner, 4)
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index = algo_index
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm()
+                    
+            self.save_data()
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             if event == LxEuclidConstant.EVENT_MENU_BTN:
@@ -1298,7 +1303,6 @@ class LxEuclidConfig:
 
         self.dict_data["c_m"] = self.clk_mode
 
-        # TODO save new action channel
         for cv_index, cv_data in enumerate(self.lx_hardware.cv_manager.cvs_data):
             for cv_action_index, cv_action_channel in enumerate(cv_data.cv_actions_channel):
                 cv_prefix = f"cv_{cv_index}_{cv_action_index}_"
@@ -1427,7 +1431,7 @@ class LxEuclidConfig:
                 self.clk_mode = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
 
-                for cv_data in self.lx_hardware.cv_manager.cvs_data:  # TODO retreive new action channel
+                for cv_data in self.lx_hardware.cv_manager.cvs_data:
                     for i in range(0, CvAction.CV_ACTION_LEN):
                         cv_data.set_cv_actions_channel(i,
                                                        self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))

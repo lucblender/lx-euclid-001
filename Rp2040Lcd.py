@@ -542,8 +542,46 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     self.font_writer_freesans20.text(
                         "CV4", 9, 77, txt_colors[4])
 
-            else:
-                current_channel_setting = "other"
+            elif page == 1:  # algo
+                current_channel_setting = "algo"
+                self.font_writer_font6.text(
+                    current_channel_setting, 111, 95, page_color)
+                
+                txt_colors = [txt_color]*4
+                
+                channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                algo_index = self.lx_euclid_config.euclidean_rhythms[channel_index].algo_index
+                
+                
+                txt_colors[algo_index] = txt_color_highlight
+                
+                self.font_writer_freesans20.text(
+                    "Eucl.", 101, 12, txt_colors[0])
+
+                self.font_writer_freesans20.text(
+                    "Exp.", 191, 95, txt_colors[1])
+                self.font_writer_freesans20.text(
+                    "Eucl.", 191, 121, txt_colors[1])
+                
+                self.font_writer_freesans20.text(
+                    "Inv.", 103, 186, txt_colors[2])
+                self.font_writer_freesans20.text(
+                    "Exp.", 103, 212, txt_colors[2])
+                
+                self.font_writer_freesans20.text(
+                    "Sym.", 5, 95, txt_colors[3])
+                self.font_writer_freesans20.text(
+                    "Eucl.", 5, 121, txt_colors[3])
+                
+                
+
+            elif page == 2:  # time division
+                current_channel_setting = "div"
+                self.font_writer_font6.text(
+                    current_channel_setting, 104, 95, page_color)
+
+            elif page == 3:  # gate time 
+                current_channel_setting = "time"
                 self.font_writer_font6.text(
                     current_channel_setting, 104, 95, page_color)
 
