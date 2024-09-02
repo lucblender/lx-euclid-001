@@ -987,7 +987,9 @@ class LxEuclidConfig:
                 self.param_channel_config_cv_page = 0
 
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
-                # change rhythm in selection and clear page
+                # change rhythm in selection and clear cv page
+                self.param_channel_config_cv_page = 0
+
 
                 self.lx_hardware.clear_sw_leds()
                 self.lx_hardware.set_sw_leds(data)
