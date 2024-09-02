@@ -4,13 +4,13 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 3
+MINOR = 4
 FIX = 0
 ADD = "_dev"
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 0
-MEMORY_FIX = 2
+MEMORY_FIX = 3
 
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
@@ -250,3 +250,4 @@ if __name__ == '__main__':
         print("quit")
     except Exception as e:
         append_error(e)
+

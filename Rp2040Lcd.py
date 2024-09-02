@@ -8,6 +8,7 @@ from utime import sleep, ticks_ms
 from micropython import const
 from math import sin, cos, radians
 from lxEuclidConfig import LxEuclidConstant
+from cvManager import CvChannel
 
 DC = const(8)
 CS = const(9)
@@ -72,7 +73,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.white = const(0xffff)
         self.black = const(0x0000)
         self.grey = rgb888_to_rgb565(85, 85, 85)
-        self.light_grey = rgb888_to_rgb565(120,120,120)
+        self.light_grey = rgb888_to_rgb565(120, 120, 120)
         self.touch_circle_color_highlight = rgb888_to_rgb565(255, 221, 0)
         self.touch_circle_color = rgb888_to_rgb565(176, 157, 34)
 
@@ -382,13 +383,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 "Presets", 80, 12, txt_color)
 
             self.font_writer_freesans20.text(
-                "CVs", 8, 110, txt_color)
+                "Macro", 170, 158, txt_color)
 
             self.font_writer_freesans20.text(
-                "Macro", 183, 110, txt_color)
-
-            self.font_writer_freesans20.text(
-                "More", 91, 213, txt_color)
+                "More", 19, 158, txt_color)
 
             if self.parameter_unselected is not None:
                 self.blit(self.parameter_unselected, 100, 100)
@@ -407,7 +405,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 "Macro", 94, 110, txt_color_highlight)
 
             page = self.lx_euclid_config.param_pads_page
-            page_color = self.rhythm_colors_highlight[0]
+            page_color = self.light_grey
 
             page_txt = f"page {page+1}"
             self.font_writer_font6.text(page_txt, 102, 130, page_color)
@@ -451,10 +449,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     # action_rhythm are stored by bit
                     if action_rhythm & (1 << i) != 0:
                         if rotate_action in [LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_FILL, LxEuclidConstant.CIRCLE_ACTION_MUTE, LxEuclidConstant.CIRCLE_ACTION_RESET]:
-                            txt_colors[i] = self.light_grey                        
+                            txt_colors[i] = self.light_grey
                         else:
                             txt_colors[i] = txt_color_highlight
-                        
+
                 self.font_writer_freesans20.text(
                     "Ch1", 101, 12, txt_colors[0])
                 self.font_writer_freesans20.text(
@@ -464,9 +462,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     "Ch4", 2, 110, txt_colors[3])
 
-        elif local_state == LxEuclidConstant.STATE_PARAM_CVS:
-
-            cv_index = self.lx_euclid_config.param_cvs_index
+        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:  # TODO
 
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
@@ -477,49 +473,79 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 42-13, self.black, True)
 
-            cv_index_txt = f"CV {cv_index+1}"
-            self.font_writer_freesans20.text(
-                cv_index_txt, 100, 110, txt_color_highlight)
+            ch_index = self.lx_euclid_config.sm_rhythm_param_counter
 
-            page = self.lx_euclid_config.param_cvs_page
-            page_color = self.rhythm_colors_highlight[0]
+            ch_index_txt = f"Ch{ch_index+1}"
+            self.font_writer_freesans20.text(
+                ch_index_txt, 103, 110, self.rhythm_colors[ch_index])
+
+            page = self.lx_euclid_config.param_channel_config_page
+            page_color = self.light_grey
 
             page_txt = f"page {page+1}"
             self.font_writer_font6.text(page_txt, 102, 130, page_color)
 
-            if page == 0:
-                txt_colors = [txt_color]*8
-                cv_action = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
-                    cv_index].cv_action
-                txt_colors[cv_action] = txt_color_highlight
-                self.font_writer_freesans20.text("None", 93, 12, txt_colors[0])
-                self.font_writer_freesans20.text("Rst", 171, 40, txt_colors[1])
-                self.font_writer_freesans20.text(
-                    "Lgth", 196, 109, txt_colors[2])
-                self.font_writer_freesans20.text(
-                    "Pulse", 155, 176, txt_colors[3])
-                self.font_writer_freesans20.text(
-                    "Rot", 105, 214, txt_colors[4])
-                self.font_writer_freesans20.text(
-                    "Prob", 32, 178, txt_colors[5])
-                self.font_writer_freesans20.text("Fill", 5, 111, txt_colors[6])
-                self.font_writer_freesans20.text("Mute", 31, 41, txt_colors[7])
-            elif page == 1:
-                txt_colors = [txt_color]*4
-                action_rhythm = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
-                    cv_index].cv_action_rhythm
-                for i in range(0, 4):
-                    # action_rhythm are stored by bit
-                    if action_rhythm & (1 << i) != 0:
-                        txt_colors[i] = txt_color_highlight
-                self.font_writer_freesans20.text(
-                    "Ch1", 101, 12, txt_colors[0])
-                self.font_writer_freesans20.text(
-                    "Ch2", 198, 110, txt_colors[1])
-                self.font_writer_freesans20.text(
-                    "Ch3", 101, 213, txt_colors[2])
-                self.font_writer_freesans20.text(
-                    "Ch4", 2, 110, txt_colors[3])
+            if page == 0:  # CV
+                current_channel_setting = "CV"
+                self.font_writer_font6.text(
+                    current_channel_setting, 110, 95, page_color)
+
+                cv_page = self.lx_euclid_config.param_channel_config_cv_page
+
+                if cv_page == 0:  # action selection
+                    txt_colors = [txt_color]*8
+
+                    channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                    cv_actions_channel = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
+                        channel_index].cv_actions_channel
+
+                    for index, cv_action_channel in enumerate(cv_actions_channel):
+                        if cv_action_channel != CvChannel.CV_CHANNEL_NONE:
+                            txt_colors[index] = txt_color_highlight
+
+                    self.font_writer_freesans20.text(
+                        "Clear CV", 79, 12, self.white)
+                    self.font_writer_freesans20.text(
+                        "Rst", 171, 40, txt_colors[1])
+                    self.font_writer_freesans20.text(
+                        "Lgth", 196, 109, txt_colors[2])
+                    self.font_writer_freesans20.text(
+                        "Pulse", 155, 176, txt_colors[3])
+                    self.font_writer_freesans20.text(
+                        "Rot", 105, 214, txt_colors[4])
+                    self.font_writer_freesans20.text(
+                        "Prob", 32, 178, txt_colors[5])
+                    self.font_writer_freesans20.text(
+                        "Fill", 5, 111, txt_colors[6])
+                    self.font_writer_freesans20.text(
+                        "Mute", 31, 41, txt_colors[7])
+                else:  # channel selection
+                    txt_colors = [txt_color]*5
+
+                    param_channel_config_action_index = self.lx_euclid_config.param_channel_config_action_index
+                    channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                    cv_actions_channel = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
+                        channel_index].cv_actions_channel
+
+                    highlight_index = cv_actions_channel[param_channel_config_action_index]
+                    txt_colors[highlight_index] = txt_color_highlight
+
+                    self.font_writer_freesans20.text(
+                        "None", 101, 12, txt_colors[0])
+
+                    self.font_writer_freesans20.text(
+                        "CV1", 184, 77, txt_colors[1])
+                    self.font_writer_freesans20.text(
+                        "CV2", 162, 183, txt_colors[2])
+                    self.font_writer_freesans20.text(
+                        "CV3", 36, 183, txt_colors[3])
+                    self.font_writer_freesans20.text(
+                        "CV4", 9, 77, txt_colors[4])
+
+            else:
+                current_channel_setting = "other"
+                self.font_writer_font6.text(
+                    current_channel_setting, 104, 95, page_color)
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS:
 
@@ -532,7 +558,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 36, self.black, True)
 
             page = self.lx_euclid_config.param_presets_page
-            page_color = self.rhythm_colors_highlight[0]
+            page_color = self.light_grey
 
             page_txt = f"page {page+1}"
             self.font_writer_font6.text(page_txt, 102, 130, page_color)
