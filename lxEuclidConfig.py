@@ -19,7 +19,7 @@ FIX_E_ADDR = const(2)
 CV_PAGE_MAX = const(2)
 PRESET_PAGE_MAX = const(2)
 PADS_PAGE_MAX = const(2)
-CHANNEL_PAGE_MAX = const(3)
+CHANNEL_PAGE_MAX = const(4)
 
 PRESCALER_LIST = [1, 2, 3, 4, 8, 16]
 
@@ -989,9 +989,6 @@ class LxEuclidConfig:
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
                 # change rhythm in selection and clear page
 
-                self.param_channel_config_page = 0
-                self.param_channel_config_cv_page = 0
-
                 self.lx_hardware.clear_sw_leds()
                 self.lx_hardware.set_sw_leds(data)
 
@@ -1007,7 +1004,13 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
-            if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
+            elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR: #TODO
+                if self.param_channel_config_page == 3:  # gate time
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_gate_length()
+            elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
+                if self.param_channel_config_page == 3:  # gate time
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_gate_length()
+            elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 if self.param_channel_config_page == 0:  # CV
                     if self.param_channel_config_cv_page == 0:
@@ -1089,6 +1092,11 @@ class LxEuclidConfig:
                     prescaler_index = angle_to_index(angle_inner, 6)
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].prescaler_index = prescaler_index
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm()
+                elif self.param_channel_config_page == 3:  # gate time, also have some scrolling TODO
+                    fine_randomize_select = angle_to_index(angle_inner, 8)
+                    if fine_randomize_select == 0:
+                        self.euclidean_rhythms[self.sm_rhythm_param_counter].randomize_gate_length = not self.euclidean_rhythms[self.sm_rhythm_param_counter].randomize_gate_length 
+                        self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm()
                     
             self.save_data()
 
@@ -1145,12 +1153,13 @@ class LxEuclidConfig:
             self.lx_hardware.set_tap_led()
             self.last_gate_led_event = ticks_ms()
             self.clear_led_needed = True
-
-    def random_gate_length_update(self):
+    
+    # random gate lenght will go from half minimum (10/2) to set gate_length_ms 
+    def random_gate_length_update(self): 
         for euclidean_rhythm in self.euclidean_rhythms:
             if euclidean_rhythm.randomize_gate_length:
                 euclidean_rhythm.randomized_gate_length_ms = randint(
-                    int(euclidean_rhythm.gate_length_ms/2), euclidean_rhythm.gate_length_ms)
+                    5, euclidean_rhythm.gate_length_ms)
 
     def reset_steps(self):
         for euclidean_rhythm in self.euclidean_rhythms:

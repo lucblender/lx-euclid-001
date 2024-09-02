@@ -462,7 +462,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     "Ch4", 2, 110, txt_colors[3])
 
-        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:  # TODO
+        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:  
 
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
@@ -598,10 +598,50 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     "16", 21, 58, txt_colors[5])
 
-            elif page == 3:  # gate time 
+            elif page == 3:  # gate time # TODO
                 current_channel_setting = "time"
                 self.font_writer_font6.text(
-                    current_channel_setting, 104, 95, page_color)
+                    current_channel_setting, 107, 95, page_color)
+                
+                
+                arrow_color = self.light_grey
+                
+                self.line(79,211,70,208,arrow_color)
+                self.line(70,208,63,202,arrow_color)
+                self.line(63,202,56,194,arrow_color)
+                self.poly(0,0,array("h", [56,194,62,196,57,200]), arrow_color,True)
+                
+                self.line(240-79,211,240-70,208,arrow_color)
+                self.line(240-70,208,240-63,202,arrow_color)
+                self.line(240-63,202,240-56,194,arrow_color)
+                self.poly(0,0,array("h", [240-56,194,240-62,196,240-57,200]), arrow_color,True)
+                
+
+                
+                channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                randomize_gate_length = self.lx_euclid_config.euclidean_rhythms[channel_index].randomize_gate_length
+                gate_length = self.lx_euclid_config.euclidean_rhythms[channel_index].gate_length_ms
+                
+                if randomize_gate_length:
+                    randomize_color = txt_color_highlight
+                else:
+                    randomize_color = txt_color
+                
+                self.font_writer_freesans20.text(
+                    "Randomize", 70, 26, randomize_color)
+                
+                time_txt = page_txt = f"{gate_length}ms"
+                
+                time_txt_len = self.font_writer_font6.stringlen(time_txt)
+                
+                self.font_writer_freesans20.text(
+                    time_txt, 115-int(time_txt_len/2), 200, self.white)
+                
+                self.font_writer_freesans20.text(
+                    "+", 43, 179, self.light_grey)
+                
+                self.font_writer_freesans20.text(
+                    "-", 188, 179, self.light_grey)
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS:
 
