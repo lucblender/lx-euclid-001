@@ -82,7 +82,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             224, 28, 2), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(156, 255, 237), self.white]
 
         self.rhythm_colors_highlight = [rgb888_to_rgb565(253, 168, 94), rgb888_to_rgb565(
-            255, 83, 61), rgb888_to_rgb565(176, 196, 255), rgb888_to_rgb565(195, 250, 240), self.white]
+            255, 83, 61), rgb888_to_rgb565(176, 196, 255), rgb888_to_rgb565(226,255,250), self.white]
 
         self.un_selected_color = self.grey
         self.selected_color = self.rhythm_colors_highlight[3]

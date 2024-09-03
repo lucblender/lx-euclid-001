@@ -334,7 +334,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         # range back beats from 1 to MAX_BEATS
         if local_beats > MAX_BEATS:
             local_beats = MAX_BEATS
-        elif local_beats < 0:
+        elif local_beats <= 0:
             local_beats = 1
 
        # range back from 0 to current beat number
