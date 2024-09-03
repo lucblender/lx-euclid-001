@@ -462,10 +462,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     "Ch4", 2, 110, txt_colors[3])
 
-        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:  
-
+        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION:  # TODO
+            
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
+            page_color = self.light_grey
 
             self.circle(120, 120, 58, self.touch_circle_color, True)
             self.circle(120, 120, 58-13, self.black, True)
@@ -479,16 +480,46 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(
                 ch_index_txt, 103, 110, self.rhythm_colors[ch_index])
 
-            page = self.lx_euclid_config.param_channel_config_page
+            current_channel_setting = "param"
+            self.font_writer_font6.text(
+                current_channel_setting, 101, 130, page_color)
+            
+            self.font_writer_freesans20.text(
+                        "CVs", 103, 6, self.white)
+            self.font_writer_freesans20.text(
+                        "Algo", 196, 107, self.white)
+            self.font_writer_freesans20.text(
+                        "Clk Div", 90, 209, self.white)
+            self.font_writer_freesans20.text(
+                        "Gate", 6, 97, self.white)
+            self.font_writer_freesans20.text(
+                        "Time", 6, 121, self.white)
+            
+            
+                
+        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:  
+
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
             page_color = self.light_grey
 
-            page_txt = f"page {page+1}"
-            self.font_writer_font6.text(page_txt, 102, 130, page_color)
+            self.circle(120, 120, 58, self.touch_circle_color, True)
+            self.circle(120, 120, 58-13, self.black, True)
+
+            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 42-13, self.black, True)
+
+            ch_index = self.lx_euclid_config.sm_rhythm_param_counter
+
+            ch_index_txt = f"Ch{ch_index+1}"
+            self.font_writer_freesans20.text(
+                ch_index_txt, 103, 110, self.rhythm_colors[ch_index])
+            page = self.lx_euclid_config.param_channel_config_page
 
             if page == 0:  # CV
                 current_channel_setting = "CV"
                 self.font_writer_font6.text(
-                    current_channel_setting, 110, 95, page_color)
+                    current_channel_setting, 110, 130, page_color)
 
                 cv_page = self.lx_euclid_config.param_channel_config_cv_page
 
@@ -545,7 +576,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             elif page == 1:  # algo
                 current_channel_setting = "algo"
                 self.font_writer_font6.text(
-                    current_channel_setting, 108, 95, page_color)
+                    current_channel_setting, 108, 130, page_color)
                 
                 txt_colors = [txt_color]*4
                 
@@ -577,7 +608,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             elif page == 2:  # time division
                 current_channel_setting = "clk div"
                 self.font_writer_font6.text(
-                    current_channel_setting, 101, 95, page_color)
+                    current_channel_setting, 101, 130, page_color)
                 txt_colors = [txt_color]*6
                 
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
@@ -601,7 +632,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             elif page == 3:  # gate time # TODO
                 current_channel_setting = "time"
                 self.font_writer_font6.text(
-                    current_channel_setting, 107, 95, page_color)
+                    current_channel_setting, 107, 130, page_color)
                 
                 
                 arrow_color = self.light_grey

@@ -481,6 +481,7 @@ class LxEuclidConstant:
     STATE_PARAM_PRESETS = const(6)
     STATE_PARAM_PADS = const(7)
     STATE_CHANNEL_CONFIG = const(8)
+    STATE_CHANNEL_CONFIG_SELECTION = const(9)
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
@@ -889,7 +890,7 @@ class LxEuclidConfig:
                 self.state_lock.release()
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG
+                self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION
                 self.state_lock.release()
 
                 self.param_channel_config_page = 0
@@ -974,16 +975,55 @@ class LxEuclidConfig:
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_pulses_probability(
                 )
+        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION: #TODO
+       
+
+            if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
+                # change rhythm in selection and clear cv page
+
+                self.lx_hardware.clear_sw_leds()
+                self.lx_hardware.set_sw_leds(data)
+
+                self.menu_lock.acquire()
+                self.sm_rhythm_param_counter = data
+                self.menu_lock.release()
+            elif event == LxEuclidConstant.EVENT_TAP_BTN:
+                # save data, clear everything, go back to live
+                self.save_data()
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_LIVE
+                self.state_lock.release()
+                self.lx_hardware.clear_tap_led()
+                self.lx_hardware.clear_menu_led()
+                self.lx_hardware.clear_sw_leds()
+            elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
+                angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
+                config_index = angle_to_index(angle_inner, 4)
+                
+                self.param_channel_config_page = config_index
+                
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG
+                self.state_lock.release()
+                
+            
         elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:
 
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
-                # reset pages
+                # go back to channel config selection                
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION
+                self.state_lock.release()
+
                 self.param_channel_config_page = 0
                 self.param_channel_config_cv_page = 0
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
-                # increment channel page
-                self.param_channel_config_page = (
-                    self.param_channel_config_page+1) % CHANNEL_PAGE_MAX
+                # go back to channel config selection                
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION
+                self.state_lock.release()
+
+                self.param_channel_config_page = 0
                 self.param_channel_config_cv_page = 0
 
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
