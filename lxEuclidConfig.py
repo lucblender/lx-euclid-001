@@ -5,7 +5,6 @@ from utime import ticks_ms
 from ucollections import OrderedDict
 
 from cvManager import CvAction, CvChannel, LOW_PERCENTAGE_RISING_THRESHOLD
-from MenuNavigationMap import get_menu_navigation_map
 
 T_CLK_LED_ON_MS = const(10)
 T_GATE_ON_MS = const(10)
@@ -554,24 +553,6 @@ class LxEuclidConfig:
         self.sm_rhythm_param_counter = 0
 
         self.clk_mode = LxEuclidConstant.CLK_IN
-
-        self.menu_navigation_map = get_menu_navigation_map()
-
-        data_pointer_key = "data_pointer"
-
-        self.menu_navigation_map["Channels"]["Ch1"][data_pointer_key] = self.euclidean_rhythms[0]
-        self.menu_navigation_map["Channels"]["Ch2"][data_pointer_key] = self.euclidean_rhythms[1]
-        self.menu_navigation_map["Channels"]["Ch3"][data_pointer_key] = self.euclidean_rhythms[2]
-        self.menu_navigation_map["Channels"]["Ch4"][data_pointer_key] = self.euclidean_rhythms[3]
-
-        self.menu_navigation_map["Clock source"][data_pointer_key] = self
-
-        self.menu_navigation_map["Touch sensitivity"][data_pointer_key] = self.lx_hardware.capacitives_circles
-
-        self.current_menu_len = len(self.menu_navigation_map)
-        self.current_menu_selected = 0
-        self.current_menu_value = 0
-        self.menu_path = []
 
         self._save_preset_index = 0
         self._load_preset_index = 0
@@ -1239,95 +1220,6 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
             self.clear_led_needed = False
 
-    def menu_back_pressed(self):
-        if len(self.menu_path) > 0:
-            self.menu_path = self.menu_path[:-1]
-            self.current_menu_selected = 0
-            current_keys, _, _ = self.get_current_menu_keys()
-            self.current_menu_len = len(current_keys)
-            return True
-        else:
-            return False
-
-    def menu_enter_pressed(self):
-        current_keys, in_last_sub_menu, in_min_max_menu = self.get_current_menu_keys()
-        if in_last_sub_menu:
-            # need to change value
-            tmp_menu_selected = self.menu_navigation_map
-            for key_path in self.menu_path:
-                tmp_menu_selected = tmp_menu_selected[key_path]
-            attribute_name = tmp_menu_selected["attribute_name"]
-            if in_min_max_menu:
-                attribute_value = setattr(
-                    self.get_current_data_pointer(), attribute_name, int(current_keys[0]))
-            else:
-                attribute_value = setattr(self.get_current_data_pointer(
-                ), attribute_name, self.current_menu_selected)
-            self.current_menu_value = self.current_menu_selected
-            self.reload_rhythms()
-            self.save_data()
-            return True
-        else:
-            self.menu_path.append(current_keys[self.current_menu_selected])
-            self.current_menu_selected = 0
-            current_keys, in_last_sub_menu, in_min_max_menu = self.get_current_menu_keys()
-            self.current_menu_len = len(current_keys)
-            if in_last_sub_menu:
-                tmp_menu_selected = self.menu_navigation_map
-                for key_path in self.menu_path:
-                    tmp_menu_selected = tmp_menu_selected[key_path]
-                attribute_name = tmp_menu_selected["attribute_name"]
-                attribute_value = getattr(
-                    self.get_current_data_pointer(), attribute_name)
-                if in_min_max_menu:
-                    self.current_menu_selected = 0
-                else:
-                    self.current_menu_value = attribute_value
-                return False
-
-    def menu_up_action(self):
-        _, _, in_min_max_menu = self.get_current_menu_keys()
-        if in_min_max_menu:
-            data_pointer, attribute_name, min_val, _, steps_val, current_value = self.get_min_max_parameters()
-
-            next_value = current_value - steps_val
-
-            if next_value < min_val:
-                next_value = min_val
-            setattr(data_pointer, attribute_name, next_value)
-        else:
-            if self.current_menu_selected > 0:
-                self.current_menu_selected = self.current_menu_selected - 1
-
-    def menu_down_action(self):
-        _, _, in_min_max_menu = self.get_current_menu_keys()
-        if in_min_max_menu:
-            data_pointer, attribute_name, _, max_val, steps_val, current_value = self.get_min_max_parameters()
-
-            next_value = current_value + steps_val
-
-            if next_value > max_val:
-                next_value = max_val
-            setattr(data_pointer, attribute_name, next_value)
-        else:
-            if self.current_menu_selected < self.current_menu_len-1:
-                self.current_menu_selected = self.current_menu_selected + 1
-
-    def get_min_max_parameters(self):
-        data_pointer = self.get_current_data_pointer()
-
-        tmp_menu_selected = self.menu_navigation_map
-        for key_path in self.menu_path:
-            tmp_menu_selected = tmp_menu_selected[key_path]
-
-        attribute_name = tmp_menu_selected["attribute_name"]
-        min_val = tmp_menu_selected["min"]
-        max_val = tmp_menu_selected["max"]
-        steps_val = tmp_menu_selected["steps"]
-        current_value = getattr(data_pointer, attribute_name)
-
-        return data_pointer, attribute_name, min_val, max_val, steps_val, current_value
-
     def create_memory_dict(self):
         self.dict_data["v_ma"] = self.v_major
         self.dict_data["v_mi"] = self.v_minor
@@ -1583,39 +1475,3 @@ class LxEuclidConfig:
                             )
         return to_return
 
-    def get_current_data_pointer(self):
-        tmp_menu_selected = self.menu_navigation_map
-        for key_path in self.menu_path:
-            tmp_menu_selected = tmp_menu_selected[key_path]
-            if "data_pointer" in tmp_menu_selected.keys():
-                return tmp_menu_selected["data_pointer"]
-        return None
-
-    def get_current_menu_keys(self):
-        in_last_sub_menu = False
-        in_min_max_menu = False
-        if len(self.menu_path) == 0:
-            current_keys = list(self.menu_navigation_map.keys())
-        else:
-            tmp_menu_selected = self.menu_navigation_map
-            for key_path in self.menu_path:
-                tmp_menu_selected = tmp_menu_selected[key_path]
-            current_keys = list(tmp_menu_selected.keys())
-        if "values" in current_keys:
-            tmp_menu_selected = self.menu_navigation_map
-            for key_path in self.menu_path:
-                tmp_menu_selected = tmp_menu_selected[key_path]
-            current_keys = tmp_menu_selected["values"]
-            in_last_sub_menu = True
-        elif "min" in current_keys:
-            tmp_menu_selected = self.menu_navigation_map
-            for key_path in self.menu_path:
-                tmp_menu_selected = tmp_menu_selected[key_path]
-            attribute_name = tmp_menu_selected["attribute_name"]
-            current_keys = [
-                str(getattr(self.get_current_data_pointer(), attribute_name))]
-            in_last_sub_menu = True
-            in_min_max_menu = True
-        if "data_pointer" in current_keys:
-            current_keys.remove("data_pointer")
-        return current_keys, in_last_sub_menu, in_min_max_menu
