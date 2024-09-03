@@ -462,7 +462,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     "Ch4", 2, 110, txt_colors[3])
 
-        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION:  # TODO
+        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION:
             
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
@@ -629,7 +629,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     "16", 21, 58, txt_colors[5])
 
-            elif page == 3:  # gate time # TODO
+            elif page == 3:  # gate time
                 current_channel_setting = "time"
                 self.font_writer_font6.text(
                     current_channel_setting, 107, 130, page_color)
@@ -690,10 +690,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
             page_txt = f"page {page+1}"
             self.font_writer_font6.text(page_txt, 102, 130, page_color)
 
-            if page == 0:
-                self.font_writer_freesans20.text("Load", 99, 67, self.black)
+            if page == 0:#titi
+                self.font_writer_font6.text("load", 108, 95, page_color)
             else:
-                self.font_writer_freesans20.text("Save", 98, 67, self.black)
+                self.font_writer_font6.text("save", 106, 95, page_color)
 
             self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
 
@@ -706,72 +706,83 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text("7", 3, 110, txt_color)
             self.font_writer_freesans20.text("8", 34, 38, txt_color)
 
+        elif local_state == LxEuclidConstant.STATE_PARAM_MENU_SELECTION:
+            
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
+            page_color = self.light_grey
+
+            self.circle(120, 120, 58, self.touch_circle_color, True)
+            self.circle(120, 120, 58-13, self.black, True)
+
+            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 42-13, self.black, True)
+
+
+            other_txt = "More"
+            self.font_writer_freesans20.text(
+                other_txt, 100, 110, self.white)
+            self.font_writer_freesans20.text(
+                    "Clock", 95, 6, self.white)
+            self.font_writer_freesans20.text(
+                    "Source", 87, 27, self.white)
+            self.font_writer_freesans20.text(
+                    "Touch", 95, 182, self.white)
+            self.font_writer_freesans20.text(
+                    "Sensitivity", 80, 203, self.white)
+            
+            
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
-            self.lx_euclid_config.menu_lock.acquire()
-            # get all data from lx_euclid_config in local variables
-            current_keys, in_last_sub_menu, _ = self.lx_euclid_config.get_current_menu_keys()
-            current_menu_len = len(current_keys)
-            current_menu_selected = self.lx_euclid_config.current_menu_selected
-            current_menu_value = self.lx_euclid_config.current_menu_value
-            menu_path = self.lx_euclid_config.menu_path
-            current_menu_selected = self.lx_euclid_config.current_menu_selected
-            self.lx_euclid_config.menu_lock.release()
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
+            page_color = self.light_grey
 
-            if self.parameter_unselected is not None:
-                self.blit(self.parameter_unselected, 100, 5)
-            origin_y = 50
-            path = "/"
-            for sub_path in menu_path:
-                path = path + sub_path + "/"
-            path_len = self.font_writer_font6.stringlen(path)
-            self.font_writer_font6.text(
-                path, 120-int(path_len/2), 130+origin_y, self.rhythm_colors[0])
+            self.circle(120, 120, 58, self.touch_circle_color, True)
+            self.circle(120, 120, 58-13, self.black, True)
 
-            offset_menu_text = 25
+            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 42-13, self.black, True)
 
-            range_low = current_menu_selected - 2
-            range_high = current_menu_selected + 2
 
-            general_index = 0
-            for menu_index in range(range_low, range_high):
-                if menu_index >= 0 and menu_index < current_menu_len:
-                    if menu_index == current_menu_selected:
-
-                        txt = current_keys[menu_index]
-                        txt_color = self.white
-                        if in_last_sub_menu and current_menu_value == menu_index:
-                            txt_color = self.selected_color
-                        txt = "> "+txt+" <"
-                        txt_len = self.font_writer_freesans20.stringlen(txt)
-                        self.font_writer_freesans20.text(
-                            txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, txt_color)
-                    else:
-
-                        txt = current_keys[menu_index]
-                        txt_color = self.un_selected_color
-                        if in_last_sub_menu and current_menu_value == menu_index:
-                            txt_color = self.selected_color
-                        txt_len = self.font_writer_freesans20.stringlen(txt)
-                        self.font_writer_freesans20.text(
-                            txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, txt_color)
-
-                general_index = general_index+1
-
-            # side scrollbar
-            scrollbar_x = 220
-            scrollbar_y = 75
-            scrollbar_height = 90
-            scrollbar_width = 6
-
-            self.rect(scrollbar_x, scrollbar_y, scrollbar_width,
-                      scrollbar_height, self.white)
-
-            max_scrollbar_size_float = scrollbar_height / current_menu_len
-            max_scrollbar_size = int(max_scrollbar_size_float)
-            if max_scrollbar_size == 0:
-                max_scrollbar_size = 1
-            self.fill_rect(scrollbar_x, scrollbar_y+int(max_scrollbar_size_float *
-                           current_menu_selected), scrollbar_width, max_scrollbar_size, self.white)
+            other_txt = "More"
+            self.font_writer_freesans20.text(
+                other_txt, 100, 110, self.white)
+            page = self.lx_euclid_config.param_menu_page
+            
+            if page == 0:#config clock source
+                current_channel_setting = "clk src"
+                self.font_writer_font6.text(
+                    current_channel_setting, 100, 130, page_color)
+                
+                clk_index = self.lx_euclid_config.clk_mode
+                
+                txt_colors = [txt_color]*2
+                
+                txt_colors[clk_index] = txt_color_highlight
+                self.font_writer_freesans20.text(
+                    "Internal", 88,10, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "External", 88,208, txt_colors[1])
+                
+            elif page == 1:#config sensitivity # todo
+                current_channel_setting = "sensi"
+                self.font_writer_font6.text(
+                    current_channel_setting, 105, 130, page_color)
+                
+                txt_colors = [txt_color]*3
+                
+                sensi_index = self.lx_euclid_config.lx_hardware.capacitives_circles.touch_sensitivity
+                
+                txt_colors[sensi_index] = txt_color_highlight
+                
+                self.font_writer_freesans20.text(
+                    "Low", 104, 4, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "Medium", 154, 168, txt_colors[1])
+                self.font_writer_freesans20.text(
+                    "High", 19, 168, txt_colors[2])
+            
+           
         elif local_state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 
             self.lx_euclid_config.menu_lock.acquire()
