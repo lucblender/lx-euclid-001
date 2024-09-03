@@ -326,6 +326,12 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
         if self.has_cv_beat:
             local_beats = local_beats+int(MAX_BEATS*self.cv_percent_beat/100)
+            
+            if local_beats > MAX_BEATS:
+                local_beats = MAX_BEATS
+            elif local_beats <= 0:
+                local_beats = 1
+            
             if not self.pulses_set_0_1:
                 local_pulse = self.__compute_pulses_per_ratio(local_beats)
         if self.has_cv_pulse:
