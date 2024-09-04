@@ -30,7 +30,7 @@ def print_ram(code=""):
 
 
 MIN_TAP_DELAY_MS = 20
-MAX_TAP_DELAY_MS = 8000  # equivalent to 2s (rhythm 4/4)
+MAX_TAP_DELAY_MS = 8000  # equivalent to 2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s) 
 DEBOUNCE_MS = 20
 
 CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
@@ -89,7 +89,7 @@ def lxhardware_changed(handlerEventData):
                 lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
                 lx_euclid_config.save_data()  # tap tempo is saved in eeprom
                 if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                    tap_incr_steps()
+                    lx_hardware.relaunch_internal_clk()
                     if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
                         LCD.set_need_display()
             last_tap_ms = temp_last_tap_ms
@@ -168,15 +168,10 @@ def display_thread():
 
 
 def tap_incr_steps():
-
     lx_euclid_config.incr_steps()
-    global last_timer_launch_ms  # timer_incr_steps_tap_mode,
+    global last_timer_launch_ms 
     if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-        # nice, can't even use Timer lol sh*itty micropython multi-threading implementation
-        # https://github.com/orgs/micropython/discussions/10638
-        # timer_incr_steps_tap_mode = Timer(period=tap_delay_ms, mode=Timer.ONE_SHOT, callback=global_incr_steps)
         last_timer_launch_ms = ticks_ms()
-
 
 def get_exception(err) -> str:
     buf = StringIO()
@@ -210,7 +205,7 @@ if __name__ == '__main__':
             LCD.display_error("No touch sensor\ndetected")
 
         if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-            tap_incr_steps()
+            lx_hardware.relaunch_internal_clk()
 
         wait_display_thread = False
 
@@ -221,8 +216,20 @@ if __name__ == '__main__':
         LCD.set_need_display()
 
         lx_euclid_config.init_cvs_parameters()
+        
+        
+        clk_mode_old = lx_euclid_config.clk_mode
+        
         while True:
             lx_euclid_config.test_if_clear_gates_led()
+            
+            if lx_euclid_config.clk_mode != clk_mode_old:
+                if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+                    lx_hardware.relaunch_internal_clk()
+                else:
+                    lx_hardware.stop_internal_clk()
+            clk_mode_old = lx_euclid_config.clk_mode
+            
             if len(lx_hardware.lxHardwareEventFifo) > 0:
                 in_lxhardware_changed = True
                 lxhardware_changed(
@@ -236,18 +243,8 @@ if __name__ == '__main__':
                     if need_lcd_update:
                         LCD.set_need_display()
 
-            if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                # due to some micropython bug  (https://forum.micropython.org/viewtopic.php?f=21&t=12639)
-                # sometimes timer can stop to work.... if the timer is not called after 1.2x its required time
-                # we force it to relaunch --> lol now we can't use Timer .....
-                # The bug only occure when the soft is on high demand (eg high interrupt number because of
-                # hardware gpio + timer)
-                if ticks_ms() - last_timer_launch_ms >= (lx_euclid_config.tap_delay_ms):
-                    tap_incr_steps()
-                    if lx_euclid_config.state in [LxEuclidConstant.STATE_LIVE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
-                        LCD.set_need_display()
-
         print("quit")
     except Exception as e:
         append_error(e)
+
 
