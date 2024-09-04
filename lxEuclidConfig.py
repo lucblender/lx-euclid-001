@@ -716,6 +716,8 @@ class LxEuclidConfig:
                                 if rotate_action == LxEuclidConstant.CIRCLE_ACTION_BEATS:
                                     self.euclidean_rhythms[euclidean_rhythm_index].incr_beats(
                                     )
+                                    self.euclidean_rhythms[euclidean_rhythm_index].set_pulses_per_ratio()
+                                    self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm()
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_PULSES:
                                     self.euclidean_rhythms[euclidean_rhythm_index].incr_pulses(
                                     )
@@ -732,6 +734,8 @@ class LxEuclidConfig:
                                 if rotate_action == LxEuclidConstant.CIRCLE_ACTION_BEATS:
                                     self.euclidean_rhythms[euclidean_rhythm_index].decr_beats(
                                     )
+                                    self.euclidean_rhythms[euclidean_rhythm_index].set_pulses_per_ratio()
+                                    self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm()
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_PULSES:
                                     self.euclidean_rhythms[euclidean_rhythm_index].decr_pulses(
                                     )
