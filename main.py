@@ -30,7 +30,8 @@ def print_ram(code=""):
 
 
 MIN_TAP_DELAY_MS = 20
-MAX_TAP_DELAY_MS = 8000  # equivalent to 2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s) 
+# equivalent to 2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
+MAX_TAP_DELAY_MS = 8000
 DEBOUNCE_MS = 20
 
 CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
@@ -169,9 +170,10 @@ def display_thread():
 
 def tap_incr_steps():
     lx_euclid_config.incr_steps()
-    global last_timer_launch_ms 
+    global last_timer_launch_ms
     if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
         last_timer_launch_ms = ticks_ms()
+
 
 def get_exception(err) -> str:
     buf = StringIO()
@@ -216,20 +218,19 @@ if __name__ == '__main__':
         LCD.set_need_display()
 
         lx_euclid_config.init_cvs_parameters()
-        
-        
+
         clk_mode_old = lx_euclid_config.clk_mode
-        
+
         while True:
             lx_euclid_config.test_if_clear_gates_led()
-            
+
             if lx_euclid_config.clk_mode != clk_mode_old:
                 if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
                     lx_hardware.relaunch_internal_clk()
                 else:
                     lx_hardware.stop_internal_clk()
             clk_mode_old = lx_euclid_config.clk_mode
-            
+
             if len(lx_hardware.lxHardwareEventFifo) > 0:
                 in_lxhardware_changed = True
                 lxhardware_changed(
@@ -246,5 +247,3 @@ if __name__ == '__main__':
         print("quit")
     except Exception as e:
         append_error(e)
-
-

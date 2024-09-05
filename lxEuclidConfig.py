@@ -326,12 +326,12 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
         if self.has_cv_beat:
             local_beats = local_beats+int(MAX_BEATS*self.cv_percent_beat/100)
-            
+
             if local_beats > MAX_BEATS:
                 local_beats = MAX_BEATS
             elif local_beats <= 0:
                 local_beats = 1
-            
+
             if not self.pulses_set_0_1:
                 local_pulse = self.__compute_pulses_per_ratio(local_beats)
         if self.has_cv_pulse:
@@ -580,7 +580,7 @@ class LxEuclidConfig:
         self.param_channel_config_page = 0
         self.param_channel_config_cv_page = 0
         self.param_channel_config_action_index = 0
-        
+
         self.param_menu_page = 0
 
         self.computation_index = 0  # used in interrupt function that can't create memory
@@ -718,8 +718,10 @@ class LxEuclidConfig:
                                 if rotate_action == LxEuclidConstant.CIRCLE_ACTION_BEATS:
                                     self.euclidean_rhythms[euclidean_rhythm_index].incr_beats(
                                     )
-                                    self.euclidean_rhythms[euclidean_rhythm_index].set_pulses_per_ratio()
-                                    self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm()
+                                    self.euclidean_rhythms[euclidean_rhythm_index].set_pulses_per_ratio(
+                                    )
+                                    self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
+                                    )
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_PULSES:
                                     self.euclidean_rhythms[euclidean_rhythm_index].incr_pulses(
                                     )
@@ -736,8 +738,10 @@ class LxEuclidConfig:
                                 if rotate_action == LxEuclidConstant.CIRCLE_ACTION_BEATS:
                                     self.euclidean_rhythms[euclidean_rhythm_index].decr_beats(
                                     )
-                                    self.euclidean_rhythms[euclidean_rhythm_index].set_pulses_per_ratio()
-                                    self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm()
+                                    self.euclidean_rhythms[euclidean_rhythm_index].set_pulses_per_ratio(
+                                    )
+                                    self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
+                                    )
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_PULSES:
                                     self.euclidean_rhythms[euclidean_rhythm_index].decr_pulses(
                                     )
@@ -799,12 +803,12 @@ class LxEuclidConfig:
         elif self.state == LxEuclidConstant.STATE_PARAM_PADS_SELECTION:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
-                pad_selection = angle_to_index(angle_inner, 2)                
-                self.param_pads_inner_outer_page = pad_selection                
-                self.param_pads_page = 0                
+                pad_selection = angle_to_index(angle_inner, 2)
+                self.param_pads_inner_outer_page = pad_selection
+                self.param_pads_page = 0
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_PARAM_PADS
-                self.state_lock.release()                
+                self.state_lock.release()
             elif event == LxEuclidConstant.EVENT_TAP_BTN:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
@@ -812,8 +816,7 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
-                
-            
+
         elif self.state == LxEuclidConstant.STATE_PARAM_PADS:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
@@ -840,7 +843,7 @@ class LxEuclidConfig:
                                 self.euclidean_rhythms[euclidean_rhythm_index].unmute(
                                 )
                     # go to next macro page if we select any parameter except listed ones
-                    if rotate_action_index not in [LxEuclidConstant.CIRCLE_ACTION_NONE,LxEuclidConstant.CIRCLE_ACTION_RESET,LxEuclidConstant.CIRCLE_ACTION_MUTE,LxEuclidConstant.CIRCLE_ACTION_FILL]:
+                    if rotate_action_index not in [LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_RESET, LxEuclidConstant.CIRCLE_ACTION_MUTE, LxEuclidConstant.CIRCLE_ACTION_FILL]:
                         self.param_pads_page = 1
                 elif self.param_pads_page == 1:  # output
                     out_index = angle_to_index(angle_inner, 4)
@@ -1018,7 +1021,6 @@ class LxEuclidConfig:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_pulses_probability(
                 )
         elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION:
-       
 
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
                 # change rhythm in selection and clear cv page
@@ -1041,18 +1043,17 @@ class LxEuclidConfig:
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 config_index = angle_to_index(angle_inner, 4)
-                
+
                 self.param_channel_config_page = config_index
-                
+
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG
                 self.state_lock.release()
-                
-            
+
         elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:
 
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
-                # go back to channel config selection                
+                # go back to channel config selection
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION
                 self.state_lock.release()
@@ -1060,7 +1061,7 @@ class LxEuclidConfig:
                 self.param_channel_config_page = 0
                 self.param_channel_config_cv_page = 0
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
-                # go back to channel config selection                
+                # go back to channel config selection
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION
                 self.state_lock.release()
@@ -1071,7 +1072,6 @@ class LxEuclidConfig:
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
                 # change rhythm in selection and clear cv page
                 self.param_channel_config_cv_page = 0
-
 
                 self.lx_hardware.clear_sw_leds()
                 self.lx_hardware.set_sw_leds(data)
@@ -1090,10 +1090,12 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_sw_leds()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
                 if self.param_channel_config_page == 3:  # gate time
-                    self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_gate_length()
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_gate_length(
+                    )
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
                 if self.param_channel_config_page == 3:  # gate time
-                    self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_gate_length()
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_gate_length(
+                    )
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 if self.param_channel_config_page == 0:  # CV
@@ -1135,7 +1137,7 @@ class LxEuclidConfig:
                         else:
                             self.param_channel_config_action_index = action_index
                             self.param_channel_config_cv_page = 1
-                    else: # page 2 of cv in config
+                    else:  # page 2 of cv in config
                         channel_index = angle_to_index(angle_inner, 5)
                         previous_channel_index = self.lx_hardware.cv_manager.cvs_data[
                             self.sm_rhythm_param_counter].cv_actions_channel[self.param_channel_config_action_index]
@@ -1168,20 +1170,24 @@ class LxEuclidConfig:
                                 )
 
                         self.init_cvs_parameters()  # cv config has change, refresh cv value
-                elif self.param_channel_config_page == 1:  # algo 
+                elif self.param_channel_config_page == 1:  # algo
                     algo_index = angle_to_index(angle_inner, 4)
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index = algo_index
-                    self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm()
-                elif self.param_channel_config_page == 2:  # clk division 
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                    )
+                elif self.param_channel_config_page == 2:  # clk division
                     prescaler_index = angle_to_index(angle_inner, 6)
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].prescaler_index = prescaler_index
-                    self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm()
-                elif self.param_channel_config_page == 3:  # gate time, also have some scrolling 
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                    )
+                elif self.param_channel_config_page == 3:  # gate time, also have some scrolling
                     fine_randomize_select = angle_to_index(angle_inner, 8)
                     if fine_randomize_select == 0:
-                        self.euclidean_rhythms[self.sm_rhythm_param_counter].randomize_gate_length = not self.euclidean_rhythms[self.sm_rhythm_param_counter].randomize_gate_length 
-                        self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm()
-                    
+                        self.euclidean_rhythms[self.sm_rhythm_param_counter].randomize_gate_length = not self.euclidean_rhythms[
+                            self.sm_rhythm_param_counter].randomize_gate_length
+                        self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                        )
+
             self.save_data()
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU_SELECTION:
@@ -1201,7 +1207,7 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_PARAM_MENU
                 self.state_lock.release()
-                
+
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             if event == LxEuclidConstant.EVENT_TAP_BTN:
                 # save data, clear everything, go back to live
@@ -1212,9 +1218,9 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
-                
+
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
-                # go back to main menu config selection                
+                # go back to main menu config selection
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_PARAM_MENU_SELECTION
                 self.state_lock.release()
@@ -1222,15 +1228,15 @@ class LxEuclidConfig:
                 self.param_menu_page = 0
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
-                
-                if self.param_menu_page == 0: # clock source
+
+                if self.param_menu_page == 0:  # clock source
                     param_index = angle_to_index(angle_inner, 2)
-                    
+
                     self.clk_mode = param_index
-                elif self.param_menu_page == 1: # sensitivity
+                elif self.param_menu_page == 1:  # sensitivity
                     sensi_index = angle_to_index(angle_inner, 3)
                     self.lx_hardware.capacitives_circles.touch_sensitivity = sensi_index
-            
+
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def incr_steps(self):
         self.computation_index = 0
@@ -1249,9 +1255,9 @@ class LxEuclidConfig:
             self.lx_hardware.set_tap_led()
             self.last_gate_led_event = ticks_ms()
             self.clear_led_needed = True
-    
-    # random gate lenght will go from half minimum (10/2) to set gate_length_ms 
-    def random_gate_length_update(self): 
+
+    # random gate lenght will go from half minimum (10/2) to set gate_length_ms
+    def random_gate_length_update(self):
         for euclidean_rhythm in self.euclidean_rhythms:
             if euclidean_rhythm.randomize_gate_length:
                 euclidean_rhythm.randomized_gate_length_ms = randint(
@@ -1524,4 +1530,3 @@ class LxEuclidConfig:
                             self.euclidean_rhythms[euclidean_rhythm_index].unmute(
                             )
         return to_return
-

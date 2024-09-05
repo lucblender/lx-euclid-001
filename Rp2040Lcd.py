@@ -79,10 +79,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         # each array has 5 colors, 4 for the circles, the 5th used when the infos concerns all the circles
         self.rhythm_colors = [rgb888_to_rgb565(255, 136, 31), rgb888_to_rgb565(
-            224, 28, 2), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(95,255,226), self.white]
+            224, 28, 2), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(95, 255, 226), self.white]
 
-        self.rhythm_colors_highlight = [rgb888_to_rgb565(255,219,197), rgb888_to_rgb565(
-            255,189,180), rgb888_to_rgb565(227,234,255), rgb888_to_rgb565(243,253,255), self.white]
+        self.rhythm_colors_highlight = [rgb888_to_rgb565(255, 219, 197), rgb888_to_rgb565(
+            255, 189, 180), rgb888_to_rgb565(227, 234, 255), rgb888_to_rgb565(243, 253, 255), self.white]
 
         self.un_selected_color = self.grey
         self.selected_color = self.rhythm_colors_highlight[3]
@@ -403,19 +403,17 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             self.font_writer_freesans20.text(
                 "Macro", 94, 110, txt_color_highlight)
-            
-         
+
             self.font_writer_freesans20.text(
                 "Inner", 101, 12, self.white)
             self.font_writer_freesans20.text(
                 "Circle", 98, 38, self.white)
-            
+
             self.font_writer_freesans20.text(
                 "Outer", 96, 186, self.white)
             self.font_writer_freesans20.text(
                 "Circle", 98, 212, self.white)
-                
-                
+
         elif local_state == LxEuclidConstant.STATE_PARAM_PADS:
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
@@ -482,7 +480,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     "Ch4", 2, 110, txt_colors[3])
 
         elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION:
-            
+
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
             page_color = self.light_grey
@@ -502,21 +500,19 @@ class LCD_1inch28(framebuf.FrameBuffer):
             current_channel_setting = "param"
             self.font_writer_font6.text(
                 current_channel_setting, 101, 130, page_color)
-            
+
             self.font_writer_freesans20.text(
-                        "CVs", 103, 6, self.white)
+                "CVs", 103, 6, self.white)
             self.font_writer_freesans20.text(
-                        "Algo", 196, 107, self.white)
+                "Algo", 196, 107, self.white)
             self.font_writer_freesans20.text(
-                        "Clk Div", 90, 209, self.white)
+                "Clk Div", 90, 209, self.white)
             self.font_writer_freesans20.text(
-                        "Gate", 6, 97, self.white)
+                "Gate", 6, 97, self.white)
             self.font_writer_freesans20.text(
-                        "Time", 6, 121, self.white)
-            
-            
-                
-        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:  
+                "Time", 6, 121, self.white)
+
+        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:
 
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
@@ -596,14 +592,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 current_channel_setting = "algo"
                 self.font_writer_font6.text(
                     current_channel_setting, 108, 130, page_color)
-                
+
                 txt_colors = [txt_color]*4
-                
+
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
-                algo_index = self.lx_euclid_config.euclidean_rhythms[channel_index].algo_index                
-                
+                algo_index = self.lx_euclid_config.euclidean_rhythms[channel_index].algo_index
+
                 txt_colors[algo_index] = txt_color_highlight
-                
+
                 self.font_writer_freesans20.text(
                     "Eucl.", 101, 12, txt_colors[0])
 
@@ -611,36 +607,35 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     "Exp.", 191, 95, txt_colors[1])
                 self.font_writer_freesans20.text(
                     "Eucl.", 191, 121, txt_colors[1])
-                
+
                 self.font_writer_freesans20.text(
                     "Inv.", 103, 186, txt_colors[2])
                 self.font_writer_freesans20.text(
                     "Exp.", 103, 212, txt_colors[2])
-                
+
                 self.font_writer_freesans20.text(
                     "Sym.", 5, 95, txt_colors[3])
                 self.font_writer_freesans20.text(
                     "Eucl.", 5, 121, txt_colors[3])
-                
-                
 
             elif page == 2:  # time division
                 current_channel_setting = "clk div"
                 self.font_writer_font6.text(
                     current_channel_setting, 101, 130, page_color)
                 txt_colors = [txt_color]*6
-                
+
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
-                prescaler_index = self.lx_euclid_config.euclidean_rhythms[channel_index].prescaler_index                
-                
+                prescaler_index = self.lx_euclid_config.euclidean_rhythms[
+                    channel_index].prescaler_index
+
                 txt_colors[prescaler_index] = txt_color_highlight
-                
+
                 self.font_writer_freesans20.text(
-                    "1", 115,3, txt_colors[0])
+                    "1", 115, 3, txt_colors[0])
                 self.font_writer_freesans20.text(
                     "2", 204, 58, txt_colors[1])
                 self.font_writer_freesans20.text(
-                    "3", 204,160, txt_colors[2])
+                    "3", 204, 160, txt_colors[2])
                 self.font_writer_freesans20.text(
                     "4", 117, 215, txt_colors[3])
                 self.font_writer_freesans20.text(
@@ -652,49 +647,49 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 current_channel_setting = "time"
                 self.font_writer_font6.text(
                     current_channel_setting, 107, 130, page_color)
-                
-                
-                arrow_color = self.light_grey
-                
-                self.line(79,211,70,208,arrow_color)
-                self.line(70,208,63,202,arrow_color)
-                self.line(63,202,56,194,arrow_color)
-                self.poly(0,0,array("h", [56,194,62,196,57,200]), arrow_color,True)
-                
-                self.line(240-79,211,240-70,208,arrow_color)
-                self.line(240-70,208,240-63,202,arrow_color)
-                self.line(240-63,202,240-56,194,arrow_color)
-                self.poly(0,0,array("h", [240-56,194,240-62,196,240-57,200]), arrow_color,True)
-                
 
-                
+                arrow_color = self.light_grey
+
+                self.line(79, 211, 70, 208, arrow_color)
+                self.line(70, 208, 63, 202, arrow_color)
+                self.line(63, 202, 56, 194, arrow_color)
+                self.poly(0, 0, array(
+                    "h", [56, 194, 62, 196, 57, 200]), arrow_color, True)
+
+                self.line(240-79, 211, 240-70, 208, arrow_color)
+                self.line(240-70, 208, 240-63, 202, arrow_color)
+                self.line(240-63, 202, 240-56, 194, arrow_color)
+                self.poly(0, 0, array(
+                    "h", [240-56, 194, 240-62, 196, 240-57, 200]), arrow_color, True)
+
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
-                randomize_gate_length = self.lx_euclid_config.euclidean_rhythms[channel_index].randomize_gate_length
+                randomize_gate_length = self.lx_euclid_config.euclidean_rhythms[
+                    channel_index].randomize_gate_length
                 gate_length = self.lx_euclid_config.euclidean_rhythms[channel_index].gate_length_ms
-                
+
                 if randomize_gate_length:
                     randomize_color = txt_color_highlight
                 else:
                     randomize_color = txt_color
-                
+
                 self.font_writer_freesans20.text(
                     "Randomize", 70, 26, randomize_color)
-                
+
                 time_txt = page_txt = f"{gate_length}ms"
-                
+
                 time_txt_len = self.font_writer_font6.stringlen(time_txt)
-                
+
                 self.font_writer_freesans20.text(
                     time_txt, 115-int(time_txt_len/2), 200, self.white)
-                
+
                 self.font_writer_freesans20.text(
                     "+", 43, 179, self.light_grey)
-                
+
                 self.font_writer_freesans20.text(
                     "-", 188, 179, self.light_grey)
 
-        elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION: 
-            
+        elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION:
+
             txt_color = self.selected_color
 
             self.circle(120, 120, 82, self.touch_circle_color, True)
@@ -704,11 +699,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 36, self.black, True)
 
             self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
-            
-            self.font_writer_freesans20.text("Load", 98,10, self.white)
-            self.font_writer_freesans20.text("Save", 98,208, self.white)
-            
-            
+
+            self.font_writer_freesans20.text("Load", 98, 10, self.white)
+            self.font_writer_freesans20.text("Save", 98, 208, self.white)
+
         elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS:
 
             txt_color = self.selected_color
@@ -722,7 +716,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             page = self.lx_euclid_config.param_presets_page
             page_color = self.light_grey
 
-            if page == 0:#titi
+            if page == 0:
                 self.font_writer_font6.text("load", 108, 130, page_color)
             else:
                 self.font_writer_font6.text("save", 106, 130, page_color)
@@ -739,7 +733,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text("8", 34, 38, txt_color)
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU_SELECTION:
-            
+
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
             page_color = self.light_grey
@@ -750,20 +744,18 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 42-13, self.black, True)
 
-
             other_txt = "More"
             self.font_writer_freesans20.text(
                 other_txt, 100, 110, self.white)
             self.font_writer_freesans20.text(
-                    "Clock", 95, 6, self.white)
+                "Clock", 95, 6, self.white)
             self.font_writer_freesans20.text(
-                    "Source", 87, 27, self.white)
+                "Source", 87, 27, self.white)
             self.font_writer_freesans20.text(
-                    "Touch", 95, 182, self.white)
+                "Touch", 95, 182, self.white)
             self.font_writer_freesans20.text(
-                    "Sensitivity", 80, 203, self.white)
-            
-            
+                "Sensitivity", 80, 203, self.white)
+
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
@@ -775,46 +767,44 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 42-13, self.black, True)
 
-
             other_txt = "More"
             self.font_writer_freesans20.text(
                 other_txt, 100, 110, self.white)
             page = self.lx_euclid_config.param_menu_page
-            
-            if page == 0:#config clock source
+
+            if page == 0:  # config clock source
                 current_channel_setting = "clk src"
                 self.font_writer_font6.text(
                     current_channel_setting, 100, 130, page_color)
-                
+
                 clk_index = self.lx_euclid_config.clk_mode
-                
+
                 txt_colors = [txt_color]*2
-                
+
                 txt_colors[clk_index] = txt_color_highlight
                 self.font_writer_freesans20.text(
-                    "Internal", 88,10, txt_colors[0])
+                    "Internal", 88, 10, txt_colors[0])
                 self.font_writer_freesans20.text(
-                    "External", 88,208, txt_colors[1])
-                
-            elif page == 1:#config sensitivity
+                    "External", 88, 208, txt_colors[1])
+
+            elif page == 1:  # config sensitivity
                 current_channel_setting = "sensi"
                 self.font_writer_font6.text(
                     current_channel_setting, 105, 130, page_color)
-                
+
                 txt_colors = [txt_color]*3
-                
+
                 sensi_index = self.lx_euclid_config.lx_hardware.capacitives_circles.touch_sensitivity
-                
+
                 txt_colors[sensi_index] = txt_color_highlight
-                
+
                 self.font_writer_freesans20.text(
                     "Low", 104, 4, txt_colors[0])
                 self.font_writer_freesans20.text(
                     "Medium", 154, 168, txt_colors[1])
                 self.font_writer_freesans20.text(
                     "High", 19, 168, txt_colors[2])
-            
-           
+
         elif local_state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 
             self.lx_euclid_config.menu_lock.acquire()

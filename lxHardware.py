@@ -51,7 +51,8 @@ def timed_10th_ms_pulse():
     nop()
     jmp(x_dec, "delay_high")
     set(pins, 0)
-    
+
+
 @rp2.asm_pio(set_init=rp2.PIO.OUT_LOW, out_init=rp2.PIO.OUT_LOW, out_shiftdir=rp2.PIO.SHIFT_LEFT, autopull=True, pull_thresh=24)
 def timed_10th_ms_pulse_internal_clock():
     label("wait")
@@ -124,14 +125,14 @@ class LxHardware:
         self.rst_pin_status = self.rst_pin.value()
         self.btn_tap_pin_status = self.btn_tap_pin.value()
         self.btn_menu_pin_status = self.btn_menu_pin.value()
-        
+
         # To create tap tempo, we are doing a pulse on a input pin with
         # a pio (sm_internal_clock) and getting this pulse with an interrupt.
         # By doing so, we are sure our interrupt will be executed on core 0
         self.internal_clk_pin = Pin(INTERNAL_CLOCK, Pin.IN)
 
         self.internal_clk_pin.irq(handler=self.internal_clk_pin_change,
-                         trigger= Pin.IRQ_RISING, hard=True)
+                                  trigger=Pin.IRQ_RISING, hard=True)
 
         self.clk_pin.irq(handler=self.clk_pin_change,
                          trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
@@ -194,8 +195,9 @@ class LxHardware:
         self.sm1.active(1)
         self.sm2.active(1)
         self.sm3.active(1)
-        
-        self.sm_internal_clock = rp2.StateMachine(4, timed_10th_ms_pulse_internal_clock, freq=20_000, set_base=Pin(INTERNAL_CLOCK))
+
+        self.sm_internal_clock = rp2.StateMachine(
+            4, timed_10th_ms_pulse_internal_clock, freq=20_000, set_base=Pin(INTERNAL_CLOCK))
         self.sm_internal_clock.active(1)
 
         self.i2c = I2C(0, sda=Pin(0), scl=Pin(1))
@@ -217,15 +219,15 @@ class LxHardware:
 
     def set_lx_euclid_config(self, lx_euclid_config):
         self.lx_euclid_config = lx_euclid_config
-        
+
     def relaunch_internal_clk(self):
         self.sm_internal_clock.restart()
-        self.internal_clk_pin_change(None)        
-        
+        self.internal_clk_pin_change(None)
+
     def stop_internal_clk(self):
-        self.sm_internal_clock.restart()        
-        
-    def internal_clk_pin_change(self, pin): 
+        self.sm_internal_clock.restart()
+
+    def internal_clk_pin_change(self, pin):
         self.lx_euclid_config.incr_steps()
         self.lxHardwareEventFifo.append(self.clk_rise_event)
         # relauch only when using tap mode
