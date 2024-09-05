@@ -19,6 +19,10 @@ LED_TAP = const(20)
 BTN_MENU = const(22)
 LED_MENU = const(21)
 
+# this is external I2C SDA. We use it as internal clock until micropython fix mutlithreading issue with
+# pio, timer and schedule
+INTERNAL_CLOCK = const(26)
+
 SW0 = const(19)
 SW1 = const(7)
 SW2 = const(23)
@@ -47,6 +51,18 @@ def timed_10th_ms_pulse():
     nop()
     jmp(x_dec, "delay_high")
     set(pins, 0)
+
+
+@rp2.asm_pio(set_init=rp2.PIO.OUT_LOW, out_init=rp2.PIO.OUT_LOW, out_shiftdir=rp2.PIO.SHIFT_LEFT, autopull=True, pull_thresh=24)
+def timed_10th_ms_pulse_internal_clock():
+    label("wait")
+    out(x, 16)
+    jmp(not_x, "wait")
+    set(pins, 0)
+    label("delay_high")
+    nop()
+    jmp(x_dec, "delay_high")
+    set(pins, 1)
 
 
 class HandlerEventData:
@@ -79,7 +95,6 @@ class LxHardware:
     EEPROM_ADDR = const(0x50)
 
     def __init__(self):
-
         # when using interrupt we can't create memory in the handler so creating event before
         self.btn_fall_event = HandlerEventData(LxHardware.BTN_TAP_FALL)
         self.btn_rise_event = HandlerEventData(LxHardware.BTN_TAP_RISE)
@@ -110,6 +125,14 @@ class LxHardware:
         self.rst_pin_status = self.rst_pin.value()
         self.btn_tap_pin_status = self.btn_tap_pin.value()
         self.btn_menu_pin_status = self.btn_menu_pin.value()
+
+        # To create tap tempo, we are doing a pulse on a input pin with
+        # a pio (sm_internal_clock) and getting this pulse with an interrupt.
+        # By doing so, we are sure our interrupt will be executed on core 0
+        self.internal_clk_pin = Pin(INTERNAL_CLOCK, Pin.IN)
+
+        self.internal_clk_pin.irq(handler=self.internal_clk_pin_change,
+                                  trigger=Pin.IRQ_RISING, hard=True)
 
         self.clk_pin.irq(handler=self.clk_pin_change,
                          trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
@@ -173,6 +196,10 @@ class LxHardware:
         self.sm2.active(1)
         self.sm3.active(1)
 
+        self.sm_internal_clock = rp2.StateMachine(
+            4, timed_10th_ms_pulse_internal_clock, freq=20_000, set_base=Pin(INTERNAL_CLOCK))
+        self.sm_internal_clock.active(1)
+
         self.i2c = I2C(0, sda=Pin(0), scl=Pin(1))
         # a lock on the i2c so both thread can use i2c devices
         self.i2c_lock = allocate_lock()
@@ -192,6 +219,22 @@ class LxHardware:
 
     def set_lx_euclid_config(self, lx_euclid_config):
         self.lx_euclid_config = lx_euclid_config
+
+    def relaunch_internal_clk(self):
+        self.sm_internal_clock.restart()
+        self.internal_clk_pin_change(None)
+
+    def stop_internal_clk(self):
+        self.sm_internal_clock.restart()
+
+    def internal_clk_pin_change(self, pin):
+        self.lx_euclid_config.incr_steps()
+        self.lxHardwareEventFifo.append(self.clk_rise_event)
+        # relauch only when using tap mode
+        if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+            # we are using 16 bit on the SM
+            # --> 2**16/10/1000 = 6.5536 s
+            self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
 
     def clk_pin_change(self, pin):
         try:
@@ -267,8 +310,9 @@ class LxHardware:
                 self.sw_leds[index].value(0)
 
     def set_gate(self, gate_index, time_tenth_ms):
-        time = time_tenth_ms * 10
-        self.sms[gate_index].put(time)
+        if gate_index < 4:
+            time = time_tenth_ms * 10
+            self.sms[gate_index].put(time)
 
     def set_tap_led(self):
         self.led_tap.value(1)

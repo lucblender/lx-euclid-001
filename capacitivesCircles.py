@@ -41,7 +41,7 @@ class CapacitivesCircles():
         self.last_outer_circle_angle_timestamp_ms = ticks_ms()
 
         self.touch_sensitivity_lock = allocate_lock()
-        self._touch_sensitivity = 0
+        self._touch_sensitivity = 1
 
         self.calibration_array = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         if self.is_mpr_detected:
