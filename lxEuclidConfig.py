@@ -816,6 +816,10 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
+            elif event == LxEuclidConstant.EVENT_MENU_BTN:
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_MENU_SELECT
+                self.state_lock.release()
 
         elif self.state == LxEuclidConstant.STATE_PARAM_PADS:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
@@ -897,6 +901,10 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
+            elif event == LxEuclidConstant.EVENT_MENU_BTN:
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_MENU_SELECT
+                self.state_lock.release()
 
         elif self.state == LxEuclidConstant.STATE_PARAM_PRESETS:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:  # loading saving preset
@@ -1206,6 +1214,10 @@ class LxEuclidConfig:
                 self.param_menu_page = param_index
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_PARAM_MENU
+                self.state_lock.release()
+            elif event == LxEuclidConstant.EVENT_MENU_BTN:
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_MENU_SELECT
                 self.state_lock.release()
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
