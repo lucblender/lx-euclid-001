@@ -79,10 +79,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         # each array has 5 colors, 4 for the circles, the 5th used when the infos concerns all the circles
         self.rhythm_colors = [rgb888_to_rgb565(255, 136, 31), rgb888_to_rgb565(
-            224, 28, 2), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(156, 255, 237), self.white]
+            224, 28, 2), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(95,255,226), self.white]
 
-        self.rhythm_colors_highlight = [rgb888_to_rgb565(253, 168, 94), rgb888_to_rgb565(
-            255, 83, 61), rgb888_to_rgb565(176, 196, 255), rgb888_to_rgb565(226,255,250), self.white]
+        self.rhythm_colors_highlight = [rgb888_to_rgb565(255,219,197), rgb888_to_rgb565(
+            255,189,180), rgb888_to_rgb565(227,234,255), rgb888_to_rgb565(243,253,255), self.white]
 
         self.un_selected_color = self.grey
         self.selected_color = self.rhythm_colors_highlight[3]
@@ -391,6 +391,31 @@ class LCD_1inch28(framebuf.FrameBuffer):
             if self.parameter_unselected is not None:
                 self.blit(self.parameter_unselected, 100, 100)
 
+        elif local_state == LxEuclidConstant.STATE_PARAM_PADS_SELECTION:
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
+
+            self.circle(120, 120, 58, self.touch_circle_color, True)
+            self.circle(120, 120, 58-13, self.black, True)
+
+            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 42-13, self.black, True)
+
+            self.font_writer_freesans20.text(
+                "Macro", 94, 110, txt_color_highlight)
+            
+         
+            self.font_writer_freesans20.text(
+                "Inner", 101, 12, self.white)
+            self.font_writer_freesans20.text(
+                "Circle", 98, 38, self.white)
+            
+            self.font_writer_freesans20.text(
+                "Outer", 96, 186, self.white)
+            self.font_writer_freesans20.text(
+                "Circle", 98, 212, self.white)
+                
+                
         elif local_state == LxEuclidConstant.STATE_PARAM_PADS:
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
@@ -407,18 +432,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
             page = self.lx_euclid_config.param_pads_page
             page_color = self.light_grey
 
-            page_txt = f"page {page+1}"
-            self.font_writer_font6.text(page_txt, 102, 130, page_color)
-
-            if self.lx_euclid_config.param_pads_inner_outer == 0:
+            if self.lx_euclid_config.param_pads_inner_outer_page == 0:
                 inner_outer_txt = "inner"
             else:
                 inner_outer_txt = "outer"
-            self.font_writer_font6.text(inner_outer_txt, 104, 95, page_color)
+            self.font_writer_font6.text(inner_outer_txt, 104, 130, page_color)
 
             if page == 0:
                 txt_colors = [txt_color]*8
-                if self.lx_euclid_config.param_pads_inner_outer == 0:  # inner
+                if self.lx_euclid_config.param_pads_inner_outer_page == 0:  # inner
                     txt_colors[self.lx_euclid_config.inner_rotate_action] = txt_color_highlight
                 else:  # outer
                     txt_colors[self.lx_euclid_config.outer_rotate_action] = txt_color_highlight
@@ -438,7 +460,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             elif page == 1:
                 txt_colors = [txt_color]*4
 
-                if self.lx_euclid_config.param_pads_inner_outer == 0:  # inner
+                if self.lx_euclid_config.param_pads_inner_outer_page == 0:  # inner
                     action_rhythm = self.lx_euclid_config.inner_action_rhythm
                     rotate_action = self.lx_euclid_config.inner_rotate_action
                 else:  # outer
@@ -448,10 +470,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 for i in range(0, 4):
                     # action_rhythm are stored by bit
                     if action_rhythm & (1 << i) != 0:
-                        if rotate_action in [LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_FILL, LxEuclidConstant.CIRCLE_ACTION_MUTE, LxEuclidConstant.CIRCLE_ACTION_RESET]:
-                            txt_colors[i] = self.light_grey
-                        else:
-                            txt_colors[i] = txt_color_highlight
+                        txt_colors[i] = txt_color_highlight
 
                 self.font_writer_freesans20.text(
                     "Ch1", 101, 12, txt_colors[0])
@@ -674,6 +693,22 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     "-", 188, 179, self.light_grey)
 
+        elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION: 
+            
+            txt_color = self.selected_color
+
+            self.circle(120, 120, 82, self.touch_circle_color, True)
+            self.circle(120, 120, 60, self.black, True)
+
+            self.circle(120, 120, 55, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 36, self.black, True)
+
+            self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
+            
+            self.font_writer_freesans20.text("Load", 98,10, self.white)
+            self.font_writer_freesans20.text("Save", 98,208, self.white)
+            
+            
         elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS:
 
             txt_color = self.selected_color
@@ -687,13 +722,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
             page = self.lx_euclid_config.param_presets_page
             page_color = self.light_grey
 
-            page_txt = f"page {page+1}"
-            self.font_writer_font6.text(page_txt, 102, 130, page_color)
-
             if page == 0:#titi
-                self.font_writer_font6.text("load", 108, 95, page_color)
+                self.font_writer_font6.text("load", 108, 130, page_color)
             else:
-                self.font_writer_font6.text("save", 106, 95, page_color)
+                self.font_writer_font6.text("save", 106, 130, page_color)
 
             self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
 
@@ -764,7 +796,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     "External", 88,208, txt_colors[1])
                 
-            elif page == 1:#config sensitivity # todo
+            elif page == 1:#config sensitivity
                 current_channel_setting = "sensi"
                 self.font_writer_font6.text(
                     current_channel_setting, 105, 130, page_color)

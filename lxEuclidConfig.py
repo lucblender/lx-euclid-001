@@ -485,10 +485,12 @@ class LxEuclidConstant:
     STATE_PARAM_MENU_SELECTION = const(4)
     STATE_RHYTHM_PARAM_INNER_BEAT_PULSE = const(5)
     STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(6)
-    STATE_PARAM_PRESETS = const(7)
-    STATE_PARAM_PADS = const(8)
-    STATE_CHANNEL_CONFIG = const(9)
-    STATE_CHANNEL_CONFIG_SELECTION = const(10)
+    STATE_PARAM_PRESETS_SELECTION = const(7)
+    STATE_PARAM_PRESETS = const(8)
+    STATE_PARAM_PADS_SELECTION = const(9)
+    STATE_PARAM_PADS = const(10)
+    STATE_CHANNEL_CONFIG = const(11)
+    STATE_CHANNEL_CONFIG_SELECTION = const(12)
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
@@ -573,7 +575,7 @@ class LxEuclidConfig:
         self.param_cvs_page = 0
         self.param_presets_page = 0
         self.param_pads_page = 0
-        self.param_pads_inner_outer = 0
+        self.param_pads_inner_outer_page = 0
 
         self.param_channel_config_page = 0
         self.param_channel_config_cv_page = 0
@@ -768,20 +770,18 @@ class LxEuclidConfig:
 
                 if menu_selection_index == 0:  # Preset
                     self.state_lock.acquire()
-                    self.state = LxEuclidConstant.STATE_PARAM_PRESETS
+                    self.state = LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION
                     self.state_lock.release()
                     self.lx_hardware.set_menu_led()
                     self.param_presets_page = 0
 
                 elif menu_selection_index == 1:  # Pads
                     self.state_lock.acquire()
-                    self.state = LxEuclidConstant.STATE_PARAM_PADS
-                    self.lx_hardware.set_sw_leds(0)
-                    self.lx_hardware.set_sw_leds(1)
+                    self.state = LxEuclidConstant.STATE_PARAM_PADS_SELECTION
                     self.state_lock.release()
                     self.lx_hardware.set_menu_led()
                     self.param_pads_page = 0
-                    self.param_pads_inner_outer = 0
+                    self.param_pads_inner_outer_page = 0
                 elif menu_selection_index == 2:  # Other
                     self.state_lock.acquire()
                     self.state = LxEuclidConstant.STATE_PARAM_MENU_SELECTION
@@ -796,12 +796,30 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
 
+        elif self.state == LxEuclidConstant.STATE_PARAM_PADS_SELECTION:
+            if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
+                angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
+                pad_selection = angle_to_index(angle_inner, 2)                
+                self.param_pads_inner_outer_page = pad_selection                
+                self.param_pads_page = 0                
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_PARAM_PADS
+                self.state_lock.release()                
+            elif event == LxEuclidConstant.EVENT_TAP_BTN:
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_LIVE
+                self.state_lock.release()
+                self.lx_hardware.clear_tap_led()
+                self.lx_hardware.clear_menu_led()
+                self.lx_hardware.clear_sw_leds()
+                
+            
         elif self.state == LxEuclidConstant.STATE_PARAM_PADS:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 if self.param_pads_page == 0:  # action
                     rotate_action_index = angle_to_index(angle_inner, 8)
-                    if self.param_pads_inner_outer == 0:  # inner
+                    if self.param_pads_inner_outer_page == 0:  # inner
                         previous_rotate_action = self.inner_rotate_action
                         action_rhythm = self.inner_action_rhythm
                         self.inner_rotate_action = rotate_action_index
@@ -821,10 +839,12 @@ class LxEuclidConfig:
                             if self.euclidean_rhythms[euclidean_rhythm_index].mute_by_macro and self.euclidean_rhythms[euclidean_rhythm_index].is_mute:
                                 self.euclidean_rhythms[euclidean_rhythm_index].unmute(
                                 )
-
+                    # go to next macro page if we select any parameter except listed ones
+                    if rotate_action_index not in [LxEuclidConstant.CIRCLE_ACTION_NONE,LxEuclidConstant.CIRCLE_ACTION_RESET,LxEuclidConstant.CIRCLE_ACTION_MUTE,LxEuclidConstant.CIRCLE_ACTION_FILL]:
+                        self.param_pads_page = 1
                 elif self.param_pads_page == 1:  # output
                     out_index = angle_to_index(angle_inner, 4)
-                    if self.param_pads_inner_outer == 0:  # inner
+                    if self.param_pads_inner_outer_page == 0:  # inner
                         previous_inner_action_rhythm = self.inner_action_rhythm
                         self.inner_action_rhythm = self.inner_action_rhythm ^ (
                             1 << out_index)
@@ -836,7 +856,16 @@ class LxEuclidConfig:
 
                 self.save_data()
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
-                self.param_pads_page = (self.param_pads_page+1) % PADS_PAGE_MAX
+                if self.param_pads_page == 0:
+                    # if we are in the first param page, we go back to param pad selection
+                    self.param_pads_page = 0
+                    self.param_pads_inner_outer_page = 0
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConstant.STATE_PARAM_PADS_SELECTION
+                    self.state_lock.release()
+                else:
+                    # if we are in second param page, we go back to first param page
+                    self.param_pads_page = 0
             elif event == LxEuclidConstant.EVENT_TAP_BTN:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
@@ -846,8 +875,25 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_sw_leds()
 
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data < 2:
-                self.param_pads_inner_outer = data
+                self.param_pads_inner_outer_page = data
                 self.param_pads_page = 0
+
+        elif self.state == LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION:
+            if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:  # loading saving preset
+                angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
+                preset_page = angle_to_index(angle_inner, 2)
+                self.param_presets_page = preset_page
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_PARAM_PRESETS
+                self.state_lock.release()
+            elif event == LxEuclidConstant.EVENT_TAP_BTN:
+                self.save_data()
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_LIVE
+                self.state_lock.release()
+                self.lx_hardware.clear_tap_led()
+                self.lx_hardware.clear_menu_led()
+                self.lx_hardware.clear_sw_leds()
 
         elif self.state == LxEuclidConstant.STATE_PARAM_PRESETS:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:  # loading saving preset
@@ -873,10 +919,10 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
-
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
-                self.param_presets_page = (
-                    self.param_presets_page+1) % PRESET_PAGE_MAX
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION
+                self.state_lock.release()
 
         elif self.state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
@@ -1138,7 +1184,7 @@ class LxEuclidConfig:
                     
             self.save_data()
 
-        elif local_state == LxEuclidConstant.STATE_PARAM_MENU_SELECTION: # TODO
+        elif local_state == LxEuclidConstant.STATE_PARAM_MENU_SELECTION:
             if event == LxEuclidConstant.EVENT_TAP_BTN:
                 # save data, clear everything, go back to live
                 self.save_data()
