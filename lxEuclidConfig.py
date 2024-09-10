@@ -635,6 +635,7 @@ class LxEuclidConfig:
                 self.presets[self._load_preset_index][index])
             euclidean_rhythm.set_rhythm()
             index = index + 1
+        self.reset_steps()    
 
     def on_event(self, event, data=None):
         self.state_lock.acquire()
