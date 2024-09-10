@@ -4,7 +4,7 @@ from micropython import const
 from utime import ticks_ms
 from ucollections import OrderedDict
 
-from cvManager import CvAction, CvChannel, LOW_PERCENTAGE_RISING_THRESHOLD
+from cvManager import CvAction, CvChannel, LOW_PERCENTAGE_RISING_THRESHOLD, percent_to_exp_percent
 
 T_CLK_LED_ON_MS = const(10)
 T_GATE_ON_MS = const(10)
@@ -1494,7 +1494,7 @@ class LxEuclidConfig:
                     elif cv_action == CvAction.CV_ACTION_BEATS:
                         self.euclidean_rhythms[euclidean_rhythm_index].has_cv_beat = True
                         self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_beat(
-                            percent_value)
+                            percent_to_exp_percent(percent_value))
                     elif cv_action == CvAction.CV_ACTION_PULSES:
                         self.euclidean_rhythms[euclidean_rhythm_index].has_cv_pulse = True
                         self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_pulse(
