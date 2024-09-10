@@ -412,7 +412,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         elif pulses == 1:
             return [1]*1+[0]*(beats-1)
         else:
-            alpha = 2
+            alpha = 1.4
 
             # Calculate the exponential positions
             positions = [round((i / (pulses - 1))**alpha * (beats - 1))
