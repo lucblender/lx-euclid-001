@@ -485,12 +485,11 @@ class LxEuclidConstant:
     STATE_PARAM_MENU_SELECTION = const(4)
     STATE_RHYTHM_PARAM_INNER_BEAT_PULSE = const(5)
     STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(6)
-    STATE_PARAM_PRESETS_SELECTION = const(7)
-    STATE_PARAM_PRESETS = const(8)
-    STATE_PARAM_PADS_SELECTION = const(9)
-    STATE_PARAM_PADS = const(10)
-    STATE_CHANNEL_CONFIG = const(11)
-    STATE_CHANNEL_CONFIG_SELECTION = const(12)
+    STATE_PARAM_PRESETS = const(7)
+    STATE_PARAM_PADS_SELECTION = const(8)
+    STATE_PARAM_PADS = const(9)
+    STATE_CHANNEL_CONFIG = const(10)
+    STATE_CHANNEL_CONFIG_SELECTION = const(11)
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
@@ -775,7 +774,7 @@ class LxEuclidConfig:
 
                 if menu_selection_index == 0:  # Preset
                     self.state_lock.acquire()
-                    self.state = LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION
+                    self.state = LxEuclidConstant.STATE_PARAM_PRESETS
                     self.state_lock.release()
                     self.lx_hardware.set_menu_led()
                     self.param_presets_page = 0
@@ -886,27 +885,6 @@ class LxEuclidConfig:
                 self.param_pads_inner_outer_page = data
                 self.param_pads_page = 0
 
-        elif self.state == LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION:
-            if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:  # loading saving preset
-                angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
-                preset_page = angle_to_index(angle_inner, 2)
-                self.param_presets_page = preset_page
-                self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_PARAM_PRESETS
-                self.state_lock.release()
-            elif event == LxEuclidConstant.EVENT_TAP_BTN:
-                self.save_data()
-                self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_LIVE
-                self.state_lock.release()
-                self.lx_hardware.clear_tap_led()
-                self.lx_hardware.clear_menu_led()
-                self.lx_hardware.clear_sw_leds()
-            elif event == LxEuclidConstant.EVENT_MENU_BTN:
-                self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_MENU_SELECT
-                self.state_lock.release()
-
         elif self.state == LxEuclidConstant.STATE_PARAM_PRESETS:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:  # loading saving preset
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
@@ -931,10 +909,8 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
-            elif event == LxEuclidConstant.EVENT_MENU_BTN:
-                self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION
-                self.state_lock.release()
+            elif event == LxEuclidConstant.EVENT_MENU_BTN:                
+                self.param_presets_page =  (self.param_presets_page+1)%PRESET_PAGE_MAX
 
         elif self.state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
