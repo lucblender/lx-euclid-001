@@ -688,21 +688,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     "-", 188, 179, self.light_grey)
 
-        elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION:
-
-            txt_color = self.selected_color
-
-            self.circle(120, 120, 82, self.touch_circle_color, True)
-            self.circle(120, 120, 60, self.black, True)
-
-            self.circle(120, 120, 55, self.touch_circle_color_highlight, True)
-            self.circle(120, 120, 36, self.black, True)
-
-            self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
-
-            self.font_writer_freesans20.text("Load", 98, 10, self.white)
-            self.font_writer_freesans20.text("Save", 98, 208, self.white)
-
         elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS:
 
             txt_color = self.selected_color

@@ -4,7 +4,7 @@ from micropython import const
 from utime import ticks_ms
 from ucollections import OrderedDict
 
-from cvManager import CvAction, CvChannel, LOW_PERCENTAGE_RISING_THRESHOLD
+from cvManager import CvAction, CvChannel, LOW_PERCENTAGE_RISING_THRESHOLD, percent_to_exp_percent
 
 T_CLK_LED_ON_MS = const(10)
 T_GATE_ON_MS = const(10)
@@ -412,7 +412,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         elif pulses == 1:
             return [1]*1+[0]*(beats-1)
         else:
-            alpha = 2
+            alpha = 1.4
 
             # Calculate the exponential positions
             positions = [round((i / (pulses - 1))**alpha * (beats - 1))
@@ -485,25 +485,25 @@ class LxEuclidConstant:
     STATE_PARAM_MENU_SELECTION = const(4)
     STATE_RHYTHM_PARAM_INNER_BEAT_PULSE = const(5)
     STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(6)
-    STATE_PARAM_PRESETS_SELECTION = const(7)
-    STATE_PARAM_PRESETS = const(8)
-    STATE_PARAM_PADS_SELECTION = const(9)
-    STATE_PARAM_PADS = const(10)
-    STATE_CHANNEL_CONFIG = const(11)
-    STATE_CHANNEL_CONFIG_SELECTION = const(12)
+    STATE_PARAM_PRESETS = const(7)
+    STATE_PARAM_PADS_SELECTION = const(8)
+    STATE_PARAM_PADS = const(9)
+    STATE_CHANNEL_CONFIG = const(10)
+    STATE_CHANNEL_CONFIG_SELECTION = const(11)
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
     EVENT_TAP_BTN = const(2)
-    EVENT_INNER_CIRCLE_INCR = const(3)
-    EVENT_INNER_CIRCLE_DECR = const(4)
-    EVENT_OUTER_CIRCLE_INCR = const(5)
-    EVENT_OUTER_CIRCLE_DECR = const(6)
-    EVENT_INNER_CIRCLE_TOUCH = const(7)
-    EVENT_OUTER_CIRCLE_TOUCH = const(8)
-    EVENT_INNER_CIRCLE_TAP = const(9)
-    EVENT_OUTER_CIRCLE_TAP = const(10)
-    EVENT_BTN_SWITCHES = const(11)
+    EVENT_TAP_BTN_LONG = const(3)
+    EVENT_INNER_CIRCLE_INCR = const(4)
+    EVENT_INNER_CIRCLE_DECR = const(5)
+    EVENT_OUTER_CIRCLE_INCR = const(6)
+    EVENT_OUTER_CIRCLE_DECR = const(7)
+    EVENT_INNER_CIRCLE_TOUCH = const(8)
+    EVENT_OUTER_CIRCLE_TOUCH = const(9)
+    EVENT_INNER_CIRCLE_TAP = const(10)
+    EVENT_OUTER_CIRCLE_TAP = const(11)
+    EVENT_BTN_SWITCHES = const(12)
 
     MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
 
@@ -635,6 +635,7 @@ class LxEuclidConfig:
                 self.presets[self._load_preset_index][index])
             euclidean_rhythm.set_rhythm()
             index = index + 1
+        self.reset_steps()    
 
     def on_event(self, event, data=None):
         self.state_lock.acquire()
@@ -655,6 +656,8 @@ class LxEuclidConfig:
                 self.lx_hardware.set_tap_led()
                 self.state_lock.release()
                 self.sm_rhythm_param_counter = 0
+            elif event == LxEuclidConstant.EVENT_TAP_BTN_LONG:
+                self.reset_steps()
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES:
 
                 self.state_lock.acquire()
@@ -774,7 +777,7 @@ class LxEuclidConfig:
 
                 if menu_selection_index == 0:  # Preset
                     self.state_lock.acquire()
-                    self.state = LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION
+                    self.state = LxEuclidConstant.STATE_PARAM_PRESETS
                     self.state_lock.release()
                     self.lx_hardware.set_menu_led()
                     self.param_presets_page = 0
@@ -885,27 +888,6 @@ class LxEuclidConfig:
                 self.param_pads_inner_outer_page = data
                 self.param_pads_page = 0
 
-        elif self.state == LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION:
-            if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:  # loading saving preset
-                angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
-                preset_page = angle_to_index(angle_inner, 2)
-                self.param_presets_page = preset_page
-                self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_PARAM_PRESETS
-                self.state_lock.release()
-            elif event == LxEuclidConstant.EVENT_TAP_BTN:
-                self.save_data()
-                self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_LIVE
-                self.state_lock.release()
-                self.lx_hardware.clear_tap_led()
-                self.lx_hardware.clear_menu_led()
-                self.lx_hardware.clear_sw_leds()
-            elif event == LxEuclidConstant.EVENT_MENU_BTN:
-                self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_MENU_SELECT
-                self.state_lock.release()
-
         elif self.state == LxEuclidConstant.STATE_PARAM_PRESETS:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:  # loading saving preset
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
@@ -930,10 +912,8 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
-            elif event == LxEuclidConstant.EVENT_MENU_BTN:
-                self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_PARAM_PRESETS_SELECTION
-                self.state_lock.release()
+            elif event == LxEuclidConstant.EVENT_MENU_BTN:                
+                self.param_presets_page =  (self.param_presets_page+1)%PRESET_PAGE_MAX
 
         elif self.state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
@@ -1514,7 +1494,7 @@ class LxEuclidConfig:
                     elif cv_action == CvAction.CV_ACTION_BEATS:
                         self.euclidean_rhythms[euclidean_rhythm_index].has_cv_beat = True
                         self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_beat(
-                            percent_value)
+                            percent_to_exp_percent(percent_value))
                     elif cv_action == CvAction.CV_ACTION_PULSES:
                         self.euclidean_rhythms[euclidean_rhythm_index].has_cv_pulse = True
                         self.euclidean_rhythms[euclidean_rhythm_index].set_cv_percent_pulse(
