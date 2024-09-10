@@ -494,15 +494,16 @@ class LxEuclidConstant:
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
     EVENT_TAP_BTN = const(2)
-    EVENT_INNER_CIRCLE_INCR = const(3)
-    EVENT_INNER_CIRCLE_DECR = const(4)
-    EVENT_OUTER_CIRCLE_INCR = const(5)
-    EVENT_OUTER_CIRCLE_DECR = const(6)
-    EVENT_INNER_CIRCLE_TOUCH = const(7)
-    EVENT_OUTER_CIRCLE_TOUCH = const(8)
-    EVENT_INNER_CIRCLE_TAP = const(9)
-    EVENT_OUTER_CIRCLE_TAP = const(10)
-    EVENT_BTN_SWITCHES = const(11)
+    EVENT_TAP_BTN_LONG = const(3)
+    EVENT_INNER_CIRCLE_INCR = const(4)
+    EVENT_INNER_CIRCLE_DECR = const(5)
+    EVENT_OUTER_CIRCLE_INCR = const(6)
+    EVENT_OUTER_CIRCLE_DECR = const(7)
+    EVENT_INNER_CIRCLE_TOUCH = const(8)
+    EVENT_OUTER_CIRCLE_TOUCH = const(9)
+    EVENT_INNER_CIRCLE_TAP = const(10)
+    EVENT_OUTER_CIRCLE_TAP = const(11)
+    EVENT_BTN_SWITCHES = const(12)
 
     MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
 
@@ -655,6 +656,8 @@ class LxEuclidConfig:
                 self.lx_hardware.set_tap_led()
                 self.state_lock.release()
                 self.sm_rhythm_param_counter = 0
+            elif event == LxEuclidConstant.EVENT_TAP_BTN_LONG:
+                self.reset_steps()
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES:
 
                 self.state_lock.acquire()

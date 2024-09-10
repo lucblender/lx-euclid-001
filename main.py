@@ -32,6 +32,7 @@ def print_ram(code=""):
 MIN_TAP_DELAY_MS = 20
 # equivalent to 2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
 MAX_TAP_DELAY_MS = 8000
+LONG_PRESS_MS = 500
 DEBOUNCE_MS = 20
 
 CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
@@ -83,17 +84,23 @@ def lxhardware_changed(handlerEventData):
             lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN)
             LCD.set_need_display()
         else:
+
             temp_last_tap_ms = ticks_ms()
-            temp_tap_delay = temp_last_tap_ms - last_tap_ms
-            if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
-                # here the tap tempo time is divided by 4, for a 4/4 rhythm
-                lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
-                lx_euclid_config.save_data()  # tap tempo is saved in eeprom
-                if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                    lx_hardware.relaunch_internal_clk()
-                    if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
-                        LCD.set_need_display()
-            last_tap_ms = temp_last_tap_ms
+
+            # when in live mode, detect long press on tap btn to do a reset of rhyhtm
+            if temp_last_tap_ms-tap_btn_press >= LONG_PRESS_MS:                
+                lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN_LONG)
+            else:
+                temp_tap_delay = temp_last_tap_ms - last_tap_ms
+                if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
+                    # here the tap tempo time is divided by 4, for a 4/4 rhythm
+                    lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
+                    lx_euclid_config.save_data()  # tap tempo is saved in eeprom
+                    if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+                        lx_hardware.relaunch_internal_clk()
+                        if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
+                            LCD.set_need_display()
+                last_tap_ms = temp_last_tap_ms
 
         LCD.set_need_display()
     elif event == lx_hardware.INNER_CIRCLE_INCR:
