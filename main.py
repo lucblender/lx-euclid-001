@@ -4,7 +4,7 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 6
+MINOR = 7
 FIX = 0
 ADD = "_dev"
 

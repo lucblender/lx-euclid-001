@@ -410,7 +410,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 "Circle", 98, 38, self.white)
 
             self.font_writer_freesans20.text(
-                "Outer", 96, 186, self.white)
+                "Outer", 98, 186, self.white)
             self.font_writer_freesans20.text(
                 "Circle", 98, 212, self.white)
 
@@ -443,12 +443,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 else:  # outer
                     txt_colors[self.lx_euclid_config.outer_rotate_action] = txt_color_highlight
 
-                self.font_writer_freesans20.text("None", 93, 12, txt_colors[0])
-                self.font_writer_freesans20.text("Rst", 171, 40, txt_colors[1])
                 self.font_writer_freesans20.text(
-                    "Lgth", 196, 109, txt_colors[2])
+                    "None", 97, 12, txt_colors[0])
                 self.font_writer_freesans20.text(
-                    "Pulse", 155, 176, txt_colors[3])
+                    "Rst", 178, 40, txt_colors[1])
+                self.font_writer_freesans20.text(
+                    "Lgth", 198, 109, txt_colors[2])
+                self.font_writer_freesans20.text(
+                    "Pulse", 163, 176, txt_colors[3])
                 self.font_writer_freesans20.text(
                     "Rot", 105, 214, txt_colors[4])
                 self.font_writer_freesans20.text(
@@ -502,7 +504,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 current_channel_setting, 101, 130, page_color)
 
             self.font_writer_freesans20.text(
-                "CVs", 103, 6, self.white)
+                "CVs", 105, 6, self.white)
             self.font_writer_freesans20.text(
                 "Algo", 196, 107, self.white)
             self.font_writer_freesans20.text(
@@ -552,11 +554,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     self.font_writer_freesans20.text(
                         "Clear CV", 79, 12, self.white)
                     self.font_writer_freesans20.text(
-                        "Rst", 171, 40, txt_colors[1])
+                        "Rst", 178, 40, txt_colors[1])
                     self.font_writer_freesans20.text(
-                        "Lgth", 196, 109, txt_colors[2])
+                        "Lgth", 198, 109, txt_colors[2])
                     self.font_writer_freesans20.text(
-                        "Pulse", 155, 176, txt_colors[3])
+                        "Pulse", 163, 176, txt_colors[3])
                     self.font_writer_freesans20.text(
                         "Rot", 105, 214, txt_colors[4])
                     self.font_writer_freesans20.text(
@@ -577,7 +579,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     txt_colors[highlight_index] = txt_color_highlight
 
                     self.font_writer_freesans20.text(
-                        "None", 101, 12, txt_colors[0])
+                        "None", 97, 12, txt_colors[0])
 
                     self.font_writer_freesans20.text(
                         "CV1", 184, 77, txt_colors[1])
@@ -609,9 +611,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     "Eucl.", 191, 121, txt_colors[1])
 
                 self.font_writer_freesans20.text(
-                    "Inv.", 103, 186, txt_colors[2])
+                    "Inv.", 107, 186, txt_colors[2])
                 self.font_writer_freesans20.text(
-                    "Exp.", 103, 212, txt_colors[2])
+                    "Exp.", 105, 212, txt_colors[2])
 
                 self.font_writer_freesans20.text(
                     "Sym.", 5, 95, txt_colors[3])
@@ -631,7 +633,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 txt_colors[prescaler_index] = txt_color_highlight
 
                 self.font_writer_freesans20.text(
-                    "1", 115, 3, txt_colors[0])
+                    "1", 116, 3, txt_colors[0])
                 self.font_writer_freesans20.text(
                     "2", 204, 58, txt_colors[1])
                 self.font_writer_freesans20.text(
@@ -709,9 +711,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
 
             self.font_writer_freesans20.text("1", 116, 5, txt_color)
-            self.font_writer_freesans20.text("2", 190, 38, txt_color)
-            self.font_writer_freesans20.text("3", 220, 110, txt_color)
-            self.font_writer_freesans20.text("4", 190, 184, txt_color)
+            self.font_writer_freesans20.text("2", 197, 38, txt_color)
+            self.font_writer_freesans20.text("3", 225, 110, txt_color)
+            self.font_writer_freesans20.text("4", 197, 184, txt_color)
             self.font_writer_freesans20.text("5", 113, 218, txt_color)
             self.font_writer_freesans20.text("6", 34, 184, txt_color)
             self.font_writer_freesans20.text("7", 3, 110, txt_color)
