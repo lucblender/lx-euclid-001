@@ -380,7 +380,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             txt_color = self.selected_color
 
             self.font_writer_freesans20.text(
-                "Presets", 80, 12, txt_color)
+                "Presets", 87, 12, txt_color)
 
             self.font_writer_freesans20.text(
                 "Macro", 170, 158, txt_color)

@@ -972,7 +972,7 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG
+                self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION
                 self.state_lock.release()
 
                 self.param_channel_config_page = 0
