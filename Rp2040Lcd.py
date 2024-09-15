@@ -891,8 +891,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
 
             self.circle(120, 120, radius, beat_color, False)
-
-            local_current_step = euclidieanRhythm.current_step
+            
+            # when a reset step occure, we put the current step to zero in grey so user know it will
+            # be the next step to play
+            if euclidieanRhythm.reset_step_occure == True:
+                local_current_step = 0
+                beat_color_hightlight = self.grey
+            else:
+                local_current_step = euclidieanRhythm.current_step
 
             local_offset = euclidieanRhythm.offset
             if euclidieanRhythm.has_cv_offset:

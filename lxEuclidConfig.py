@@ -100,6 +100,10 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.get_current_step_beats = 0
         self.global_cv_offset = 0
         self.global_cv_probability = 0
+        
+        # when we start, it's like we are in a reset step and we wait for the 1st 
+        # clock to play the first beat
+        self.reset_step_occure = True
 
         # CV linked attributes
         self.has_cv_beat = False
@@ -285,10 +289,10 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.gate_length_ms = self.gate_length_ms - 10
         else:
             self.gate_length_ms = 10
-
+            
+    # this function can be called by an interrupt, this is why it cannot allocate any memory
     def reset_step(self):
-        self.current_step = 0
-        self.prescaler_rhythm_counter = 0
+        self.reset_step_occure = True
 
     def get_current_step(self):
         try:
@@ -1232,8 +1236,20 @@ class LxEuclidConfig:
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def incr_steps(self):
         self.computation_index = 0
-        for euclidean_rhythm in self.euclidean_rhythms:
+        for euclidean_rhythm in self.euclidean_rhythms:            
+            
             did_step = euclidean_rhythm.incr_step()
+            
+            if euclidean_rhythm.reset_step_occure:
+                # if a reset occure, we go back to step one, refresh the prescaler counter to 1
+                # and validate that a step can occure
+                euclidean_rhythm.reset_step_occure = False
+                euclidean_rhythm.current_step = 0
+                euclidean_rhythm.prescaler_rhythm_counter = 1
+                if euclidean_rhythm.prescaler_rhythm_counter >= euclidean_rhythm.prescaler:
+                    euclidean_rhythm.prescaler_rhythm_counter = 0
+                did_step = True
+                
             if euclidean_rhythm.get_current_step() and did_step:
                 if euclidean_rhythm.randomize_gate_length:
                     self.lx_hardware.set_gate(
