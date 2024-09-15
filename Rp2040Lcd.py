@@ -407,12 +407,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(
                 "Inner", 101, 12, self.white)
             self.font_writer_freesans20.text(
-                "Circle", 98, 38, self.white)
+                "Ring", 105, 38, self.white)
 
             self.font_writer_freesans20.text(
                 "Outer", 98, 186, self.white)
             self.font_writer_freesans20.text(
-                "Circle", 98, 212, self.white)
+                "Ring", 105, 212, self.white)
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PADS:
             txt_color = self.un_selected_color
@@ -641,7 +641,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 current_channel_setting = "clk div"
                 self.font_writer_font6.text(
                     current_channel_setting, 101, 130, page_color)
-                txt_colors = [txt_color]*6
+                txt_colors = [txt_color]*7
 
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
                 prescaler_index = self.lx_euclid_config.euclidean_rhythms[
@@ -652,15 +652,17 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     "1", 116, 3, txt_colors[0])
                 self.font_writer_freesans20.text(
-                    "2", 204, 58, txt_colors[1])
+                    "2", 199, 42, txt_colors[1])
                 self.font_writer_freesans20.text(
-                    "3", 204, 160, txt_colors[2])
+                    "3", 220, 136, txt_colors[2])
                 self.font_writer_freesans20.text(
-                    "4", 117, 215, txt_colors[3])
+                    "4", 160, 205, txt_colors[3])
                 self.font_writer_freesans20.text(
-                    "8", 21, 160, txt_colors[4])
+                    "6", 71, 205, txt_colors[4])
                 self.font_writer_freesans20.text(
-                    "16", 21, 58, txt_colors[5])
+                    "8", 8, 136, txt_colors[5])
+                self.font_writer_freesans20.text(
+                    "16", 31, 42, txt_colors[6])
 
             elif page == 3:  # gate time
                 current_channel_setting = "time"
