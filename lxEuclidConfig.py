@@ -21,7 +21,7 @@ PADS_PAGE_MAX = const(2)
 CHANNEL_PAGE_MAX = const(4)
 MENU_PAGE_MAX = const(2)
 
-PRESCALER_LIST = [1, 2, 3, 4, 8, 16]
+PRESCALER_LIST = [1, 2, 3, 4, 6, 8, 16]
 
 # pass from 360° (in capacitive circle referential) to 0..steps
 
@@ -1168,7 +1168,7 @@ class LxEuclidConfig:
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
                     )
                 elif self.param_channel_config_page == 2:  # clk division
-                    prescaler_index = angle_to_index(angle_inner, 6)
+                    prescaler_index = angle_to_index(angle_inner, 7)
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].prescaler_index = prescaler_index
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
                     )
