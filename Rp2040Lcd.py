@@ -407,12 +407,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(
                 "Inner", 101, 12, self.white)
             self.font_writer_freesans20.text(
-                "Circle", 98, 38, self.white)
+                "Ring", 105, 38, self.white)
 
             self.font_writer_freesans20.text(
                 "Outer", 98, 186, self.white)
             self.font_writer_freesans20.text(
-                "Circle", 98, 212, self.white)
+                "Ring", 105, 212, self.white)
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PADS:
             txt_color = self.un_selected_color
