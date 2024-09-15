@@ -4,7 +4,7 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 6
+MINOR = 7
 FIX = 0
 ADD = "_dev"
 
@@ -74,7 +74,7 @@ def lxhardware_changed(handlerEventData):
             LCD.set_need_display()
         lx_euclid_config.random_gate_length_update()
     elif event == lx_hardware.RST_RISE:
-        lx_euclid_config.reset_steps()
+        # reset has been done in interrupt, we just need to refresh display
         LCD.set_need_display()
     elif event == lx_hardware.BTN_TAP_RISE:
         tap_btn_press = ticks_ms()

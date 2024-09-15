@@ -253,7 +253,9 @@ class LxHardware:
         if self.rst_pin_status == self.rst_pin.value():
             return
         self.rst_pin_status = self.rst_pin.value()
-        if not self.rst_pin.value():
+        if not self.rst_pin.value():            
+            if self.lx_euclid_config is not None:
+                self.lx_euclid_config.reset_steps()
             self.lxHardwareEventFifo.append(self.rst_rise_event)
 
     def btn_tap_pin_change(self, pin):

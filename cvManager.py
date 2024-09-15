@@ -17,7 +17,7 @@ CV_MINUS_5V = const(26672)
 CV_RHYTHM_MASKS = [const(1), const(2), const(4), const(8)]
 
 MAX_PERCENT = const(100)
-ALPHA_EXP_PERCENT = const(2)
+ALPHA_EXP_PERCENT = const(2.5)
 
 def percent_to_exp_percent(percent):
     if percent < 0:
