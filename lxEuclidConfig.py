@@ -1,7 +1,7 @@
 from _thread import allocate_lock
 from random import randint
 from micropython import const
-from utime import ticks_ms
+from utime import ticks_ms, sleep
 from ucollections import OrderedDict
 
 from cvManager import CvAction, CvChannel, LOW_PERCENTAGE_RISING_THRESHOLD, percent_to_exp_percent
@@ -494,6 +494,7 @@ class LxEuclidConstant:
     STATE_PARAM_PADS = const(9)
     STATE_CHANNEL_CONFIG = const(10)
     STATE_CHANNEL_CONFIG_SELECTION = const(11)
+    STATE_TEST= const(100)
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
@@ -1538,3 +1539,27 @@ class LxEuclidConfig:
                             self.euclidean_rhythms[euclidean_rhythm_index].unmute(
                             )
         return to_return
+    
+    # function used to test the different peripheral of the module
+    def test_mode(self):
+        self.state = LxEuclidConstant.STATE_TEST
+        counter = 0
+        while True:
+            for i in range(0,4):
+                self.lx_hardware.sw_leds[i].value(self.lx_hardware.btn_menu_pins[i].value())
+            self.lx_hardware.led_menu.value(self.lx_hardware.btn_menu_pin.value())
+            self.lx_hardware.led_tap.value(self.lx_hardware.btn_tap_pin.value())
+            self.lx_hardware.update_cv_values()
+            self.LCD.set_need_display()
+            counter = counter +1
+            
+            if (counter % 4) == 0:
+                self.lx_hardware.set_gate(0,100)
+            if (counter % 8) == 0:
+                self.lx_hardware.set_gate(1,100)
+            if (counter % 16) == 0:
+                self.lx_hardware.set_gate(2,100)
+            if (counter % 32) == 0:
+                self.lx_hardware.set_gate(3,100)
+            
+            sleep(0.04)

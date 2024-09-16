@@ -349,17 +349,46 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.__need_display = False
         pre_tick = ticks_ms()
 
-        # uncomment to get a pie-slice visualisation of the touch
-        # angle_outer = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.outer_circle_angle
-        # self.draw_approx_pie_slice(
-        #    [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.grey)
-        # angle_inner = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.inner_circle_angle
-        # self.draw_approx_pie_slice(
-        #    [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.grey)
 
         self.lx_euclid_config.state_lock.acquire()
         local_state = self.lx_euclid_config.state
         self.lx_euclid_config.state_lock.release()
+        
+        if local_state == LxEuclidConstant.STATE_TEST:            
+            angle_outer = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.outer_circle_angle
+            self.draw_approx_pie_slice(
+               [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.white)
+            angle_inner = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.inner_circle_angle
+            self.draw_approx_pie_slice(
+               [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.white)
+            
+            txt = "debug"
+            txt_len = self.font_writer_freesans20.stringlen(txt)
+            self.font_writer_freesans20.text(
+                txt, 120-int(txt_len/2), 20, self.white)
+            
+            clk_value = self.lx_euclid_config.lx_hardware.clk_pin.value()
+            rst_value = self.lx_euclid_config.lx_hardware.rst_pin.value()
+            cv_values = self.lx_euclid_config.lx_hardware.cv_manager.percent_values
+            cv_v_values = []
+            
+            for cv in cv_values:
+                cv_v_values.append(round(((cv/100)*5),1))
+            
+            txt = f"clk:{1-clk_value}"
+            self.font_writer_freesans20.text(txt, 80, 60, self.white)
+            txt = f"rst:{1-rst_value}"
+            self.font_writer_freesans20.text(txt, 80, 80, self.white)
+            txt = f"cv1:{cv_v_values[0]}V"
+            self.font_writer_freesans20.text(txt, 80, 100, self.white)
+            txt = f"cv2:{cv_v_values[1]}V"
+            self.font_writer_freesans20.text(txt, 80, 120, self.white)
+            txt = f"cv3:{cv_v_values[2]}V"
+            self.font_writer_freesans20.text(txt, 80, 140, self.white)
+            txt = f"cv4:{cv_v_values[3]}V"
+            self.font_writer_freesans20.text(txt, 80, 160, self.white)
+            
+
 
         if local_state == LxEuclidConstant.STATE_LIVE:
             self.display_rhythm_circles()
@@ -953,29 +982,27 @@ class LCD_1inch28(framebuf.FrameBuffer):
             radius = radius - offset_radius
             rhythm_index = rhythm_index + 1
 
-    # # Draw the approximate pie slice
-    # # Define a function to draw an approximate pie slice
-    # def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
-    #     a = ticks_ms()
-    #     # Calculate the number of sides for the polygon (higher value for smoother pie slice)
-    #     num_sides = 3  # You can adjust this value for smoother or more jagged edges
+    # Draw the approximate pie slice
+    def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
+        # Calculate the number of sides for the polygon (higher value for smoother pie slice)
+        num_sides = 3  # You can adjust this value for smoother or more jagged edges
 
-    #     # Calculate the angle step size between each side of the polygon
-    #     angle_step = (end_angle - start_angle) / num_sides
+        # Calculate the angle step size between each side of the polygon
+        angle_step = (end_angle - start_angle) / num_sides
 
-    #     # Initialize the list of polygon points
-    #     points = []
-    #     # Calculate the polygon points
-    #     for i in range(num_sides + 1):
-    #         angle = start_angle + i * angle_step
-    #         x = int(center[0] + radius_start * get_sin(int(angle+90) % 360))
-    #         y = int(center[1] + radius_start * get_sin(int(angle)))
-    #         points.extend((x, y))
-    #     for i in range(num_sides + 1):
-    #         angle = start_angle + (num_sides-i) * angle_step
-    #         x = int(center[0] + radius_stop * get_sin(int(angle+90) % 360))
-    #         y = int(center[1] + radius_stop * get_sin(int(angle)))
-    #         points.extend((x, y))
+        # Initialize the list of polygon points
+        points = []
+        # Calculate the polygon points
+        for i in range(num_sides + 1):
+            angle = start_angle + i * angle_step
+            x = int(center[0] + radius_start * sin(radians((angle+90) % 360)))
+            y = int(center[1] + radius_start * sin(radians(angle)))
+            points.extend((x, y))
+        for i in range(num_sides + 1):
+            angle = start_angle + (num_sides-i) * angle_step
+            x = int(center[0] + radius_stop * sin(radians((angle+90) % 360)))
+            y = int(center[1] + radius_stop * sin(radians(angle)))
+            points.extend((x, y))
 
-    #     # Draw the polygon
-    #     self.poly(0, 0, array("h", points), color, True)
+        # Draw the polygon
+        self.poly(0, 0, array("h", points), color, True)

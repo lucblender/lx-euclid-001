@@ -48,7 +48,7 @@ cd $DIR_2_UF2_FOLDER
 mkdir -p $BINARY_FOLDER
 cp -a $LX_EUCLID_BIN_DIRECTORY ./
 
-python3 dir2uf2 ./$BINARY_FOLDER --append-to $DIR_2_UF2_NO_FILESYSTEM_FILE
+python3 dir2uf2 ./$BINARY_FOLDER --append-to $DIR_2_UF2_NO_FILESYSTEM_FILE --fs-compact  
 
 # Copy the concatenanted UF2 (micropython + filesystem) to output path
 cp $DIR_2_UF2_W_FILESYSTEM_FILE $UF2_OUTPUT_FILE

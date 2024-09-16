@@ -70,7 +70,7 @@ sudo apt-get install python3
 sudo apt-get install python3-pip
 ```
 
-When python3 is installed, you can clone the git and install the required python packages:y
+When python3 is installed, you can clone the git and install the required python packages:
 
 ``` shell
 git clone git@github.com:Gadgetoid/dir2uf2.git
