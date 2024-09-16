@@ -4,8 +4,8 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 7
-FIX = 1
+MINOR = 8
+FIX = 0
 ADD = "_dev"
 
 MEMORY_MAJOR = 1
@@ -27,7 +27,6 @@ from _thread import start_new_thread
 
 def print_ram(code=""):
     print(code, "free ram: ", gc.mem_free(), ", alloc ram: ", gc.mem_alloc())
-
 
 MIN_TAP_DELAY_MS = 20
 # equivalent to 2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
@@ -54,7 +53,6 @@ lx_euclid_config = LxEuclidConfig(
 lx_hardware.set_lx_euclid_config(lx_euclid_config)
 
 last_tap_ms = 0
-# timer_incr_steps_tap_mode = Timer()
 
 DEBUG = True
 
@@ -95,7 +93,8 @@ def lxhardware_changed(handlerEventData):
                 if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
                     # here the tap tempo time is divided by 4, for a 4/4 rhythm
                     lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
-                    lx_euclid_config.save_data()  # tap tempo is saved in eeprom
+                    # tap tempo is saved in eeprom
+                    lx_euclid_config.save_data()  
                     if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
                         lx_hardware.relaunch_internal_clk()
                         if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
@@ -166,10 +165,8 @@ def display_thread():
                     LCD.display_rhythms()
                     gc.collect()
                 if ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
-                    # gc.collect()
                     lx_hardware.get_touch_circles_updates()
                     last_capacitive_circles_read_ms = ticks_ms()
-                    # gc.collect()
         except Exception as e_display:
             print("error in display_thread")
             append_error(e_display)
@@ -213,10 +210,14 @@ if __name__ == '__main__':
         if not lx_hardware.capacitives_circles.is_mpr_detected:
             LCD.display_error("No touch sensor\ndetected")
 
+        wait_display_thread = False
+        
+        # if tap and config button are both pressed at boot, enter in test mode
+        if (lx_hardware.btn_tap_pin.value() or lx_hardware.btn_menu_pin.value()) == 0:
+            lx_euclid_config.test_mode()    
+        
         if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
             lx_hardware.relaunch_internal_clk()
-
-        wait_display_thread = False
 
         # some click might happend because of capacitors loading so empty fifo at boot
         while len(lx_hardware.lxHardwareEventFifo) > 0:
