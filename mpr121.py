@@ -180,4 +180,8 @@ class MPR121:
 
     def all_filtered_data(self):
         """Returns all electrodes filtered data"""
-        return ustruct.unpack("<HHHHHHHHHHHH", self.i2c.readfrom_mem(0x5a, 0x04, 24))
+        try:
+            data = self.i2c.readfrom_mem(0x5a, 0x04, 24)
+            return ustruct.unpack("<HHHHHHHHHHHH", data)
+        except:
+            return None

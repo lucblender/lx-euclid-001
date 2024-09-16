@@ -89,6 +89,10 @@ class CapacitivesCircles():
             outer_angle_updated = False
 
             temp_data = self.mpr.all_filtered_data()
+            
+            # if there is an error while reading the capacitive touch sensor, we return "0"
+            if temp_data == None:
+                return False, False, CapacitivesCircles.NO_INCR_DECR_EVENT, 0
 
             for i in range(0, 12):
                 data = temp_data[i]
