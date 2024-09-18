@@ -8,6 +8,7 @@ from utime import sleep, ticks_ms
 from micropython import const
 from math import sin, cos, radians
 from lxEuclidConfig import LxEuclidConstant
+from cvManager import CvChannel
 
 DC = const(8)
 CS = const(9)
@@ -21,11 +22,6 @@ DEBUG = False
 
 LX_LOGO = const("helixbyte_r5g6b5.bin")
 PARAM = const("param.bin")
-
-
-def debug_print(*txt):
-    if DEBUG:
-        print(txt)
 
 
 def rgb888_to_rgb565(R: int, G: int, B: int):  # Convert RGB888 to RGB565
@@ -76,16 +72,20 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.red = const(0xf800)
         self.white = const(0xffff)
         self.black = const(0x0000)
-        self.grey = rgb888_to_rgb565(54, 54, 54)
+        self.grey = rgb888_to_rgb565(85, 85, 85)
+        self.light_grey = rgb888_to_rgb565(120, 120, 120)
         self.touch_circle_color_highlight = rgb888_to_rgb565(255, 221, 0)
         self.touch_circle_color = rgb888_to_rgb565(176, 157, 34)
 
         # each array has 5 colors, 4 for the circles, the 5th used when the infos concerns all the circles
         self.rhythm_colors = [rgb888_to_rgb565(255, 136, 31), rgb888_to_rgb565(
-            255, 130, 218), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(156, 255, 237), self.white]
+            224, 28, 2), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(95, 255, 226), self.white]
 
-        self.rhythm_colors_highlight = [rgb888_to_rgb565(253, 168, 94), rgb888_to_rgb565(
-            250, 180, 229), rgb888_to_rgb565(176, 196, 255), rgb888_to_rgb565(195, 250, 240), self.white]
+        self.rhythm_colors_highlight = [rgb888_to_rgb565(255, 219, 197), rgb888_to_rgb565(
+            255, 189, 180), rgb888_to_rgb565(227, 234, 255), rgb888_to_rgb565(243, 253, 255), self.white]
+
+        self.un_selected_color = self.grey
+        self.selected_color = self.rhythm_colors_highlight[3]
 
         self.fill(self.white)
         self.show()
@@ -280,7 +280,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.write_cmd(0x29)
 
     def show(self):
-        a = ticks_ms()
         self.write_cmd_data(0x2A, [0x00, 0x00, 0x00, 0xef])
 
         self.write_cmd_data(0x2B, [0x00, 0x00, 0x00, 0xEF])
@@ -292,15 +291,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.cs(0)
         self.spi.write(self.buffer)
         self.cs(1)
-        debug_print("show", ticks_ms()-a)
 
     def circle(self, x, y, radius, color, filled):
         self.ellipse(x, y, radius, radius, color, filled)
-
-    def display_programming_mode(self):
-        self.fill(self.white)
-        self.text("Programming mode", 30, 60, self.black)
-        self.show()
 
     def display_error(self, error_message):
         self.fill(self.white)
@@ -356,17 +349,46 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.__need_display = False
         pre_tick = ticks_ms()
 
-        # uncomment to get a pie-slice visualisation of the touch
-        # angle_outer = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.outer_circle_angle
-        # self.draw_approx_pie_slice(
-        #    [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.grey)
-        # angle_inner = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.inner_circle_angle
-        # self.draw_approx_pie_slice(
-        #    [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.grey)
 
         self.lx_euclid_config.state_lock.acquire()
         local_state = self.lx_euclid_config.state
         self.lx_euclid_config.state_lock.release()
+        
+        if local_state == LxEuclidConstant.STATE_TEST:            
+            angle_outer = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.outer_circle_angle
+            self.draw_approx_pie_slice(
+               [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.white)
+            angle_inner = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.inner_circle_angle
+            self.draw_approx_pie_slice(
+               [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.white)
+            
+            txt = "debug"
+            txt_len = self.font_writer_freesans20.stringlen(txt)
+            self.font_writer_freesans20.text(
+                txt, 120-int(txt_len/2), 20, self.white)
+            
+            clk_value = self.lx_euclid_config.lx_hardware.clk_pin.value()
+            rst_value = self.lx_euclid_config.lx_hardware.rst_pin.value()
+            cv_values = self.lx_euclid_config.lx_hardware.cv_manager.percent_values
+            cv_v_values = []
+            
+            for cv in cv_values:
+                cv_v_values.append(round(((cv/100)*5),1))
+            
+            txt = f"clk:{1-clk_value}"
+            self.font_writer_freesans20.text(txt, 80, 60, self.white)
+            txt = f"rst:{1-rst_value}"
+            self.font_writer_freesans20.text(txt, 80, 80, self.white)
+            txt = f"cv1:{cv_v_values[0]}V"
+            self.font_writer_freesans20.text(txt, 80, 100, self.white)
+            txt = f"cv2:{cv_v_values[1]}V"
+            self.font_writer_freesans20.text(txt, 80, 120, self.white)
+            txt = f"cv3:{cv_v_values[2]}V"
+            self.font_writer_freesans20.text(txt, 80, 140, self.white)
+            txt = f"cv4:{cv_v_values[3]}V"
+            self.font_writer_freesans20.text(txt, 80, 160, self.white)
+            
+
 
         if local_state == LxEuclidConstant.STATE_LIVE:
             self.display_rhythm_circles()
@@ -378,66 +400,86 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     txt, 120-int(txt_len/2), 110, color)
         elif local_state == LxEuclidConstant.STATE_MENU_SELECT:
 
-            self.circle(120, 120, 62, self.touch_circle_color, True)
-            self.circle(120, 120, 62-15, self.black, True)
+            self.circle(120, 120, 58, self.touch_circle_color, True)
+            self.circle(120, 120, 58-13, self.black, True)
 
-            self.circle(120, 120, 44, self.touch_circle_color_highlight, True)
-            self.circle(120, 120, 44-15, self.black, True)
+            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 42-13, self.black, True)
 
-            txt_color = self.rhythm_colors[3]
-
-            self.font_writer_freesans20.text(
-                "Presets", 80, 12, txt_color)
+            txt_color = self.selected_color
 
             self.font_writer_freesans20.text(
-                "CVs", 8, 110, txt_color)
+                "Presets", 87, 12, txt_color)
 
             self.font_writer_freesans20.text(
-                "Pads", 190, 110, txt_color)
+                "Macro", 170, 158, txt_color)
 
             self.font_writer_freesans20.text(
-                "Other", 91, 213, txt_color)
+                "More", 19, 158, txt_color)
 
             if self.parameter_unselected is not None:
                 self.blit(self.parameter_unselected, 100, 100)
 
+        elif local_state == LxEuclidConstant.STATE_PARAM_PADS_SELECTION:
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
+
+            self.circle(120, 120, 58, self.touch_circle_color, True)
+            self.circle(120, 120, 58-13, self.black, True)
+
+            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 42-13, self.black, True)
+
+            self.font_writer_freesans20.text(
+                "Macro", 94, 110, txt_color_highlight)
+
+            self.font_writer_freesans20.text(
+                "Inner", 101, 12, self.white)
+            self.font_writer_freesans20.text(
+                "Ring", 105, 38, self.white)
+
+            self.font_writer_freesans20.text(
+                "Outer", 98, 186, self.white)
+            self.font_writer_freesans20.text(
+                "Ring", 105, 212, self.white)
+
         elif local_state == LxEuclidConstant.STATE_PARAM_PADS:
-            txt_color = self.rhythm_colors[3]
-            txt_color_highlight = self.rhythm_colors_highlight[0]
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
 
-            self.circle(120, 120, 62, self.touch_circle_color, True)
-            self.circle(120, 120, 62-15, self.black, True)
+            self.circle(120, 120, 58, self.touch_circle_color, True)
+            self.circle(120, 120, 58-13, self.black, True)
 
-            self.circle(120, 120, 44, self.touch_circle_color_highlight, True)
-            self.circle(120, 120, 44-15, self.black, True)
+            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 42-13, self.black, True)
 
-            self.font_writer_freesans20.text("Pads", 100, 110, txt_color)
+            self.font_writer_freesans20.text(
+                "Macro", 94, 110, txt_color_highlight)
 
             page = self.lx_euclid_config.param_pads_page
-            page_color = self.rhythm_colors_highlight[0]
+            page_color = self.light_grey
 
-            page_txt = f"page {page+1}"
-            self.font_writer_font6.text(page_txt, 102, 130, page_color)
-
-            if self.lx_euclid_config.param_pads_inner_outer == 0:
+            if self.lx_euclid_config.param_pads_inner_outer_page == 0:
                 inner_outer_txt = "inner"
             else:
                 inner_outer_txt = "outer"
-            self.font_writer_font6.text(inner_outer_txt, 104, 95, page_color)
+            self.font_writer_font6.text(inner_outer_txt, 104, 130, page_color)
 
             if page == 0:
                 txt_colors = [txt_color]*8
-                if self.lx_euclid_config.param_pads_inner_outer == 0:  # inner
+                if self.lx_euclid_config.param_pads_inner_outer_page == 0:  # inner
                     txt_colors[self.lx_euclid_config.inner_rotate_action] = txt_color_highlight
                 else:  # outer
                     txt_colors[self.lx_euclid_config.outer_rotate_action] = txt_color_highlight
 
-                self.font_writer_freesans20.text("None", 93, 12, txt_colors[0])
-                self.font_writer_freesans20.text("Rst", 171, 40, txt_colors[1])
                 self.font_writer_freesans20.text(
-                    "Beat", 192, 109, txt_colors[2])
+                    "None", 97, 12, txt_colors[0])
                 self.font_writer_freesans20.text(
-                    "Pulse", 155, 176, txt_colors[3])
+                    "Rst", 178, 40, txt_colors[1])
+                self.font_writer_freesans20.text(
+                    "Lgth", 198, 109, txt_colors[2])
+                self.font_writer_freesans20.text(
+                    "Pulse", 163, 176, txt_colors[3])
                 self.font_writer_freesans20.text(
                     "Rot", 105, 214, txt_colors[4])
                 self.font_writer_freesans20.text(
@@ -447,96 +489,258 @@ class LCD_1inch28(framebuf.FrameBuffer):
             elif page == 1:
                 txt_colors = [txt_color]*4
 
-                if self.lx_euclid_config.param_pads_inner_outer == 0:  # inner
+                if self.lx_euclid_config.param_pads_inner_outer_page == 0:  # inner
                     action_rhythm = self.lx_euclid_config.inner_action_rhythm
+                    rotate_action = self.lx_euclid_config.inner_rotate_action
                 else:  # outer
                     action_rhythm = self.lx_euclid_config.outer_action_rhythm
+                    rotate_action = self.lx_euclid_config.outer_rotate_action
 
                 for i in range(0, 4):
                     # action_rhythm are stored by bit
                     if action_rhythm & (1 << i) != 0:
                         txt_colors[i] = txt_color_highlight
+                        
+                macro_txts = ["rst", "lgth", "pulse", "rot", "prob", "fill", "mute"]
+                
+                macro_txt = macro_txts[rotate_action-1] # -1 because 0 is "None"
+                macro_txt_len = self.font_writer_font6.stringlen(macro_txt)
+                
+                self.font_writer_font6.text(
+                    macro_txt, 120-int(macro_txt_len/2), 95, page_color)      
+
                 self.font_writer_freesans20.text(
-                    "Out 0", 93, 12, txt_colors[0])
+                    "Ch1", 101, 12, txt_colors[0])
                 self.font_writer_freesans20.text(
-                    "Out 1", 190, 110, txt_colors[1])
+                    "Ch2", 198, 110, txt_colors[1])
                 self.font_writer_freesans20.text(
-                    "Out 2", 93, 213, txt_colors[2])
+                    "Ch3", 101, 213, txt_colors[2])
                 self.font_writer_freesans20.text(
-                    "Out 3", 2, 110, txt_colors[3])
+                    "Ch4", 2, 110, txt_colors[3])
 
-        elif local_state == LxEuclidConstant.STATE_PARAM_CVS:
+        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION:
 
-            cv_index = self.lx_euclid_config.param_cvs_index
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
+            page_color = self.light_grey
 
-            txt_color = self.rhythm_colors[3]
-            txt_color_highlight = self.rhythm_colors_highlight[0]
+            self.circle(120, 120, 58, self.touch_circle_color, True)
+            self.circle(120, 120, 58-13, self.black, True)
 
-            self.circle(120, 120, 62, self.touch_circle_color, True)
-            self.circle(120, 120, 62-15, self.black, True)
+            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 42-13, self.black, True)
 
-            self.circle(120, 120, 44, self.touch_circle_color_highlight, True)
-            self.circle(120, 120, 44-15, self.black, True)
+            ch_index = self.lx_euclid_config.sm_rhythm_param_counter
 
-            cv_index_txt = f"CV {cv_index+1}"
-            self.font_writer_freesans20.text(cv_index_txt, 100, 110, txt_color)
+            ch_index_txt = f"Ch{ch_index+1}"
+            self.font_writer_freesans20.text(
+                ch_index_txt, 103, 110, self.rhythm_colors[ch_index])
 
-            page = self.lx_euclid_config.param_cvs_page
-            page_color = self.rhythm_colors_highlight[0]
+            current_channel_setting = "param"
+            self.font_writer_font6.text(
+                current_channel_setting, 101, 130, page_color)
 
-            page_txt = f"page {page+1}"
-            self.font_writer_font6.text(page_txt, 102, 130, page_color)
+            self.font_writer_freesans20.text(
+                "CVs", 105, 6, self.white)
+            self.font_writer_freesans20.text(
+                "Algo", 196, 107, self.white)
+            self.font_writer_freesans20.text(
+                "Clk Div", 90, 209, self.white)
+            self.font_writer_freesans20.text(
+                "Gate", 6, 97, self.white)
+            self.font_writer_freesans20.text(
+                "Time", 6, 121, self.white)
 
-            if page == 0:
-                txt_colors = [txt_color]*8
-                cv_action = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
-                    cv_index].cv_action
-                txt_colors[cv_action] = txt_color_highlight
-                self.font_writer_freesans20.text("None", 93, 12, txt_colors[0])
-                self.font_writer_freesans20.text("Rst", 171, 40, txt_colors[1])
-                self.font_writer_freesans20.text(
-                    "Beat", 192, 109, txt_colors[2])
-                self.font_writer_freesans20.text(
-                    "Pulse", 155, 176, txt_colors[3])
-                self.font_writer_freesans20.text(
-                    "Rot", 105, 214, txt_colors[4])
-                self.font_writer_freesans20.text(
-                    "Prob", 32, 178, txt_colors[5])
-                self.font_writer_freesans20.text("Fill", 5, 111, txt_colors[6])
-                self.font_writer_freesans20.text("Mute", 31, 41, txt_colors[7])
-            elif page == 1:
+        elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:
+
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
+            page_color = self.light_grey
+
+            self.circle(120, 120, 58, self.touch_circle_color, True)
+            self.circle(120, 120, 58-13, self.black, True)
+
+            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 42-13, self.black, True)
+
+            ch_index = self.lx_euclid_config.sm_rhythm_param_counter
+
+            ch_index_txt = f"Ch{ch_index+1}"
+            self.font_writer_freesans20.text(
+                ch_index_txt, 103, 110, self.rhythm_colors[ch_index])
+            page = self.lx_euclid_config.param_channel_config_page
+
+            if page == 0:  # CV
+                current_channel_setting = "CV"
+                self.font_writer_font6.text(
+                    current_channel_setting, 110, 130, page_color)
+
+                cv_page = self.lx_euclid_config.param_channel_config_cv_page
+
+                if cv_page == 0:  # action selection
+                    txt_colors = [txt_color]*8
+
+                    channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                    cv_actions_channel = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
+                        channel_index].cv_actions_channel
+
+                    for index, cv_action_channel in enumerate(cv_actions_channel):
+                        if cv_action_channel != CvChannel.CV_CHANNEL_NONE:
+                            txt_colors[index] = txt_color_highlight
+
+                    self.font_writer_freesans20.text(
+                        "Clear CV", 79, 12, self.white)
+                    self.font_writer_freesans20.text(
+                        "Rst", 178, 40, txt_colors[1])
+                    self.font_writer_freesans20.text(
+                        "Lgth", 198, 109, txt_colors[2])
+                    self.font_writer_freesans20.text(
+                        "Pulse", 163, 176, txt_colors[3])
+                    self.font_writer_freesans20.text(
+                        "Rot", 105, 214, txt_colors[4])
+                    self.font_writer_freesans20.text(
+                        "Prob", 32, 178, txt_colors[5])
+                    self.font_writer_freesans20.text(
+                        "Fill", 5, 111, txt_colors[6])
+                    self.font_writer_freesans20.text(
+                        "Mute", 31, 41, txt_colors[7])
+                else:  # channel selection
+                    
+                    txt_colors = [txt_color]*5
+
+                    param_channel_config_action_index = self.lx_euclid_config.param_channel_config_action_index
+                    channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                    cv_actions_channel = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
+                        channel_index].cv_actions_channel
+                                        
+                    cv_txts = ["rst", "lgth", "pulse", "rot", "prob", "fill", "mute"]
+                    
+                    cv_txt = cv_txts[param_channel_config_action_index-1] # -1 because 0 is "clear cv"
+                    cv_txt_len = self.font_writer_font6.stringlen(cv_txt)
+                    
+                    self.font_writer_font6.text(
+                        cv_txt, 120-int(cv_txt_len/2), 95, page_color)         
+
+                    highlight_index = cv_actions_channel[param_channel_config_action_index]
+                    txt_colors[highlight_index] = txt_color_highlight
+                    
+                    self.font_writer_freesans20.text(
+                        "None", 97, 12, txt_colors[0])
+
+                    self.font_writer_freesans20.text(
+                        "CV1", 184, 77, txt_colors[1])
+                    self.font_writer_freesans20.text(
+                        "CV2", 162, 183, txt_colors[2])
+                    self.font_writer_freesans20.text(
+                        "CV3", 36, 183, txt_colors[3])
+                    self.font_writer_freesans20.text(
+                        "CV4", 9, 77, txt_colors[4])
+
+            elif page == 1:  # algo
+                current_channel_setting = "algo"
+                self.font_writer_font6.text(
+                    current_channel_setting, 108, 130, page_color)
+
                 txt_colors = [txt_color]*4
-                action_rhythm = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
-                    cv_index].cv_action_rhythm
-                for i in range(0, 4):
-                    # action_rhythm are stored by bit
-                    if action_rhythm & (1 << i) != 0:
-                        txt_colors[i] = txt_color_highlight
+
+                channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                algo_index = self.lx_euclid_config.euclidean_rhythms[channel_index].algo_index
+
+                txt_colors[algo_index] = txt_color_highlight
+
                 self.font_writer_freesans20.text(
-                    "Out 0", 93, 12, txt_colors[0])
+                    "Eucl.", 101, 12, txt_colors[0])
+
                 self.font_writer_freesans20.text(
-                    "Out 1", 190, 110, txt_colors[1])
+                    "Exp.", 191, 95, txt_colors[1])
                 self.font_writer_freesans20.text(
-                    "Out 2", 93, 213, txt_colors[2])
+                    "Eucl.", 191, 121, txt_colors[1])
+
                 self.font_writer_freesans20.text(
-                    "Out 3", 2, 110, txt_colors[3])
-            else:
-                txt_colors = [txt_color]*4
-                cvs_bound_index = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
-                    cv_index].cvs_bound_index
-                txt_colors[cvs_bound_index] = txt_color_highlight
+                    "Inv.", 107, 186, txt_colors[2])
                 self.font_writer_freesans20.text(
-                    "-5..5V", 95, 12, txt_colors[0])
+                    "Exp.", 105, 212, txt_colors[2])
+
                 self.font_writer_freesans20.text(
-                    "0..5V", 190, 110, txt_colors[1])
+                    "Sym.", 5, 95, txt_colors[3])
                 self.font_writer_freesans20.text(
-                    "0..1V", 101, 213, txt_colors[2])
+                    "Eucl.", 5, 121, txt_colors[3])
+
+            elif page == 2:  # time division
+                current_channel_setting = "clk div"
+                self.font_writer_font6.text(
+                    current_channel_setting, 101, 130, page_color)
+                txt_colors = [txt_color]*7
+
+                channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                prescaler_index = self.lx_euclid_config.euclidean_rhythms[
+                    channel_index].prescaler_index
+
+                txt_colors[prescaler_index] = txt_color_highlight
+
                 self.font_writer_freesans20.text(
-                    "0..2V", 2, 110, txt_colors[3])
+                    "1", 116, 3, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "2", 199, 42, txt_colors[1])
+                self.font_writer_freesans20.text(
+                    "3", 220, 136, txt_colors[2])
+                self.font_writer_freesans20.text(
+                    "4", 160, 205, txt_colors[3])
+                self.font_writer_freesans20.text(
+                    "6", 71, 205, txt_colors[4])
+                self.font_writer_freesans20.text(
+                    "8", 8, 136, txt_colors[5])
+                self.font_writer_freesans20.text(
+                    "16", 31, 42, txt_colors[6])
+
+            elif page == 3:  # gate time
+                current_channel_setting = "time"
+                self.font_writer_font6.text(
+                    current_channel_setting, 107, 130, page_color)
+
+                arrow_color = self.light_grey
+
+                self.line(79, 211, 70, 208, arrow_color)
+                self.line(70, 208, 63, 202, arrow_color)
+                self.line(63, 202, 56, 194, arrow_color)
+                self.poly(0, 0, array(
+                    "h", [56, 194, 62, 196, 57, 200]), arrow_color, True)
+
+                self.line(240-79, 211, 240-70, 208, arrow_color)
+                self.line(240-70, 208, 240-63, 202, arrow_color)
+                self.line(240-63, 202, 240-56, 194, arrow_color)
+                self.poly(0, 0, array(
+                    "h", [240-56, 194, 240-62, 196, 240-57, 200]), arrow_color, True)
+
+                channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                randomize_gate_length = self.lx_euclid_config.euclidean_rhythms[
+                    channel_index].randomize_gate_length
+                gate_length = self.lx_euclid_config.euclidean_rhythms[channel_index].gate_length_ms
+
+                if randomize_gate_length:
+                    randomize_color = txt_color_highlight
+                else:
+                    randomize_color = txt_color
+
+                self.font_writer_freesans20.text(
+                    "Randomize", 70, 26, randomize_color)
+
+                time_txt = page_txt = f"{gate_length}ms"
+
+                time_txt_len = self.font_writer_font6.stringlen(time_txt)
+
+                self.font_writer_freesans20.text(
+                    time_txt, 115-int(time_txt_len/2), 200, self.white)
+
+                self.font_writer_freesans20.text(
+                    "+", 43, 179, self.light_grey)
+
+                self.font_writer_freesans20.text(
+                    "-", 188, 179, self.light_grey)
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS:
 
-            txt_color = self.rhythm_colors[3]
+            txt_color = self.selected_color
 
             self.circle(120, 120, 82, self.touch_circle_color, True)
             self.circle(120, 120, 60, self.black, True)
@@ -545,93 +749,97 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 36, self.black, True)
 
             page = self.lx_euclid_config.param_presets_page
-            page_color = self.rhythm_colors_highlight[0]
-
-            page_txt = f"page {page+1}"
-            self.font_writer_font6.text(page_txt, 102, 130, page_color)
+            page_color = self.light_grey
 
             if page == 0:
-                self.font_writer_freesans20.text("Load", 99, 67, self.black)
+                self.font_writer_font6.text("load", 108, 130, page_color)
             else:
-                self.font_writer_freesans20.text("Save", 98, 67, self.black)
+                self.font_writer_font6.text("save", 106, 130, page_color)
 
             self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
 
             self.font_writer_freesans20.text("1", 116, 5, txt_color)
-            self.font_writer_freesans20.text("2", 190, 38, txt_color)
-            self.font_writer_freesans20.text("3", 220, 110, txt_color)
-            self.font_writer_freesans20.text("4", 190, 184, txt_color)
+            self.font_writer_freesans20.text("2", 197, 38, txt_color)
+            self.font_writer_freesans20.text("3", 225, 110, txt_color)
+            self.font_writer_freesans20.text("4", 197, 184, txt_color)
             self.font_writer_freesans20.text("5", 113, 218, txt_color)
             self.font_writer_freesans20.text("6", 34, 184, txt_color)
             self.font_writer_freesans20.text("7", 3, 110, txt_color)
             self.font_writer_freesans20.text("8", 34, 38, txt_color)
 
+        elif local_state == LxEuclidConstant.STATE_PARAM_MENU_SELECTION:
+
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
+            page_color = self.light_grey
+
+            self.circle(120, 120, 58, self.touch_circle_color, True)
+            self.circle(120, 120, 58-13, self.black, True)
+
+            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 42-13, self.black, True)
+
+            other_txt = "More"
+            self.font_writer_freesans20.text(
+                other_txt, 100, 110, self.white)
+            self.font_writer_freesans20.text(
+                "Clock", 95, 6, self.white)
+            self.font_writer_freesans20.text(
+                "Source", 87, 27, self.white)
+            self.font_writer_freesans20.text(
+                "Touch", 95, 182, self.white)
+            self.font_writer_freesans20.text(
+                "Sensitivity", 80, 203, self.white)
+
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
-            self.lx_euclid_config.menu_lock.acquire()
-            # get all data from lx_euclid_config in local variables
-            current_keys, in_last_sub_menu, _ = self.lx_euclid_config.get_current_menu_keys()
-            current_menu_len = len(current_keys)
-            current_menu_selected = self.lx_euclid_config.current_menu_selected
-            current_menu_value = self.lx_euclid_config.current_menu_value
-            menu_path = self.lx_euclid_config.menu_path
-            current_menu_selected = self.lx_euclid_config.current_menu_selected
-            self.lx_euclid_config.menu_lock.release()
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
+            page_color = self.light_grey
 
-            if self.parameter_unselected is not None:
-                self.blit(self.parameter_unselected, 100, 5)
-            origin_y = 50
-            path = "/"
-            for sub_path in menu_path:
-                path = path + sub_path + "/"
-            path_len = self.font_writer_font6.stringlen(path)
-            self.font_writer_font6.text(
-                path, 120-int(path_len/2), 130+origin_y, self.rhythm_colors[0])
+            self.circle(120, 120, 58, self.touch_circle_color, True)
+            self.circle(120, 120, 58-13, self.black, True)
 
-            offset_menu_text = 25
+            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 42-13, self.black, True)
 
-            range_low = current_menu_selected - 2
-            range_high = current_menu_selected + 2
+            other_txt = "More"
+            self.font_writer_freesans20.text(
+                other_txt, 100, 110, self.white)
+            page = self.lx_euclid_config.param_menu_page
 
-            general_index = 0
-            for menu_index in range(range_low, range_high):
-                if menu_index >= 0 and menu_index < current_menu_len:
-                    if menu_index == current_menu_selected:
+            if page == 0:  # config clock source
+                current_channel_setting = "clk src"
+                self.font_writer_font6.text(
+                    current_channel_setting, 100, 130, page_color)
 
-                        txt = current_keys[menu_index]
-                        txt_color = self.white
-                        if in_last_sub_menu and current_menu_value == menu_index:
-                            txt_color = self.rhythm_colors_highlight[0]
-                        txt = "> "+txt+" <"
-                        txt_len = self.font_writer_freesans20.stringlen(txt)
-                        self.font_writer_freesans20.text(
-                            txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, txt_color)
-                    else:
+                clk_index = self.lx_euclid_config.clk_mode
 
-                        txt = current_keys[menu_index]
-                        txt_color = self.rhythm_colors[3]
-                        if in_last_sub_menu and current_menu_value == menu_index:
-                            txt_color = self.rhythm_colors_highlight[0]
-                        txt_len = self.font_writer_freesans20.stringlen(txt)
-                        self.font_writer_freesans20.text(
-                            txt, 120-int(txt_len/2), origin_y+9+offset_menu_text*general_index, txt_color)
+                txt_colors = [txt_color]*2
 
-                general_index = general_index+1
+                txt_colors[clk_index] = txt_color_highlight
+                self.font_writer_freesans20.text(
+                    "Internal", 88, 10, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "External", 88, 208, txt_colors[1])
 
-            # side scrollbar
-            scrollbar_x = 220
-            scrollbar_y = 75
-            scrollbar_height = 90
-            scrollbar_width = 6
+            elif page == 1:  # config sensitivity
+                current_channel_setting = "sensi"
+                self.font_writer_font6.text(
+                    current_channel_setting, 105, 130, page_color)
 
-            self.rect(scrollbar_x, scrollbar_y, scrollbar_width,
-                      scrollbar_height, self.white)
+                txt_colors = [txt_color]*3
 
-            max_scrollbar_size_float = scrollbar_height / current_menu_len
-            max_scrollbar_size = int(max_scrollbar_size_float)
-            if max_scrollbar_size == 0:
-                max_scrollbar_size = 1
-            self.fill_rect(scrollbar_x, scrollbar_y+int(max_scrollbar_size_float *
-                           current_menu_selected), scrollbar_width, max_scrollbar_size, self.white)
+                sensi_index = self.lx_euclid_config.lx_hardware.capacitives_circles.touch_sensitivity
+
+                txt_colors[sensi_index] = txt_color_highlight
+
+                self.font_writer_freesans20.text(
+                    "Low", 104, 4, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "Medium", 154, 168, txt_colors[1])
+                self.font_writer_freesans20.text(
+                    "High", 19, 168, txt_colors[2])
+
         elif local_state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 
             self.lx_euclid_config.menu_lock.acquire()
@@ -677,15 +885,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.display_rhythm_circles()
 
         self.show()
-
-        debug_print("after show", ticks_ms()-pre_tick)
         self.fill(self.black)
-        debug_print("fill black", ticks_ms()-pre_tick)
-        debug_print("display rhthms", ticks_ms()-pre_tick)
-        debug_print(" ")
 
     def display_rhythm_circles(self):
-        pre_tick = ticks_ms()
         radius = 110
         offset_radius = self.OFFSET_RADIUS_LIVE
         rhythm_index = 0
@@ -711,14 +913,39 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
                     highlight_color = self.grey
+            elif local_state == LxEuclidConstant.STATE_LIVE:
+                if euclidieanRhythm.is_mute:
+                    beat_color = self.grey
+                    beat_color_hightlight = self.grey
+                elif euclidieanRhythm.is_fill:
+                    beat_color = self.rhythm_colors_highlight[rhythm_index]
+                    beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
 
             self.circle(120, 120, radius, beat_color, False)
+            
+            # when a reset step occure, we put the current step to zero in grey so user know it will
+            # be the next step to play
+            if euclidieanRhythm.reset_step_occure == True:
+                local_current_step = 0
+                beat_color_hightlight = self.grey
+            else:
+                local_current_step = euclidieanRhythm.current_step
 
-            local_current_step = euclidieanRhythm.current_step
             local_offset = euclidieanRhythm.offset
+            if euclidieanRhythm.has_cv_offset:
+                local_offset = euclidieanRhythm.global_cv_offset
+
             local_rhythm = euclidieanRhythm.rhythm.copy()
 
             len_euclidiean_rhythm = len(local_rhythm)
+
+            # in the case of an empty rhythm (probably because of multi-threading)
+            # we put a simple rhythm of 1... it's not optimal can cause visual glitch
+            # but this solution saves times and help us stay real-time with rhythm
+            if len_euclidiean_rhythm == 0:
+                len_euclidiean_rhythm = 1
+                local_rhythm = [0]
+
             degree_step = 360/len_euclidiean_rhythm
 
             coord = None
@@ -732,8 +959,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                 local_beat_coord[rhythm_index][0] = len_euclidiean_rhythm
                 local_beat_coord[rhythm_index][1] = coords.copy()
-
-            a = ticks_ms()
 
             for index in range(0, len_euclidiean_rhythm):
                 coord = coords[index]
@@ -757,33 +982,27 @@ class LCD_1inch28(framebuf.FrameBuffer):
             radius = radius - offset_radius
             rhythm_index = rhythm_index + 1
 
-            debug_print("display rhythm", ticks_ms()-a)
-        debug_print("display_rhythm_circles", ticks_ms()-pre_tick)
+    # Draw the approximate pie slice
+    def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
+        # Calculate the number of sides for the polygon (higher value for smoother pie slice)
+        num_sides = 3  # You can adjust this value for smoother or more jagged edges
 
-    # # Draw the approximate pie slice
-    # # Define a function to draw an approximate pie slice
-    # def draw_approx_pie_slice(self, center, radius_start, radius_stop, start_angle, end_angle, color):
-    #     a = ticks_ms()
-    #     # Calculate the number of sides for the polygon (higher value for smoother pie slice)
-    #     num_sides = 3  # You can adjust this value for smoother or more jagged edges
+        # Calculate the angle step size between each side of the polygon
+        angle_step = (end_angle - start_angle) / num_sides
 
-    #     # Calculate the angle step size between each side of the polygon
-    #     angle_step = (end_angle - start_angle) / num_sides
+        # Initialize the list of polygon points
+        points = []
+        # Calculate the polygon points
+        for i in range(num_sides + 1):
+            angle = start_angle + i * angle_step
+            x = int(center[0] + radius_start * sin(radians((angle+90) % 360)))
+            y = int(center[1] + radius_start * sin(radians(angle)))
+            points.extend((x, y))
+        for i in range(num_sides + 1):
+            angle = start_angle + (num_sides-i) * angle_step
+            x = int(center[0] + radius_stop * sin(radians((angle+90) % 360)))
+            y = int(center[1] + radius_stop * sin(radians(angle)))
+            points.extend((x, y))
 
-    #     # Initialize the list of polygon points
-    #     points = []
-    #     # Calculate the polygon points
-    #     for i in range(num_sides + 1):
-    #         angle = start_angle + i * angle_step
-    #         x = int(center[0] + radius_start * get_sin(int(angle+90) % 360))
-    #         y = int(center[1] + radius_start * get_sin(int(angle)))
-    #         points.extend((x, y))
-    #     for i in range(num_sides + 1):
-    #         angle = start_angle + (num_sides-i) * angle_step
-    #         x = int(center[0] + radius_stop * get_sin(int(angle+90) % 360))
-    #         y = int(center[1] + radius_stop * get_sin(int(angle)))
-    #         points.extend((x, y))
-
-    #     # Draw the polygon
-    #     self.poly(0, 0, array("h", points), color, True)
-    #     debug_print("draw_approx_pie_slice", ticks_ms()-a)
+        # Draw the polygon
+        self.poly(0, 0, array("h", points), color, True)

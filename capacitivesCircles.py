@@ -41,7 +41,7 @@ class CapacitivesCircles():
         self.last_outer_circle_angle_timestamp_ms = ticks_ms()
 
         self.touch_sensitivity_lock = allocate_lock()
-        self._touch_sensitivity = 0
+        self._touch_sensitivity = 1
 
         self.calibration_array = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         if self.is_mpr_detected:
@@ -89,6 +89,10 @@ class CapacitivesCircles():
             outer_angle_updated = False
 
             temp_data = self.mpr.all_filtered_data()
+            
+            # if there is an error while reading the capacitive touch sensor, we return "0"
+            if temp_data == None:
+                return False, False, CapacitivesCircles.NO_INCR_DECR_EVENT, 0
 
             for i in range(0, 12):
                 data = temp_data[i]

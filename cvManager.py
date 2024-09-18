@@ -9,17 +9,22 @@ MAX = const(1)
 LOW_PERCENTAGE_RISING_THRESHOLD = const(25)
 RISING_DIFFERENCE_THRESHOLD = const(50)
 
-CV_5V = const(2000)
-CV_0V = const(14740)
-CV_1V = const(12192)
-CV_2V = const(9644)
-CV_MINUS_5V = const(27000)
-
-CV_BOUNDS = [[CV_MINUS_5V, CV_5V], [
-    CV_0V, CV_5V], [CV_0V, CV_1V], [CV_0V, CV_2V]]
+# f(x) ~= -2379x+14777
+CV_5V = const(2882)
+CV_0V = const(14777)
+CV_MINUS_5V = const(26672)
 
 CV_RHYTHM_MASKS = [const(1), const(2), const(4), const(8)]
 
+MAX_PERCENT = const(100)
+ALPHA_EXP_PERCENT = const(2)
+
+def percent_to_exp_percent(percent):
+    if percent < 0:
+        sign = -1
+    else:
+        sign = 1
+    return sign*int(((abs(percent)/MAX_PERCENT)**ALPHA_EXP_PERCENT)*MAX_PERCENT)
 
 class CvAction:
     CV_ACTION_NONE = const(0)
@@ -30,21 +35,30 @@ class CvAction:
     CV_ACTION_PROBABILITY = const(5)
     CV_ACTION_FILL = const(6)
     CV_ACTION_MUTE = const(7)
+    CV_ACTION_LEN = const(8)
 
 
-class CvData:
+class CvChannel:
+    CV_CHANNEL_NONE = const(0)
+    CV_CHANNEL_ZERO = const(1)
+    CV_CHANNEL_ONE = const(2)
+    CV_CHANNEL_TWO = const(3)
+    CV_CHANNEL_THREE = const(4)
 
-    def __init__(self, cv_action, cv_action_rhythm, cvs_bound_index):
-        self.cv_action = cv_action
-        self.cv_action_rhythm = cv_action_rhythm
-        self.cvs_bound_index = cvs_bound_index
 
-    @property
-    def cvs_bound(self):
-        return CV_BOUNDS[self.cvs_bound_index]
+class ChannelCvData:
 
-    def flip_action_rhythm(self, index):
-        self.cv_action_rhythm = self.cv_action_rhythm ^ CV_RHYTHM_MASKS[index]
+    def __init__(self, cv_actions_channel):
+        # cv_actions_channel is an array of len 8 with linked CV_CHANNEL
+        self.cv_actions_channel = cv_actions_channel
+
+    def set_cv_actions_channel(self, cv_action_index, cv_channel):
+        if cv_action_index <= CV_ACTION_MUTE and cv_channel <= CV_CHANNEL_THREE:
+            self.cv_actions_channel[cv_action_index] = cv_channel
+
+    def clear_cv_actions_channel(self):
+        for i in range(0, CvAction.CV_ACTION_LEN):
+            self.set_cv_actions_channel(i, CvAction.CV_ACTION_NONE)
 
 
 class CvManager:
@@ -60,15 +74,17 @@ class CvManager:
         else:
             self.adc = None
 
+        self.cvs_bound = [CV_MINUS_5V, CV_5V]
+
         self.__raw_values = [0, 0, 0, 0]
         self.percent_values = [0, 0, 0, 0]
 
-        self.cvs_data = [CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=1, cvs_bound_index=0),
-                         CvData(cv_action=CvAction.CV_ACTION_NONE,
-                                cv_action_rhythm=2, cvs_bound_index=0),
-                         CvData(cv_action=CvAction.CV_ACTION_NONE,
-                                cv_action_rhythm=4, cvs_bound_index=0),
-                         CvData(cv_action=CvAction.CV_ACTION_NONE, cv_action_rhythm=8, cvs_bound_index=0)]
+        self.cvs_data = [ChannelCvData(cv_actions_channel=[CvAction.CV_ACTION_NONE]*(CvAction.CV_ACTION_LEN)),
+                         ChannelCvData(cv_actions_channel=[
+                                       CvAction.CV_ACTION_NONE]*(CvAction.CV_ACTION_LEN)),
+                         ChannelCvData(cv_actions_channel=[
+                                       CvAction.CV_ACTION_NONE]*(CvAction.CV_ACTION_LEN)),
+                         ChannelCvData(cv_actions_channel=[CvAction.CV_ACTION_NONE]*(CvAction.CV_ACTION_LEN))]
 
         self.current_channel_measure = 0
         self.in_measure = False
@@ -95,7 +111,9 @@ class CvManager:
 
         return to_return
 
+    # percent are both positive and negative: -5V = -100%; 0V = 0%; 5V = 100%;
     def __compute_percent_cv(self, channel):
-        value = 100-int((self.cvs_data[channel].cvs_bound[MAX]-self.__raw_values[channel])/(
-            self.cvs_data[channel].cvs_bound[MAX]-self.cvs_data[channel].cvs_bound[MIN])*100)
-        self.percent_values[channel] = max(0, (min(100, value)))
+        value = 100-int((self.cvs_bound[MAX]-self.__raw_values[channel])/(
+            self.cvs_bound[MAX]-self.cvs_bound[MIN])*200)
+
+        self.percent_values[channel] = max(-100, (min(100, value)))
