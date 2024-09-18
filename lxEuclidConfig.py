@@ -524,28 +524,28 @@ class LxEuclidConfig:
         self.LCD = LCD
         self.LCD.set_config(self)
         self.euclidean_rhythms = []
-        self.euclidean_rhythms.append(EuclideanRhythm(8, 4, 0, 100))
-        self.euclidean_rhythms.append(EuclideanRhythm(8, 2, 0, 100))
-        self.euclidean_rhythms.append(EuclideanRhythm(4, 3, 0, 100))
-        self.euclidean_rhythms.append(EuclideanRhythm(4, 2, 0, 100))
+        self.euclidean_rhythms.append(EuclideanRhythm(16, 4, 0, 100))
+        self.euclidean_rhythms.append(EuclideanRhythm(8, 1, 4, 100))
+        self.euclidean_rhythms.append(EuclideanRhythm(4, 1, 2, 100))
+        self.euclidean_rhythms.append(EuclideanRhythm(9, 5, 0, 100))
 
         self.presets = []
-        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
-            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
-            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
-            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
-            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
-            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
-            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
-            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
-        self.presets.append([EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(
-            8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100), EuclideanRhythmParameters(8, 4, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(8, 3, 1, 100), EuclideanRhythmParameters(
+            16, 4, 0, 100, algo_index=1), EuclideanRhythmParameters(16, 5, 10, 100), EuclideanRhythmParameters(8, 1, 1, 100)])
+        self.presets.append([EuclideanRhythmParameters(16, 4, 10, 100), EuclideanRhythmParameters(
+            12, 7, 0, 100), EuclideanRhythmParameters(16, 4, 12, 100), EuclideanRhythmParameters(4, 2, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(12, 1, 7, 100), EuclideanRhythmParameters(
+            6, 5, 0, 100), EuclideanRhythmParameters(3, 1, 2, 100), EuclideanRhythmParameters(6, 1, 5, 100)])
+        self.presets.append([EuclideanRhythmParameters(16, 4, 0, 100), EuclideanRhythmParameters(
+            8, 1, 4, 100), EuclideanRhythmParameters(4, 1, 2, 100), EuclideanRhythmParameters(9, 5, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(16, 4, 0, 100), EuclideanRhythmParameters(
+            8, 1, 4, 100), EuclideanRhythmParameters(4, 1, 2, 100), EuclideanRhythmParameters(9, 5, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(16, 4, 0, 100), EuclideanRhythmParameters(
+            8, 1, 4, 100), EuclideanRhythmParameters(4, 1, 2, 100), EuclideanRhythmParameters(9, 5, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(16, 4, 0, 100), EuclideanRhythmParameters(
+            8, 1, 4, 100), EuclideanRhythmParameters(4, 1, 2, 100), EuclideanRhythmParameters(9, 5, 0, 100)])
+        self.presets.append([EuclideanRhythmParameters(16, 4, 0, 100), EuclideanRhythmParameters(
+            8, 1, 4, 100), EuclideanRhythmParameters(4, 1, 2, 100), EuclideanRhythmParameters(9, 5, 0, 100)])
 
         self.rhythm_lock = allocate_lock()
         self.menu_lock = allocate_lock()
