@@ -1024,6 +1024,10 @@ class LxEuclidConfig:
                 self.menu_lock.acquire()
                 self.sm_rhythm_param_counter = data
                 self.menu_lock.release()
+            elif event == LxEuclidConstant.EVENT_MENU_BTN:
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
+                self.state_lock.release()
             elif event == LxEuclidConstant.EVENT_TAP_BTN:
                 # save data, clear everything, go back to live
                 self.save_data()
