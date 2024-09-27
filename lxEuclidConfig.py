@@ -1450,26 +1450,42 @@ class LxEuclidConfig:
                         preset_euclidean_rhythm.randomize_gate_length = bool(
                             self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
 
-                self.inner_rotate_action = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
-                self.inner_action_rhythm = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
+                inner_rotate_action = self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr))                
+                if inner_rotate_action >= LxEuclidConstant.CIRCLE_ACTION_NONE and inner_rotate_action <= LxEuclidConstant.CIRCLE_ACTION_MUTE:
+                    self.inner_rotate_action = inner_rotate_action
 
-                self.outer_rotate_action = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
-                self.outer_action_rhythm = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
+                inner_action_rhythm = self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr))                
+                if inner_action_rhythm >= 0 and inner_action_rhythm <= 15:
+                    self.inner_action_rhythm  = inner_action_rhythm
 
-                self.lx_hardware.capacitives_circles.touch_sensitivity = self.lx_hardware.get_eeprom_data_int(
+                outer_rotate_action = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
+                if outer_rotate_action >= LxEuclidConstant.CIRCLE_ACTION_NONE and outer_rotate_action <= LxEuclidConstant.CIRCLE_ACTION_MUTE:
+                    self.outer_rotate_action = outer_rotate_action
+                    
+                outer_action_rhythm = self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr))
+                if outer_action_rhythm >= 0 and outer_action_rhythm <= 15:
+                    self.outer_action_rhythm  = outer_action_rhythm
 
-                self.clk_mode = self.lx_hardware.get_eeprom_data_int(
+                touch_sensitivity = self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr))                
+                if touch_sensitivity >= 0 and touch_sensitivity <= 2:
+                   self.lx_hardware.capacitives_circles.touch_sensitivity = touch_sensitivity
+
+                clk_mode = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
+                if clk_mode >= LxEuclidConstant.TAP_MODE and clk_mode <= LxEuclidConstant.CLK_IN:
+                    self.clk_mode = clk_mode
 
                 for cv_data in self.lx_hardware.cv_manager.cvs_data:
                     for i in range(0, CvAction.CV_ACTION_LEN):
-                        cv_data.set_cv_actions_channel(i,
-                                                       self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
+                        
+                        cv_channel = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))                        
+                        if cv_channel >= CvChannel.CV_CHANNEL_NONE and cv_channel <= CvChannel.CV_CHANNEL_THREE:
+                            cv_data.set_cv_actions_channel(i, cv_channel)
 
                 # get back splitted tap tempo in lsb and msb
                 tap_tempo_lsb = self.lx_hardware.get_eeprom_data_int(
