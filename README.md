@@ -1,15 +1,15 @@
 
-# lx-euclid-001
+# lx-euclid
 
 The lx-euclid is based on the [rp2040](https://www.raspberrypi.com/products/rp2040/) and programmed in micropython.
 
 Learn more about micropython on the rp2040 [here](https://www.raspberrypi.com/documentation/microcontrollers/micropython.html).
 
-- [lx-euclid-001](#lx-euclid-001)
+- [lx-euclid](#lx-euclid)
 - [Installation of last firmware](#installation-of-last-firmware)
 - [Build an UF2 image from source](#build-an-uf2-image-from-source)
   - [Requirement](#requirement)
-    - [Main repository : lx-euclid-001](#main-repository--lx-euclid-001)
+    - [Main repository : lx-euclid](#main-repository--lx-euclid)
     - [Micropython](#micropython)
     - [dir2uf2](#dir2uf2)
   - [Build the image with provided shell script](#build-the-image-with-provided-shell-script)
@@ -36,7 +36,7 @@ The following instruction are for Linux users. For Windows user, Ubuntu WSL is h
 
 To build and UF2 image, you will need:
 
-- [This repository](#main-repository--lx-euclid-001)
+- [This repository](#main-repository--lx-euclid)
   - micropython sources
   - build scripts
 - [Micropython sources](#micropython)
@@ -44,7 +44,7 @@ To build and UF2 image, you will need:
 - [dir2uf2](#dir2uf2)
   - Python based tool to pack a directory of files into a LFSV2 filesystem and save as .uf2
 
-### Main repository : lx-euclid-001
+### Main repository : lx-euclid
 
 ```git clone https://github.com/lucblender/lx-euclid-001.git```
 
