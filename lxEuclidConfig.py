@@ -1015,15 +1015,20 @@ class LxEuclidConfig:
                 )
         elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION:
 
-            if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data != self.sm_rhythm_param_counter:
+            if event == LxEuclidConstant.EVENT_BTN_SWITCHES:
+                # if we click on the already selected channel, go back to beat/pulse config
+                if data == self.sm_rhythm_param_counter:
+                    self.state_lock.acquire()
+                    self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
+                    self.state_lock.release()
                 # change rhythm in selection and clear cv page
+                else:
+                    self.lx_hardware.clear_sw_leds()
+                    self.lx_hardware.set_sw_leds(data)
 
-                self.lx_hardware.clear_sw_leds()
-                self.lx_hardware.set_sw_leds(data)
-
-                self.menu_lock.acquire()
-                self.sm_rhythm_param_counter = data
-                self.menu_lock.release()
+                    self.menu_lock.acquire()
+                    self.sm_rhythm_param_counter = data
+                    self.menu_lock.release()
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
