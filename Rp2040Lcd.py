@@ -808,10 +808,17 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 "Clock", 95, 6, self.white)
             self.font_writer_freesans20.text(
                 "Source", 87, 27, self.white)
+            
             self.font_writer_freesans20.text(
-                "Touch", 95, 182, self.white)
+                "Sensi", 174, 142, self.white)
             self.font_writer_freesans20.text(
-                "Sensitivity", 80, 203, self.white)
+                "Touch", 166, 163, self.white)
+            
+            self.font_writer_freesans20.text(
+                "Rot", 15, 142, self.white)
+            self.font_writer_freesans20.text(
+                "Screen", 15, 163, self.white)
+            
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             txt_color = self.un_selected_color
@@ -861,6 +868,20 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     "Medium", 154, 168, txt_colors[1])
                 self.font_writer_freesans20.text(
                     "High", 19, 168, txt_colors[2])
+            elif page == 2:  # config screen orientation
+                current_channel_setting = "screen"
+                self.font_writer_font6.text(
+                    current_channel_setting, 100, 130, page_color)
+
+                flip_index = self.lx_euclid_config.flip
+
+                txt_colors = [txt_color]*2
+
+                txt_colors[flip_index] = txt_color_highlight
+                self.font_writer_freesans20.text(
+                    "Normal", 88, 10, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "Inverted", 88, 208, txt_colors[1])
 
         elif local_state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 

@@ -522,7 +522,7 @@ class LxEuclidConfig:
         
         self.lx_hardware = lx_hardware
         self.LCD = LCD
-        self._flip = True
+        self._flip = False
         self.flip_lock = allocate_lock()
         
         self.LCD.set_config(self)
@@ -1232,7 +1232,7 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_sw_leds()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
-                param_index = angle_to_index(angle_inner, 2)
+                param_index = angle_to_index(angle_inner, 3)
                 self.param_menu_page = param_index
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_PARAM_MENU
@@ -1270,6 +1270,10 @@ class LxEuclidConfig:
                 elif self.param_menu_page == 1:  # sensitivity
                     sensi_index = angle_to_index(angle_inner, 3)
                     self.lx_hardware.capacitives_circles.touch_sensitivity = sensi_index
+                    
+                elif self.param_menu_page == 2:  # display flip
+                    flip_index = angle_to_index(angle_inner, 2)
+                    self.flip = flip_index
 
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def incr_steps(self):
@@ -1384,6 +1388,8 @@ class LxEuclidConfig:
         local_tap_tempo = self.tap_delay_ms
         self.dict_data["t_t_l"] = local_tap_tempo & 0xff
         self.dict_data["t_t_h"] = (local_tap_tempo >> 8) & 0xff
+        
+        self.dict_data["d_o_f"] = self.flip
 
     def save_data(self):
 
@@ -1531,6 +1537,12 @@ class LxEuclidConfig:
                     incr_addr(eeprom_addr))
 
                 self.tap_delay_ms = tap_tempo_lsb + (tap_tempo_msb << 8)
+                
+                flip = self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr))
+                
+                if flip >= 0 and flip <= 1:
+                    self.flip = flip
 
                 self.create_memory_dict()
                 self.previous_dict_data_list = list(self.dict_data.values())
