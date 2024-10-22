@@ -4,9 +4,9 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 10
-FIX = 3
-ADD = ""
+MINOR = 11
+FIX = 0
+ADD = "_dev"
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 0
@@ -135,6 +135,7 @@ def lxhardware_changed(handlerEventData):
             LxEuclidConstant.EVENT_OUTER_CIRCLE_TAP, handlerEventData.data)
         LCD.set_need_display()
     elif event == lx_hardware.BTN_SWITCHES_RISE:
+        lx_euclid_config.flip = not lx_euclid_config.flip
         tmp_time = ticks_ms()
         if (tmp_time - sw_btns_press[handlerEventData.data]) > DEBOUNCE_MS:
             sw_btns_press[handlerEventData.data] = tmp_time
@@ -160,6 +161,11 @@ def display_thread():
             if not in_lxhardware_changed:
                 gc.collect()
                 lx_euclid_config.test_save_data_in_file()
+                if LCD.get_need_flip():
+                    gc.collect()
+                    LCD.reset_need_flip()
+                    LCD.init_display(lx_euclid_config.flip)
+                    gc.collect()
                 if LCD.get_need_display():
                     gc.collect()
                     LCD.display_rhythms()

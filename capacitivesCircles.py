@@ -42,11 +42,28 @@ class CapacitivesCircles():
 
         self.touch_sensitivity_lock = allocate_lock()
         self._touch_sensitivity = 1
+        
+        self.flip_lock = allocate_lock()
+        self._flip = False
 
         self.calibration_array = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         if self.is_mpr_detected:
             self.calibration_sensor()
 
+    @property
+    def flip(self):
+        to_return = 0
+        self.flip_lock.acquire()
+        to_return = self._flip
+        self.flip_lock.release()
+        return to_return
+
+    @flip.setter
+    def flip(self, flip):
+        self.flip_lock.acquire()
+        self._flip = flip
+        self.flip_lock.release()
+        
     @property
     def touch_sensitivity(self):
         to_return = 0
@@ -150,6 +167,10 @@ class CapacitivesCircles():
                     difference = data_first_sensor - data_second_sensor
                     factor = (difference+90)/180
                     angle = index_factor*60 + factor*60
+                    
+                if self.flip == True:
+                    angle = angle + 180
+                    
                 if inner_circle_len > 0:
 
                     if ticks_ms() - self.last_inner_circle_angle_timestamp_ms < CapacitivesCircles.MAX_DELAY_INCR_DECR_MS:
@@ -188,7 +209,6 @@ class CapacitivesCircles():
                     self.last_outer_circle_angle_timestamp_ms = ticks_ms()
 
                     outer_angle_updated = True
-
             return inner_angle_updated, outer_angle_updated, incr_decr_event, angle
         else:
             return False, False, CapacitivesCircles.NO_INCR_DECR_EVENT, 0

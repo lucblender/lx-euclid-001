@@ -519,9 +519,12 @@ class LxEuclidConfig:
         self.v_major = software_version[0]
         self.v_minor = software_version[1]
         self.v_fix = software_version[2]
-
+        
         self.lx_hardware = lx_hardware
         self.LCD = LCD
+        self._flip = True
+        self.flip_lock = allocate_lock()
+        
         self.LCD.set_config(self)
         self.euclidean_rhythms = []
         self.euclidean_rhythms.append(EuclideanRhythm(16, 4, 0, 100))
@@ -600,6 +603,31 @@ class LxEuclidConfig:
 
         self.load_data()
         self.reload_rhythms()
+        
+        self.lx_hardware.capacitives_circles.flip = self._flip
+        if self._flip == True:
+            # flip the display at boot if needed
+            self.LCD.fill(self.LCD.black)
+            self.LCD.show()
+            self.LCD.init_display(self._flip)
+            
+    @property
+    def flip(self):
+        to_return = 0
+        self.flip_lock.acquire()
+        to_return = self._flip
+        self.flip_lock.release()
+        return to_return
+
+    @flip.setter
+    def flip(self, flip):
+        self.flip_lock.acquire()
+        if flip != self._flip:
+            self.LCD.set_need_flip()
+        self._flip = flip
+        self.lx_hardware.capacitives_circles.flip = self._flip
+        self.flip_lock.release()
+            
 
     @property
     def need_circle_action_display(self):

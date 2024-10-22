@@ -98,6 +98,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.__need_display = False
         self.need_display_lock = allocate_lock()
+        
+        self.__need_flip = False
+        self.need_flip_lock = allocate_lock()
 
         self.beats_coords = [[0, [0,]], [0, [0,]], [0, [0,]], [0, [0,]]]
         self.param_beats_coords = [[0, [0,]], [0, [0,]], [0, [0,]], [0, [0,]]]
@@ -160,7 +163,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def set_bl_pwm(self, duty):
         self.pwm.duty_u16(duty)  # max 65535
 
-    def init_display(self):
+    def init_display(self, flip=False):
         """Initialize dispaly"""
         self.rst(1)
         sleep(0.01)
@@ -203,8 +206,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.write_cmd_data(0xB6, [0x00, 0x20])
 
-        # 0x08 normal config 0x58 flipped config
-        self.write_cmd_data(0x36, [0x08])
+        # 0x08 normal config 0x58 flipped config        
+        if flip:            
+            self.write_cmd_data(0x36, [0x58])
+        else:
+            self.write_cmd_data(0x36, [0x08])
 
         self.write_cmd_data(0x3A, [0x05])
 
@@ -342,6 +348,22 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.need_display_lock.acquire()
         to_return = self.__need_display
         self.need_display_lock.release()
+        return to_return
+
+    def set_need_flip(self):
+        self.need_flip_lock.acquire()
+        self.__need_flip = True
+        self.need_flip_lock.release()
+        
+    def reset_need_flip(self):
+        self.need_flip_lock.acquire()
+        self.__need_flip = False
+        self.need_flip_lock.release()
+
+    def get_need_flip(self):
+        self.need_flip_lock.acquire()
+        to_return = self.__need_flip
+        self.need_flip_lock.release()
         return to_return
 
     def display_rhythms(self):
