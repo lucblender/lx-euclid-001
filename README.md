@@ -1,9 +1,13 @@
 
 # lx-euclid
 
-The lx-euclid is based on the [rp2040](https://www.raspberrypi.com/products/rp2040/) and programmed in micropython.
+lx-euclid by AtoVproject & Lucas Bonvin
 
-Learn more about micropython on the rp2040 [here](https://www.raspberrypi.com/documentation/microcontrollers/micropython.html).
+The AtoVproject lx-euclid is a 4-channel trigger sequencer with a standout feature: two touch-sensitive rings that redefine hands-on control. These rings, paired with full colour circular display, offer an unparalleled, intuitive interface designed for fast, real-time performance. The touch rings make it incredibly easy to interact with your sequences, allowing you to apply mutes, fills, and resets on the fly. This immediate tactile response puts creative control directly at your fingertips, making it perfect for both live improvisation and studio work.
+
+![lx-euclid picture](/pictures/lx-euclid.png)
+
+More info about the module can be found on its [product page](https://atovproject.de/products/atovproject-lx-euclid) and if you want to get yours, go to [AtoVproject store](https://atovproject.de/store).
 
 - [lx-euclid](#lx-euclid)
 - [Installation of last firmware](#installation-of-last-firmware)

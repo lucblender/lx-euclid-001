@@ -6,7 +6,7 @@ from Rp2040Lcd import LCD_1inch28
 MAJOR = 1
 MINOR = 10
 FIX = 3
-ADD = "_dev"
+ADD = ""
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 0
