@@ -135,7 +135,6 @@ def lxhardware_changed(handlerEventData):
             LxEuclidConstant.EVENT_OUTER_CIRCLE_TAP, handlerEventData.data)
         LCD.set_need_display()
     elif event == lx_hardware.BTN_SWITCHES_RISE:
-        lx_euclid_config.flip = not lx_euclid_config.flip
         tmp_time = ticks_ms()
         if (tmp_time - sw_btns_press[handlerEventData.data]) > DEBOUNCE_MS:
             sw_btns_press[handlerEventData.data] = tmp_time
