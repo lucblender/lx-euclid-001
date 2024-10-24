@@ -10,7 +10,7 @@ ADD = "_dev"
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 0
-MEMORY_FIX = 3
+MEMORY_FIX = 4
 
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory

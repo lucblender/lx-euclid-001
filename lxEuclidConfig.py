@@ -1401,8 +1401,8 @@ class LxEuclidConfig:
 
     def test_save_data_in_file(self):
         if self.need_save_data_in_file:
-            self.need_save_data_in_file = False
             self.save_data_lock.acquire()
+            self.need_save_data_in_file = False
             self.save_data_lock.release()
 
             changed_index = []
@@ -1440,13 +1440,24 @@ class LxEuclidConfig:
         version_eeprom = f"v{eeprom_v_major}.{eeprom_v_minor}.{eeprom_v_fix}"
         print("version_eeprom", version_eeprom)
 
-        if self.v_fix is not eeprom_v_fix or self.v_minor is not eeprom_v_minor or self.v_major is not eeprom_v_major:
+        # only check major and minor and reset if they are different from "in memory" version
+        if self.v_minor is not eeprom_v_minor or self.v_major is not eeprom_v_major:
             version_main = f"v{self.v_major}.{self.v_minor}.{self.v_fix}"
             print("Error: memory version is different",
                   version_main, version_eeprom)
             print("Eeprom will be re-initialized, saving all data")
             self.save_data()
         else:
+            # check fix version number
+            if self.v_fix is not eeprom_v_fix:
+                version_main = f"v{self.v_major}.{self.v_minor}.{self.v_fix}"
+                print("Warning: fix memory version is different. Fix changes are backward/forward compatible.",
+                  version_main, version_eeprom)
+                # save fix version number
+                self.lx_hardware.set_eeprom_data_int(FIX_E_ADDR, self.v_fix)
+            else:
+                print("Info: main memory version number is the same as in eeprom", version_eeprom)
+                
             try:
 
                 eeprom_addr = [FIX_E_ADDR+1]
