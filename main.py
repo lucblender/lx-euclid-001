@@ -4,13 +4,13 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 10
-FIX = 3
-ADD = ""
+MINOR = 11
+FIX = 0
+ADD = "_dev"
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 0
-MEMORY_FIX = 3
+MEMORY_FIX = 4
 
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
@@ -160,6 +160,11 @@ def display_thread():
             if not in_lxhardware_changed:
                 gc.collect()
                 lx_euclid_config.test_save_data_in_file()
+                if LCD.get_need_flip():
+                    gc.collect()
+                    LCD.reset_need_flip()
+                    LCD.init_display(lx_euclid_config.flip)
+                    gc.collect()
                 if LCD.get_need_display():
                     gc.collect()
                     LCD.display_rhythms()

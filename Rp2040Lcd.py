@@ -98,6 +98,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.__need_display = False
         self.need_display_lock = allocate_lock()
+        
+        self.__need_flip = False
+        self.need_flip_lock = allocate_lock()
 
         self.beats_coords = [[0, [0,]], [0, [0,]], [0, [0,]], [0, [0,]]]
         self.param_beats_coords = [[0, [0,]], [0, [0,]], [0, [0,]], [0, [0,]]]
@@ -160,7 +163,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def set_bl_pwm(self, duty):
         self.pwm.duty_u16(duty)  # max 65535
 
-    def init_display(self):
+    def init_display(self, flip=False):
         """Initialize dispaly"""
         self.rst(1)
         sleep(0.01)
@@ -203,8 +206,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.write_cmd_data(0xB6, [0x00, 0x20])
 
-        # 0x08 normal config 0x58 flipped config
-        self.write_cmd_data(0x36, [0x08])
+        # 0x08 normal config 0x58 flipped config        
+        if flip:            
+            self.write_cmd_data(0x36, [0x58])
+        else:
+            self.write_cmd_data(0x36, [0x08])
 
         self.write_cmd_data(0x3A, [0x05])
 
@@ -342,6 +348,22 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.need_display_lock.acquire()
         to_return = self.__need_display
         self.need_display_lock.release()
+        return to_return
+
+    def set_need_flip(self):
+        self.need_flip_lock.acquire()
+        self.__need_flip = True
+        self.need_flip_lock.release()
+        
+    def reset_need_flip(self):
+        self.need_flip_lock.acquire()
+        self.__need_flip = False
+        self.need_flip_lock.release()
+
+    def get_need_flip(self):
+        self.need_flip_lock.acquire()
+        to_return = self.__need_flip
+        self.need_flip_lock.release()
         return to_return
 
     def display_rhythms(self):
@@ -786,10 +808,17 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 "Clock", 95, 6, self.white)
             self.font_writer_freesans20.text(
                 "Source", 87, 27, self.white)
+            
             self.font_writer_freesans20.text(
-                "Touch", 95, 182, self.white)
+                "Sensi", 174, 142, self.white)
             self.font_writer_freesans20.text(
-                "Sensitivity", 80, 203, self.white)
+                "Touch", 166, 163, self.white)
+            
+            self.font_writer_freesans20.text(
+                "Rot", 15, 142, self.white)
+            self.font_writer_freesans20.text(
+                "Screen", 15, 163, self.white)
+            
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             txt_color = self.un_selected_color
@@ -839,6 +868,20 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     "Medium", 154, 168, txt_colors[1])
                 self.font_writer_freesans20.text(
                     "High", 19, 168, txt_colors[2])
+            elif page == 2:  # config screen orientation
+                current_channel_setting = "screen"
+                self.font_writer_font6.text(
+                    current_channel_setting, 100, 130, page_color)
+
+                flip_index = self.lx_euclid_config.flip
+
+                txt_colors = [txt_color]*2
+
+                txt_colors[flip_index] = txt_color_highlight
+                self.font_writer_freesans20.text(
+                    "Normal", 88, 10, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "Inverted", 88, 208, txt_colors[1])
 
         elif local_state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 

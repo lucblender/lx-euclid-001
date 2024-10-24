@@ -519,9 +519,12 @@ class LxEuclidConfig:
         self.v_major = software_version[0]
         self.v_minor = software_version[1]
         self.v_fix = software_version[2]
-
+        
         self.lx_hardware = lx_hardware
         self.LCD = LCD
+        self._flip = False
+        self.flip_lock = allocate_lock()
+        
         self.LCD.set_config(self)
         self.euclidean_rhythms = []
         self.euclidean_rhythms.append(EuclideanRhythm(16, 4, 0, 100))
@@ -600,6 +603,31 @@ class LxEuclidConfig:
 
         self.load_data()
         self.reload_rhythms()
+        
+        self.lx_hardware.capacitives_circles.flip = self._flip
+        if self._flip == True:
+            # flip the display at boot if needed
+            self.LCD.fill(self.LCD.black)
+            self.LCD.show()
+            self.LCD.init_display(self._flip)
+            
+    @property
+    def flip(self):
+        to_return = 0
+        self.flip_lock.acquire()
+        to_return = self._flip
+        self.flip_lock.release()
+        return to_return
+
+    @flip.setter
+    def flip(self, flip):
+        self.flip_lock.acquire()
+        if flip != self._flip:
+            self.LCD.set_need_flip()
+        self._flip = flip
+        self.lx_hardware.capacitives_circles.flip = self._flip
+        self.flip_lock.release()
+            
 
     @property
     def need_circle_action_display(self):
@@ -1204,7 +1232,7 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_sw_leds()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
-                param_index = angle_to_index(angle_inner, 2)
+                param_index = angle_to_index(angle_inner, 3)
                 self.param_menu_page = param_index
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_PARAM_MENU
@@ -1242,6 +1270,10 @@ class LxEuclidConfig:
                 elif self.param_menu_page == 1:  # sensitivity
                     sensi_index = angle_to_index(angle_inner, 3)
                     self.lx_hardware.capacitives_circles.touch_sensitivity = sensi_index
+                    
+                elif self.param_menu_page == 2:  # display flip
+                    flip_index = angle_to_index(angle_inner, 2)
+                    self.flip = flip_index
 
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def incr_steps(self):
@@ -1356,6 +1388,8 @@ class LxEuclidConfig:
         local_tap_tempo = self.tap_delay_ms
         self.dict_data["t_t_l"] = local_tap_tempo & 0xff
         self.dict_data["t_t_h"] = (local_tap_tempo >> 8) & 0xff
+        
+        self.dict_data["d_o_f"] = self.flip
 
     def save_data(self):
 
@@ -1367,8 +1401,8 @@ class LxEuclidConfig:
 
     def test_save_data_in_file(self):
         if self.need_save_data_in_file:
-            self.need_save_data_in_file = False
             self.save_data_lock.acquire()
+            self.need_save_data_in_file = False
             self.save_data_lock.release()
 
             changed_index = []
@@ -1406,13 +1440,24 @@ class LxEuclidConfig:
         version_eeprom = f"v{eeprom_v_major}.{eeprom_v_minor}.{eeprom_v_fix}"
         print("version_eeprom", version_eeprom)
 
-        if self.v_fix is not eeprom_v_fix or self.v_minor is not eeprom_v_minor or self.v_major is not eeprom_v_major:
+        # only check major and minor and reset if they are different from "in memory" version
+        if self.v_minor is not eeprom_v_minor or self.v_major is not eeprom_v_major:
             version_main = f"v{self.v_major}.{self.v_minor}.{self.v_fix}"
             print("Error: memory version is different",
                   version_main, version_eeprom)
             print("Eeprom will be re-initialized, saving all data")
             self.save_data()
         else:
+            # check fix version number
+            if self.v_fix is not eeprom_v_fix:
+                version_main = f"v{self.v_major}.{self.v_minor}.{self.v_fix}"
+                print("Warning: fix memory version is different. Fix changes are backward/forward compatible.",
+                  version_main, version_eeprom)
+                # save fix version number
+                self.lx_hardware.set_eeprom_data_int(FIX_E_ADDR, self.v_fix)
+            else:
+                print("Info: main memory version number is the same as in eeprom", version_eeprom)
+                
             try:
 
                 eeprom_addr = [FIX_E_ADDR+1]
@@ -1503,6 +1548,12 @@ class LxEuclidConfig:
                     incr_addr(eeprom_addr))
 
                 self.tap_delay_ms = tap_tempo_lsb + (tap_tempo_msb << 8)
+                
+                flip = self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr))
+                
+                if flip >= 0 and flip <= 1:
+                    self.flip = flip
 
                 self.create_memory_dict()
                 self.previous_dict_data_list = list(self.dict_data.values())
