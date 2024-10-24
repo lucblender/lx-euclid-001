@@ -509,6 +509,11 @@ class LxEuclidConstant:
     EVENT_INNER_CIRCLE_TAP = const(10)
     EVENT_OUTER_CIRCLE_TAP = const(11)
     EVENT_BTN_SWITCHES = const(12)
+    
+    PRESET_RECALL_DIRECT_W_RESET = const(0)
+    PRESET_RECALL_DIRECT_WO_RESET = const(1)
+    PRESET_INTERNAL_RESET = const(2)
+    PRESET_EXTERNAL_RESET = const(3)
 
     MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
 
@@ -549,6 +554,8 @@ class LxEuclidConfig:
             8, 1, 4, 100), EuclideanRhythmParameters(4, 1, 2, 100), EuclideanRhythmParameters(9, 5, 0, 100)])
         self.presets.append([EuclideanRhythmParameters(16, 4, 0, 100), EuclideanRhythmParameters(
             8, 1, 4, 100), EuclideanRhythmParameters(4, 1, 2, 100), EuclideanRhythmParameters(9, 5, 0, 100)])
+
+        self.preset_recall_mode = LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET
 
         self.rhythm_lock = allocate_lock()
         self.menu_lock = allocate_lock()
@@ -662,13 +669,19 @@ class LxEuclidConfig:
     @load_preset_index.setter
     def load_preset_index(self, load_preset_index):
         self._load_preset_index = load_preset_index
-        index = 0
-        for euclidean_rhythm in self.euclidean_rhythms:
+        if self.preset_recall_mode in [LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET,
+                                       LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET]:   
+            # only load preset if we are in a "direct" mode
+            self.delegate_load_preset()
+                
+    def delegate_load_preset(self):
+        for index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
             euclidean_rhythm.set_parameters_from_rhythm(
                 self.presets[self._load_preset_index][index])
             euclidean_rhythm.set_rhythm()
-            index = index + 1
-        self.reset_steps()    
+        if self.preset_recall_mode is not LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET:    
+            self.reset_steps()
+        
 
     def on_event(self, event, data=None):
         self.state_lock.acquire()
