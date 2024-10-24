@@ -255,6 +255,8 @@ class LxHardware:
         self.rst_pin_status = self.rst_pin.value()
         if not self.rst_pin.value():            
             if self.lx_euclid_config is not None:
+                # in the case of a preset load, can't do it here because of memory creation in interrupt
+                # will be delegated by the fifo                
                 self.lx_euclid_config.reset_steps()
             self.lxHardwareEventFifo.append(self.rst_rise_event)
 

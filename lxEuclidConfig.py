@@ -555,7 +555,10 @@ class LxEuclidConfig:
         self.presets.append([EuclideanRhythmParameters(16, 4, 0, 100), EuclideanRhythmParameters(
             8, 1, 4, 100), EuclideanRhythmParameters(4, 1, 2, 100), EuclideanRhythmParameters(9, 5, 0, 100)])
 
-        self.preset_recall_mode = LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET
+        # TODO
+        self.preset_recall_mode = LxEuclidConstant.PRESET_EXTERNAL_RESET
+        self.preset_recall_int_reset = False
+        self.preset_recall_ext_reset = False
 
         self.rhythm_lock = allocate_lock()
         self.menu_lock = allocate_lock()
@@ -598,7 +601,7 @@ class LxEuclidConfig:
 
         self.param_menu_page = 0
 
-        self.computation_index = 0  # used in interrupt function that can't create memory
+        self.computation_index_incr_step = 0  # used in interrupt function that can't create memory
 
         self.tap_delay_ms = 125  # default tap tempo 120bmp 125ms for 16th note
 
@@ -670,16 +673,31 @@ class LxEuclidConfig:
     def load_preset_index(self, load_preset_index):
         self._load_preset_index = load_preset_index
         if self.preset_recall_mode in [LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET,
-                                       LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET]:   
+                                       LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET]:
+            
+            # if previous reset recall were launched, clear them, only one preset load can be in queue
+            self.preset_recall_int_reset = False
+            self.preset_recall_ext_reset = False
             # only load preset if we are in a "direct" mode
             self.delegate_load_preset()
+        elif self.preset_recall_mode is LxEuclidConstant.PRESET_INTERNAL_RESET:
+            self.preset_recall_int_reset = True
+            # if previous reset recall were launched, clear them, only one preset load can be in queue
+            self.preset_recall_ext_reset = False
+        elif self.preset_recall_mode is LxEuclidConstant.PRESET_EXTERNAL_RESET:
+            self.preset_recall_ext_reset = True
+            # if previous reset recall were launched, clear them, only one preset load can be in queue
+            self.preset_recall_int_reset = False
                 
     def delegate_load_preset(self):
         for index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
             euclidean_rhythm.set_parameters_from_rhythm(
                 self.presets[self._load_preset_index][index])
-            euclidean_rhythm.set_rhythm()
-        if self.preset_recall_mode is not LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET:    
+
+            euclidean_rhythm.set_rhythm()            
+
+        # if current recall mode is direct wo reset or, we called previously a preset_recall_ext_reset 
+        if self.preset_recall_mode is not LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET and self.preset_recall_ext_reset is False:                
             self.reset_steps()
         
 
@@ -703,6 +721,10 @@ class LxEuclidConfig:
                 self.state_lock.release()
                 self.sm_rhythm_param_counter = 0
             elif event == LxEuclidConstant.EVENT_TAP_BTN_LONG:
+                # TODO, load a preset here?
+                if self.preset_recall_int_reset:                    
+                    self.preset_recall_int_reset = False
+                    self.delegate_load_preset()
                 self.reset_steps()
             elif event == LxEuclidConstant.EVENT_BTN_SWITCHES:
 
@@ -1290,7 +1312,7 @@ class LxEuclidConfig:
 
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def incr_steps(self):
-        self.computation_index = 0
+        self.computation_index_incr_step = 0
         for euclidean_rhythm in self.euclidean_rhythms:            
             
             did_step = euclidean_rhythm.incr_step()
@@ -1308,11 +1330,11 @@ class LxEuclidConfig:
             if euclidean_rhythm.get_current_step() and did_step:
                 if euclidean_rhythm.randomize_gate_length:
                     self.lx_hardware.set_gate(
-                        self.computation_index, euclidean_rhythm.randomized_gate_length_ms)
+                        self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_ms)
                 else:
                     self.lx_hardware.set_gate(
-                        self.computation_index, euclidean_rhythm.gate_length_ms)
-            self.computation_index = self.computation_index + 1
+                        self.computation_index_incr_step, euclidean_rhythm.gate_length_ms)
+            self.computation_index_incr_step = self.computation_index_incr_step + 1
 
         if self.state == LxEuclidConstant.STATE_LIVE:
             self.lx_hardware.set_tap_led()

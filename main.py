@@ -72,7 +72,9 @@ def lxhardware_changed(handlerEventData):
             LCD.set_need_display()
         lx_euclid_config.random_gate_length_update()
     elif event == lx_hardware.RST_RISE:
-        # reset has been done in interrupt, we just need to refresh display
+        if lx_euclid_config.preset_recall_ext_reset:
+            lx_euclid_config.delegate_load_preset()                    
+            lx_euclid_config.preset_recall_ext_reset = False
         LCD.set_need_display()
     elif event == lx_hardware.BTN_TAP_RISE:
         tap_btn_press = ticks_ms()
