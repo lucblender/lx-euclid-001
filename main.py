@@ -4,13 +4,13 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 11
+MINOR = 12
 FIX = 0
 ADD = "_dev"
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 0
-MEMORY_FIX = 4
+MEMORY_FIX = 5
 
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
@@ -72,7 +72,9 @@ def lxhardware_changed(handlerEventData):
             LCD.set_need_display()
         lx_euclid_config.random_gate_length_update()
     elif event == lx_hardware.RST_RISE:
-        # reset has been done in interrupt, we just need to refresh display
+        if lx_euclid_config.preset_recall_ext_reset:
+            lx_euclid_config.delegate_load_preset()                    
+            lx_euclid_config.preset_recall_ext_reset = False
         LCD.set_need_display()
     elif event == lx_hardware.BTN_TAP_RISE:
         tap_btn_press = ticks_ms()

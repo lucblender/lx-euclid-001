@@ -762,32 +762,56 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS:
 
-            txt_color = self.selected_color
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
 
             self.circle(120, 120, 82, self.touch_circle_color, True)
             self.circle(120, 120, 60, self.black, True)
 
             self.circle(120, 120, 55, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 36, self.black, True)
+            
+            self.font_writer_freesans20.text("Presets", 87, 110, txt_color_highlight)
 
             page = self.lx_euclid_config.param_presets_page
             page_color = self.light_grey
 
-            if page == 0:
-                self.font_writer_font6.text("load", 108, 130, page_color)
-            else:
-                self.font_writer_font6.text("save", 106, 130, page_color)
+            if page in [0,1]:
+                if page == 0:
+                    self.font_writer_font6.text("load", 108, 130, page_color)
+                else:
+                    self.font_writer_font6.text("save", 106, 130, page_color)
 
-            self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
 
-            self.font_writer_freesans20.text("1", 116, 5, txt_color)
-            self.font_writer_freesans20.text("2", 197, 38, txt_color)
-            self.font_writer_freesans20.text("3", 225, 110, txt_color)
-            self.font_writer_freesans20.text("4", 197, 184, txt_color)
-            self.font_writer_freesans20.text("5", 113, 218, txt_color)
-            self.font_writer_freesans20.text("6", 34, 184, txt_color)
-            self.font_writer_freesans20.text("7", 3, 110, txt_color)
-            self.font_writer_freesans20.text("8", 34, 38, txt_color)
+
+                self.font_writer_freesans20.text("1", 116, 5, txt_color_highlight)
+                self.font_writer_freesans20.text("2", 197, 38, txt_color_highlight)
+                self.font_writer_freesans20.text("3", 225, 110, txt_color_highlight)
+                self.font_writer_freesans20.text("4", 197, 184, txt_color_highlight)
+                self.font_writer_freesans20.text("5", 113, 218, txt_color_highlight)
+                self.font_writer_freesans20.text("6", 34, 184, txt_color_highlight)
+                self.font_writer_freesans20.text("7", 3, 110, txt_color_highlight)
+                self.font_writer_freesans20.text("8", 34, 38, txt_color_highlight)
+            elif page is 2:
+                self.font_writer_font6.text("recall", 104, 130, page_color)
+                
+                preset_recall_index = self.lx_euclid_config.preset_recall_mode
+                
+                txt_colors = [txt_color]*4
+
+                txt_colors[preset_recall_index] = txt_color_highlight
+                self.font_writer_freesans20.text(
+                    "Dir w/ rst", 78, 6, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "Rst", 206, 97, txt_colors[1])
+                self.font_writer_freesans20.text(
+                    "ext", 208, 121, txt_colors[1])
+                self.font_writer_freesans20.text(
+                    "Dir w/0 rst", 75, 209, txt_colors[2])
+                self.font_writer_freesans20.text(
+                    "Rst", 6, 97, txt_colors[3])
+                self.font_writer_freesans20.text(
+                    "int", 6, 121, txt_colors[3])
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU_SELECTION:
 
