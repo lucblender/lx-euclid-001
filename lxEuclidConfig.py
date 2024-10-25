@@ -16,7 +16,7 @@ MINOR_E_ADDR = const(1)
 FIX_E_ADDR = const(2)
 
 CV_PAGE_MAX = const(2)
-PRESET_PAGE_MAX = const(2)
+PRESET_PAGE_MAX = const(3)
 PADS_PAGE_MAX = const(2)
 CHANNEL_PAGE_MAX = const(4)
 MENU_PAGE_MAX = const(2)
@@ -511,9 +511,9 @@ class LxEuclidConstant:
     EVENT_BTN_SWITCHES = const(12)
     
     PRESET_RECALL_DIRECT_W_RESET = const(0)
-    PRESET_RECALL_DIRECT_WO_RESET = const(1)
-    PRESET_INTERNAL_RESET = const(2)
-    PRESET_EXTERNAL_RESET = const(3)
+    PRESET_EXTERNAL_RESET = const(1)
+    PRESET_RECALL_DIRECT_WO_RESET = const(2)
+    PRESET_INTERNAL_RESET = const(3)
 
     MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
 
@@ -556,7 +556,7 @@ class LxEuclidConfig:
             8, 1, 4, 100), EuclideanRhythmParameters(4, 1, 2, 100), EuclideanRhythmParameters(9, 5, 0, 100)])
 
         # TODO
-        self.preset_recall_mode = LxEuclidConstant.PRESET_EXTERNAL_RESET
+        self.preset_recall_mode = LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET
         self.preset_recall_int_reset = False
         self.preset_recall_ext_reset = False
 
@@ -959,18 +959,25 @@ class LxEuclidConfig:
         elif self.state == LxEuclidConstant.STATE_PARAM_PRESETS:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:  # loading saving preset
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
-                preset_index = angle_to_index(angle_inner, 8)
+                
 
-                if self.param_presets_page == 0:
-                    self.load_preset_index = preset_index
+                if self.param_presets_page in [0,1]:
+                    preset_index = angle_to_index(angle_inner, 8)
+                    if self.param_presets_page == 0:
+                        self.load_preset_index = preset_index
+                    else:
+                        self.save_preset_index = preset_index
+                        
+                    self.state_lock.acquire()                         
+                    self.state = LxEuclidConstant.STATE_LIVE
+                    self.state_lock.release()
+                    self.lx_hardware.clear_tap_led()
+                    self.lx_hardware.clear_menu_led()
                 else:
-                    self.save_preset_index = preset_index
+                    preset_recall_index = angle_to_index(angle_inner, 4)
+                    self.preset_recall_mode = preset_recall_index
 
-                self.state_lock.acquire()
-                self.state = LxEuclidConstant.STATE_LIVE
-                self.state_lock.release()
-                self.lx_hardware.clear_tap_led()
-                self.lx_hardware.clear_menu_led()
+               
 
             elif event == LxEuclidConstant.EVENT_TAP_BTN:
                 self.save_data()
