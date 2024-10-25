@@ -849,21 +849,28 @@ class LCD_1inch28(framebuf.FrameBuffer):
             txt_color_highlight = self.selected_color
             page_color = self.light_grey
 
-            self.circle(120, 120, 58, self.touch_circle_color, True)
-            self.circle(120, 120, 58-13, self.black, True)
-
-            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
-            self.circle(120, 120, 42-13, self.black, True)
-    
             page = self.lx_euclid_config.param_menu_page
             
             # write more alwayse except in mode 0 in tap mode
             if not (page == 0 and self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE):
+                self.circle(120, 120, 58, self.touch_circle_color, True)
+                self.circle(120, 120, 58-13, self.black, True)
+
+                self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+                self.circle(120, 120, 42-13, self.black, True)
+
                 other_txt = "More"
                 
                 self.font_writer_freesans20.text(
-                    other_txt, 100, 110, self.white)            
+                    other_txt, 100, 110, self.white)
+            else:
+                # if in page 0 and tap mode, both circle are active
+                self.circle(120, 120, 58, self.touch_circle_color_highlight, True)
+                self.circle(120, 120, 58-13, self.black, True)
 
+                self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+                self.circle(120, 120, 42-13, self.black, True)
+                
             if page == 0:  # config clock source
                 current_channel_setting = "clk src"
                 self.font_writer_font6.text(

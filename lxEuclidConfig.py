@@ -472,6 +472,14 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 class LxEuclidConstant:
     TAP_MODE = const(0)
     CLK_IN = const(1)
+    
+    # tap is in 4/4 so time is 4x delay time
+    MIN_TAP_DELAY_MS = const(240)
+    # equivalent to 2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
+    MAX_TAP_DELAY_MS = const(8000)
+    
+    MAX_BPM = int(60/(MIN_TAP_DELAY_MS/4)*1000) # 1000 bpm
+    MIN_BPM = int(60/(MAX_TAP_DELAY_MS/4)*1000) # 30 bpm
 
     CIRCLE_ACTION_NONE = const(0)
     CIRCLE_ACTION_RESET = const(1)
@@ -722,19 +730,35 @@ class LxEuclidConfig:
         self.tap_delay_ms_lock.release()
     
     def get_int_bpm(self):
-        return int(60/(self.tap_delay_ms/1000))
+        return round(60/(self.tap_delay_ms/1000))
     
     def incr_bpm(self, incr):
-        bpm = self.get_int_bpm()+incr
-        delay_ms = (60/bpm)*1000
+        old_delay_ms = self.tap_delay_ms
+        bpm = min(LxEuclidConstant.MAX_BPM,self.get_int_bpm()+incr)
+        
+        delay_ms = round((60/bpm)*1000)
+        
+        # incr of bpm mean exp incr of delay ms
+        # this mean with high bpm decr, the delta ms of 1 bpm can be smaller than 1ms
+        # if so --> force decr of 1ms
+        if bpm != LxEuclidConstant.MAX_BPM and old_delay_ms-delay_ms == 0:
+            delay_ms = delay_ms-1        
         
         self.tap_delay_ms = delay_ms
     
     def decr_bpm(self, decr):
-        bpm = self.get_int_bpm()-decr
-        delay_ms = (60/bpm)*1000
+        old_delay_ms = self.tap_delay_ms
+        bpm = max(LxEuclidConstant.MIN_BPM,self.get_int_bpm()-decr)        
         
-        self.tap_delay_ms = delay_ms        
+        delay_ms = round((60/bpm)*1000)
+        
+        # incr of bpm mean exp incr of delay ms
+        # this mean with high bpm decr, the delta ms of 1 bpm can be smaller than 1ms
+        # if so --> force decr of 1ms
+        if bpm != LxEuclidConstant.MIN_BPM and old_delay_ms-delay_ms == 0:
+            delay_ms = delay_ms+1
+        
+        self.tap_delay_ms = delay_ms  
 
     def on_event(self, event, data=None):
         self.state_lock.acquire()
@@ -1318,7 +1342,7 @@ class LxEuclidConfig:
                 self.state = LxEuclidConstant.STATE_MENU_SELECT
                 self.state_lock.release()
 
-        elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
+        elif local_state == LxEuclidConstant.STATE_PARAM_MENU:#todo
             if event == LxEuclidConstant.EVENT_TAP_BTN:
                 # save data, clear everything, go back to live
                 self.save_data()
@@ -1336,13 +1360,29 @@ class LxEuclidConfig:
                 self.state_lock.release()
 
                 self.param_menu_page = 0
+            elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                    self.incr_bpm(5)
+            elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                    self.decr_bpm(5)
+            elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                    self.incr_bpm(1)
+            elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                    self.decr_bpm(1)
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
 
                 if self.param_menu_page == 0:  # clock source
-                    param_index = angle_to_index(angle_inner, 2)
-
-                    self.clk_mode = param_index
+                    # only two parameters but touch should be more fine
+                    # so divide circle in 8 and only react to 0 and 4 (top and bottom)
+                    param_index = angle_to_index(angle_inner, 8)
+                    if param_index == 0:
+                        self.clk_mode = 0
+                    elif param_index == 4:
+                        self.clk_mode = 1
                 elif self.param_menu_page == 1:  # sensitivity
                     sensi_index = angle_to_index(angle_inner, 3)
                     self.lx_hardware.capacitives_circles.touch_sensitivity = sensi_index

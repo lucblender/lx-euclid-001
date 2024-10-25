@@ -28,9 +28,6 @@ from _thread import start_new_thread
 def print_ram(code=""):
     print(code, "free ram: ", gc.mem_free(), ", alloc ram: ", gc.mem_alloc())
 
-MIN_TAP_DELAY_MS = 20
-# equivalent to 2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
-MAX_TAP_DELAY_MS = 8000
 LONG_PRESS_MS = 500
 DEBOUNCE_MS = 20
 
@@ -92,7 +89,8 @@ def lxhardware_changed(handlerEventData):
                 lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN_LONG)
             else:
                 temp_tap_delay = temp_last_tap_ms - last_tap_ms
-                if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
+                if temp_tap_delay > DEBOUNCE_MS and temp_tap_delay < LxEuclidConstant.MAX_TAP_DELAY_MS:
+                    temp_tap_delay = max(LxEuclidConstant.MIN_TAP_DELAY_MS,temp_tap_delay)
                     # here the tap tempo time is divided by 4, for a 4/4 rhythm
                     lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
                     # tap tempo is saved in eeprom
