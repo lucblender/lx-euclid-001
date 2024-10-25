@@ -705,6 +705,8 @@ class LxEuclidConfig:
         if self.preset_recall_mode is not LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET and self.preset_recall_ext_reset is False:                
             self.reset_steps()
         
+    def get_int_bpm(self):
+        return int(60/(self.tap_delay_ms/1000))
 
     def on_event(self, event, data=None):
         self.state_lock.acquire()
