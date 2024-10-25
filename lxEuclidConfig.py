@@ -561,7 +561,6 @@ class LxEuclidConfig:
         self.presets.append([EuclideanRhythmParameters(16, 4, 0, 100), EuclideanRhythmParameters(
             8, 1, 4, 100), EuclideanRhythmParameters(4, 1, 2, 100), EuclideanRhythmParameters(9, 5, 0, 100)])
 
-        # TODO
         self.preset_recall_mode = LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET
         self.preset_recall_int_reset = False
         self.preset_recall_ext_reset = False
@@ -727,7 +726,6 @@ class LxEuclidConfig:
                 self.state_lock.release()
                 self.sm_rhythm_param_counter = 0
             elif event == LxEuclidConstant.EVENT_TAP_BTN_LONG:
-                # TODO, load a preset here?
                 if self.preset_recall_int_reset:                    
                     self.preset_recall_int_reset = False
                     self.delegate_load_preset()
