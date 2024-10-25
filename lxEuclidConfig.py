@@ -1432,6 +1432,8 @@ class LxEuclidConfig:
         self.dict_data["t_t_h"] = (local_tap_tempo >> 8) & 0xff
         
         self.dict_data["d_o_f"] = self.flip
+        
+        self.dict_data["p_r_m"] = self.preset_recall_mode
 
     def save_data(self):
 
@@ -1596,6 +1598,11 @@ class LxEuclidConfig:
                 
                 if flip >= 0 and flip <= 1:
                     self.flip = flip
+                preset_recall_mode = self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr))
+                
+                if preset_recall_mode >= LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET and preset_recall_mode <= LxEuclidConstant.PRESET_INTERNAL_RESET:
+                    self.preset_recall_mode = preset_recall_mode
 
                 self.create_memory_dict()
                 self.previous_dict_data_list = list(self.dict_data.values())
