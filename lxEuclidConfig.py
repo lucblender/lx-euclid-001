@@ -67,6 +67,12 @@ class EuclideanRhythmParameters:
             self.beats = 1
         if self.pulses < 0:
             self.pulses = 0
+            
+        if self.pulses <= 1:
+            self.pulses_set_0_1 = True
+        else:
+            self.pulses_set_0_1 = False
+            
         self.__pulses_ratio = self.pulses / self.beats
         self.clear_gate_needed = False
         self.gate_length_ms = gate_length_ms
