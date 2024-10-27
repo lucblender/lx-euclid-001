@@ -473,13 +473,16 @@ class LxEuclidConstant:
     TAP_MODE = const(0)
     CLK_IN = const(1)
     
-    # tap is in 4/4 so time is 4x delay time
-    MIN_TAP_DELAY_MS = const(240)
-    # equivalent to 2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
-    MAX_TAP_DELAY_MS = const(8000)
     
-    MAX_BPM = int(60/(MIN_TAP_DELAY_MS/4)*1000) # 1000 bpm
-    MIN_BPM = int(60/(MAX_TAP_DELAY_MS/4)*1000) # 30 bpm
+    MAX_BPM = const(500)
+    MIN_BPM = const(30)
+    
+    # tap is in 4/4 so time is 4x delay time
+    MIN_TAP_DELAY_MS = int(((60/MAX_BPM)*1000)*4)
+    # equivalent to 2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
+    MAX_TAP_DELAY_MS = int(((60/MIN_BPM)*1000)*4)
+
+
 
     CIRCLE_ACTION_NONE = const(0)
     CIRCLE_ACTION_RESET = const(1)
