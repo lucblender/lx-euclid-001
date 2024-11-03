@@ -849,23 +849,42 @@ class LCD_1inch28(framebuf.FrameBuffer):
             txt_color_highlight = self.selected_color
             page_color = self.light_grey
 
-            self.circle(120, 120, 58, self.touch_circle_color, True)
-            self.circle(120, 120, 58-13, self.black, True)
-
-            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
-            self.circle(120, 120, 42-13, self.black, True)
-
-            other_txt = "More"
-            self.font_writer_freesans20.text(
-                other_txt, 100, 110, self.white)
             page = self.lx_euclid_config.param_menu_page
+            
+            # write more alwayse except in mode 0 in tap mode
+            if not (page == 0 and self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE):
+                self.circle(120, 120, 58, self.touch_circle_color, True)
+                self.circle(120, 120, 58-13, self.black, True)
 
+                self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+                self.circle(120, 120, 42-13, self.black, True)
+
+                other_txt = "More"
+                
+                self.font_writer_freesans20.text(
+                    other_txt, 100, 110, self.white)
+            else:
+                # if in page 0 and tap mode, both circle are active
+                self.circle(120, 120, 58, self.touch_circle_color_highlight, True)
+                self.circle(120, 120, 58-13, self.black, True)
+
+                self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+                self.circle(120, 120, 42-13, self.black, True)
+                
             if page == 0:  # config clock source
                 current_channel_setting = "clk src"
                 self.font_writer_font6.text(
                     current_channel_setting, 100, 130, page_color)
 
                 clk_index = self.lx_euclid_config.clk_mode
+                
+                if clk_index == LxEuclidConstant.TAP_MODE:
+                    other_txt = str(self.lx_euclid_config.get_int_bpm())                    
+                    
+                    txt_len = self.font_writer_freesans20.stringlen(other_txt)
+                        
+                    self.font_writer_freesans20.text(
+                        other_txt, int(120-txt_len/2), 110, self.white)
 
                 txt_colors = [txt_color]*2
 
@@ -906,6 +925,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     "Normal", 88, 10, txt_colors[0])
                 self.font_writer_freesans20.text(
                     "Inverted", 88, 208, txt_colors[1])
+                
+                
 
         elif local_state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 
