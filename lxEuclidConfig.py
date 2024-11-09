@@ -1672,7 +1672,10 @@ class LxEuclidConfig:
                 tap_tempo_msb = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
 
-                self.tap_delay_ms = tap_tempo_lsb + (tap_tempo_msb << 8)
+                tap_delay_ms = tap_tempo_lsb + (tap_tempo_msb << 8)
+                
+                if tap_delay_ms <= LxEuclidConstant.MAX_TAP_DELAY_MS and tap_delay_ms >= LxEuclidConstant.MIN_TAP_DELAY_MS:
+                    self.tap_delay_ms = tap_delay_ms
                 
                 flip = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
