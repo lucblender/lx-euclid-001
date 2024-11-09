@@ -474,13 +474,13 @@ class LxEuclidConstant:
     CLK_IN = const(1)
     
     
-    MAX_BPM = const(500)
-    MIN_BPM = const(30)
+    MAX_BPM = const(250)
+    MIN_BPM = const(8)
     
     # tap is in 4/4 so time is 4x delay time
-    MIN_TAP_DELAY_MS = int(((60/MAX_BPM)*1000)*4)
-    # equivalent to 2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
-    MAX_TAP_DELAY_MS = int(((60/MIN_BPM)*1000)*4)
+    MIN_TAP_DELAY_MS = int(((60/MAX_BPM)*1000))
+    # equivalent to ~2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
+    MAX_TAP_DELAY_MS = int(((60/MIN_BPM)*1000))
 
 
 
@@ -733,13 +733,13 @@ class LxEuclidConfig:
         self.tap_delay_ms_lock.release()
     
     def get_int_bpm(self):
-        return round(60/(self.tap_delay_ms/1000))
+        return round((60/(self.tap_delay_ms/1000))/4)
     
     def incr_bpm(self, incr):
         old_delay_ms = self.tap_delay_ms
         bpm = min(LxEuclidConstant.MAX_BPM,self.get_int_bpm()+incr)
         
-        delay_ms = round((60/bpm)*1000)
+        delay_ms = round((60/(bpm*4))*1000)
         
         # incr of bpm mean exp incr of delay ms
         # this mean with high bpm decr, the delta ms of 1 bpm can be smaller than 1ms
@@ -753,7 +753,7 @@ class LxEuclidConfig:
         old_delay_ms = self.tap_delay_ms
         bpm = max(LxEuclidConstant.MIN_BPM,self.get_int_bpm()-decr)        
         
-        delay_ms = round((60/bpm)*1000)
+        delay_ms = round((60/(bpm*4))*1000)
         
         # incr of bpm mean exp incr of delay ms
         # this mean with high bpm decr, the delta ms of 1 bpm can be smaller than 1ms
@@ -1365,16 +1365,20 @@ class LxEuclidConfig:
                 self.param_menu_page = 0
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
-                    self.incr_bpm(5)
+                    self.incr_bpm(5)                    
+                    self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
-                    self.decr_bpm(5)
+                    self.decr_bpm(5)        
+                    self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
-                    self.incr_bpm(1)
+                    self.incr_bpm(1)        
+                    self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
-                    self.decr_bpm(1)
+                    self.decr_bpm(1)        
+                    self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
 
