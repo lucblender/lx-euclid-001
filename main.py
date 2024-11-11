@@ -50,6 +50,7 @@ lx_euclid_config = LxEuclidConfig(
 lx_hardware.set_lx_euclid_config(lx_euclid_config)
 
 last_tap_ms = 0
+last_config_ms = 0
 
 DEBUG = True
 
@@ -147,7 +148,17 @@ def lxhardware_changed(handlerEventData):
         if (tmp_time - btn_menu_press) > DEBOUNCE_MS:
             btn_menu_press = tmp_time
     elif event == lx_hardware.BTN_MENU_FALL:
-        lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
+        global last_config_ms
+        
+        if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
+            temp_last_config_ms = ticks_ms()            
+            if temp_last_config_ms-btn_menu_press >= LONG_PRESS_MS:
+                lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN_LONG)
+            else:                
+                last_config_ms = temp_last_config_ms
+                lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
+        else:        
+            lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
         LCD.set_need_display()
 
 
