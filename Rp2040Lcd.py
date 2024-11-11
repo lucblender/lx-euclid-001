@@ -765,11 +765,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
 
-            self.circle(120, 120, 82, self.touch_circle_color, True)
-            self.circle(120, 120, 60, self.black, True)
+            self.circle(120, 120, 65, self.touch_circle_color, True)
+            self.circle(120, 120, 65-13, self.black, True)
 
-            self.circle(120, 120, 55, self.touch_circle_color_highlight, True)
-            self.circle(120, 120, 36, self.black, True)
+            self.circle(120, 120, 49, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 49-13, self.black, True)
             
             self.font_writer_freesans20.text("Presets", 87, 110, txt_color_highlight)
 
@@ -779,19 +779,21 @@ class LCD_1inch28(framebuf.FrameBuffer):
             if page in [0,1]:
                 if page == 0:
                     self.font_writer_font6.text("load", 108, 130, page_color)
+                    num_color = txt_color_highlight
                 else:
                     self.font_writer_font6.text("save", 106, 130, page_color)
+                    num_color = txt_color
 
 
 
-                self.font_writer_freesans20.text("1", 116, 5, txt_color_highlight)
-                self.font_writer_freesans20.text("2", 197, 38, txt_color_highlight)
-                self.font_writer_freesans20.text("3", 225, 110, txt_color_highlight)
-                self.font_writer_freesans20.text("4", 197, 184, txt_color_highlight)
-                self.font_writer_freesans20.text("5", 113, 218, txt_color_highlight)
-                self.font_writer_freesans20.text("6", 34, 184, txt_color_highlight)
-                self.font_writer_freesans20.text("7", 3, 110, txt_color_highlight)
-                self.font_writer_freesans20.text("8", 34, 38, txt_color_highlight)
+                self.font_writer_freesans20.text("1", 116, 5, num_color)
+                self.font_writer_freesans20.text("2", 197, 38, num_color)
+                self.font_writer_freesans20.text("3", 225, 110, num_color)
+                self.font_writer_freesans20.text("4", 197, 184, num_color)
+                self.font_writer_freesans20.text("5", 113, 218, num_color)
+                self.font_writer_freesans20.text("6", 34, 184, num_color)
+                self.font_writer_freesans20.text("7", 3, 110, num_color)
+                self.font_writer_freesans20.text("8", 34, 38, num_color)
             elif page is 2:
                 self.font_writer_font6.text("recall", 104, 130, page_color)
                 
