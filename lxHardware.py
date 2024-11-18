@@ -107,6 +107,13 @@ class LxHardware:
 
         self.btn_switches_rise_event = []
         self.btn_switches_fall_event = []
+        
+                
+        self.value_cv = []
+        self.value_cv.append(deque((0,)*120,120))
+        self.value_cv.append(deque((0,)*120,120))
+        self.value_cv.append(deque((0,)*120,120))
+        self.value_cv.append(deque((0,)*120,120))
 
         for i in range(0, 4):
             self.btn_switches_rise_event.append(
@@ -366,6 +373,9 @@ class LxHardware:
         self.i2c_lock.acquire()
         to_return = self.cv_manager.update_cvs_read_non_blocking()
         self.i2c_lock.release()
+        if to_return is not None:
+            ch = to_return[0]
+            self.value_cv[ch].append(self.cv_manager.percent_values[ch])
         return to_return
 
     def get_eeprom_data_int(self, address):

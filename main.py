@@ -4,9 +4,9 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 14
+MINOR = 15
 FIX = 0
-ADD = "_dev"
+ADD = "_oscillo"
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 0
@@ -180,9 +180,6 @@ def display_thread():
                     gc.collect()
                     LCD.display_rhythms()
                     gc.collect()
-                if ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
-                    lx_hardware.get_touch_circles_updates()
-                    last_capacitive_circles_read_ms = ticks_ms()
         except Exception as e_display:
             print("error in display_thread")
             append_error(e_display)
@@ -230,7 +227,9 @@ if __name__ == '__main__':
         
         # if tap and config button are both pressed at boot, enter in test mode
         if (lx_hardware.btn_tap_pin.value() or lx_hardware.btn_menu_pin.value()) == 0:
-            lx_euclid_config.test_mode()    
+            lx_euclid_config.test_mode()
+        else:
+            lx_euclid_config.oscillo_mode()
         
         if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
             lx_hardware.relaunch_internal_clk()
@@ -241,32 +240,11 @@ if __name__ == '__main__':
 
         LCD.set_need_display()
 
-        lx_euclid_config.init_cvs_parameters()
 
-        clk_mode_old = lx_euclid_config.clk_mode
-
-        while True:
-            lx_euclid_config.test_if_clear_gates_led()
-
-            if lx_euclid_config.clk_mode != clk_mode_old:
-                if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                    lx_hardware.relaunch_internal_clk()
-                else:
-                    lx_hardware.stop_internal_clk()
-            clk_mode_old = lx_euclid_config.clk_mode
-
-            if len(lx_hardware.lxHardwareEventFifo) > 0:
-                in_lxhardware_changed = True
-                lxhardware_changed(
-                    lx_hardware.lxHardwareEventFifo.popleft())
-                in_lxhardware_changed = False
-            else:
-                has_cvs_changed = lx_hardware.update_cv_values()
-                if has_cvs_changed is not None:
-                    need_lcd_update = lx_euclid_config.update_cvs_parameters(
-                        has_cvs_changed)
-                    if need_lcd_update:
-                        LCD.set_need_display()
+        while True:        
+            has_cvs_changed = lx_hardware.update_cv_values()
+            if has_cvs_changed is not None:
+                LCD.set_need_display()
 
         print("quit")
     except Exception as e:

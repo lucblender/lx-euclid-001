@@ -100,12 +100,13 @@ class CvManager:
 
             self.__raw_values[self.current_channel_measure] = return_value
             self.__compute_percent_cv(self.current_channel_measure)
+            rising_edge_detected = False
             if old_percent_values != self.percent_values[self.current_channel_measure]:
-                rising_edge_detected = False
+                
                 if old_percent_values < LOW_PERCENTAGE_RISING_THRESHOLD and (self.percent_values[self.current_channel_measure]-old_percent_values) >= RISING_DIFFERENCE_THRESHOLD:
                     rising_edge_detected = True
-                to_return = [self.current_channel_measure,
-                             rising_edge_detected]
+            to_return = [self.current_channel_measure,
+                         rising_edge_detected]
             self.current_channel_measure = (
                 self.current_channel_measure + 1) % 4
 

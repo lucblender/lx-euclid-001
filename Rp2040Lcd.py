@@ -376,6 +376,40 @@ class LCD_1inch28(framebuf.FrameBuffer):
         local_state = self.lx_euclid_config.state
         self.lx_euclid_config.state_lock.release()
         
+        if local_state == LxEuclidConstant.STATE_OSCILLO:
+            cv_values = self.lx_euclid_config.lx_hardware.cv_manager.percent_values
+            cv_v_values = []
+            for cv in cv_values:
+                cv_v_values.append(round(((cv/100)*5),1))
+            
+            trace_scale_y = 40
+            for trace_index, cv_array in enumerate(self.lx_euclid_config.lx_hardware.value_cv):    
+                trace_height = 48*(trace_index+1)
+                x = 0
+                y = 0
+                self.line(0,trace_height,240,trace_height,self.un_selected_color)
+                for val in cv_array:
+                    if y == 0:
+                        y = trace_height-(int(((val/100)*trace_scale_y)))
+                    else:
+                        x1 = x
+                        x2 = x + 2
+                        y1 = y
+                        y2 = trace_height-(int(((val/100)*trace_scale_y)))
+                        
+                        self.line(x1,y1,x2,y2,self.rhythm_colors[trace_index])
+                        x = x2
+                        y = y2
+
+            txt = f"{cv_v_values[0]}V"
+            self.text(txt, 30, 48, self.white)
+            txt = f"{cv_v_values[1]}V"
+            self.text(txt, 5, 96, self.white)
+            txt = f"{cv_v_values[2]}V"
+            self.text(txt, 5, 144, self.white)
+            txt = f"{cv_v_values[3]}V"
+            self.text(txt, 30, 192, self.white)
+            
         if local_state == LxEuclidConstant.STATE_TEST:            
             angle_outer = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.outer_circle_angle
             self.draw_approx_pie_slice(

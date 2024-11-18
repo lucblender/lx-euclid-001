@@ -512,6 +512,7 @@ class LxEuclidConstant:
     STATE_CHANNEL_CONFIG = const(10)
     STATE_CHANNEL_CONFIG_SELECTION = const(11)
     STATE_TEST= const(100)
+    STATE_OSCILLO= const(200)
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
@@ -1757,6 +1758,9 @@ class LxEuclidConfig:
                             self.euclidean_rhythms[euclidean_rhythm_index].unmute(
                             )
         return to_return
+    
+    def oscillo_mode(self):
+        self.state = LxEuclidConstant.STATE_OSCILLO
     
     # function used to test the different peripheral of the module
     def test_mode(self):
