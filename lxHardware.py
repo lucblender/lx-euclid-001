@@ -200,7 +200,7 @@ class LxHardware:
             4, timed_10th_ms_pulse_internal_clock, freq=20_000, set_base=Pin(INTERNAL_CLOCK))
         self.sm_internal_clock.active(1)
 
-        self.i2c = I2C(0, sda=Pin(0), scl=Pin(1))
+        self.i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq = 800_000)
         # a lock on the i2c so both thread can use i2c devices
         self.i2c_lock = allocate_lock()
 
