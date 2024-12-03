@@ -207,14 +207,14 @@ class LxHardware:
             4, timed_10th_ms_pulse_internal_clock, freq=20_000, set_base=Pin(INTERNAL_CLOCK))
         self.sm_internal_clock.active(1)
 
-        self.i2c = I2C(0, sda=Pin(0), scl=Pin(1))
+        self.i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq = 800_000)
         # a lock on the i2c so both thread can use i2c devices
         self.i2c_lock = allocate_lock()
 
         self.eeprom_memory = EEPROM(
             self.i2c, chip_size=T24C64, addr=self.EEPROM_ADDR)
 
-        self.capacitives_circles = CapacitivesCircles(self.i2c)
+        self.capacitives_circles = CapacitivesCircles(self.i2c, self.i2c_lock)
 
         # used to detect a press on circles
         self.inner_previous_state = False
@@ -338,9 +338,7 @@ class LxHardware:
         self.led_menu.value(0)
 
     def get_touch_circles_updates(self):
-        self.i2c_lock.acquire()
         circles_data = self.capacitives_circles.get_touch_circles_updates()
-        self.i2c_lock.release()
         if circles_data[2] == CapacitivesCircles.INNER_CIRCLE_INCR_EVENT:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_INCR, circles_data))

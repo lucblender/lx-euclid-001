@@ -4,8 +4,8 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 15
-FIX = 0
+MINOR = 14
+FIX = 1
 ADD = "_oscillo"
 
 MEMORY_MAJOR = 1

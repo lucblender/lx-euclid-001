@@ -16,9 +16,10 @@ class CapacitivesCircles():
 
     CALIBRATION_THRESHOLD = 10
 
-    def __init__(self, i2c):
+    def __init__(self, i2c, i2c_lock):
 
         self.i2c = i2c
+        self.i2c_lock = i2c_lock
 
         self.is_mpr_detected = 0x5A in self.i2c.scan()
 
@@ -105,7 +106,9 @@ class CapacitivesCircles():
             inner_angle_updated = False
             outer_angle_updated = False
 
+            self.i2c_lock.acquire()
             temp_data = self.mpr.all_filtered_data()
+            self.i2c_lock.release()
             
             # if there is an error while reading the capacitive touch sensor, we return "0"
             if temp_data == None:
