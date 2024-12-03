@@ -4,13 +4,13 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 10
-FIX = 3
+MINOR = 14
+FIX = 1
 ADD = ""
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 0
-MEMORY_FIX = 3
+MEMORY_FIX = 5
 
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
@@ -28,9 +28,6 @@ from _thread import start_new_thread
 def print_ram(code=""):
     print(code, "free ram: ", gc.mem_free(), ", alloc ram: ", gc.mem_alloc())
 
-MIN_TAP_DELAY_MS = 20
-# equivalent to 2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
-MAX_TAP_DELAY_MS = 8000
 LONG_PRESS_MS = 500
 DEBOUNCE_MS = 20
 
@@ -53,6 +50,7 @@ lx_euclid_config = LxEuclidConfig(
 lx_hardware.set_lx_euclid_config(lx_euclid_config)
 
 last_tap_ms = 0
+last_config_ms = 0
 
 DEBUG = True
 
@@ -72,7 +70,9 @@ def lxhardware_changed(handlerEventData):
             LCD.set_need_display()
         lx_euclid_config.random_gate_length_update()
     elif event == lx_hardware.RST_RISE:
-        # reset has been done in interrupt, we just need to refresh display
+        if lx_euclid_config.preset_recall_ext_reset:
+            lx_euclid_config.delegate_load_preset()                    
+            lx_euclid_config.preset_recall_ext_reset = False
         LCD.set_need_display()
     elif event == lx_hardware.BTN_TAP_RISE:
         tap_btn_press = ticks_ms()
@@ -90,7 +90,8 @@ def lxhardware_changed(handlerEventData):
                 lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN_LONG)
             else:
                 temp_tap_delay = temp_last_tap_ms - last_tap_ms
-                if temp_tap_delay > MIN_TAP_DELAY_MS and temp_tap_delay < MAX_TAP_DELAY_MS:
+                if temp_tap_delay > DEBOUNCE_MS and temp_tap_delay < LxEuclidConstant.MAX_TAP_DELAY_MS:
+                    temp_tap_delay = max(LxEuclidConstant.MIN_TAP_DELAY_MS,temp_tap_delay)
                     # here the tap tempo time is divided by 4, for a 4/4 rhythm
                     lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
                     # tap tempo is saved in eeprom
@@ -147,7 +148,17 @@ def lxhardware_changed(handlerEventData):
         if (tmp_time - btn_menu_press) > DEBOUNCE_MS:
             btn_menu_press = tmp_time
     elif event == lx_hardware.BTN_MENU_FALL:
-        lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
+        global last_config_ms
+        
+        if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
+            temp_last_config_ms = ticks_ms()            
+            if temp_last_config_ms-btn_menu_press >= LONG_PRESS_MS:
+                lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN_LONG)
+            else:                
+                last_config_ms = temp_last_config_ms
+                lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
+        else:        
+            lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
         LCD.set_need_display()
 
 
@@ -160,6 +171,11 @@ def display_thread():
             if not in_lxhardware_changed:
                 gc.collect()
                 lx_euclid_config.test_save_data_in_file()
+                if LCD.get_need_flip():
+                    gc.collect()
+                    LCD.reset_need_flip()
+                    LCD.init_display(lx_euclid_config.flip)
+                    gc.collect()
                 if LCD.get_need_display():
                     gc.collect()
                     LCD.display_rhythms()

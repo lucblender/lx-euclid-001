@@ -98,6 +98,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.__need_display = False
         self.need_display_lock = allocate_lock()
+        
+        self.__need_flip = False
+        self.need_flip_lock = allocate_lock()
 
         self.beats_coords = [[0, [0,]], [0, [0,]], [0, [0,]], [0, [0,]]]
         self.param_beats_coords = [[0, [0,]], [0, [0,]], [0, [0,]], [0, [0,]]]
@@ -160,7 +163,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def set_bl_pwm(self, duty):
         self.pwm.duty_u16(duty)  # max 65535
 
-    def init_display(self):
+    def init_display(self, flip=False):
         """Initialize dispaly"""
         self.rst(1)
         sleep(0.01)
@@ -203,8 +206,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.write_cmd_data(0xB6, [0x00, 0x20])
 
-        # 0x08 normal config 0x58 flipped config
-        self.write_cmd_data(0x36, [0x08])
+        # 0x08 normal config 0x58 flipped config        
+        if flip:            
+            self.write_cmd_data(0x36, [0x58])
+        else:
+            self.write_cmd_data(0x36, [0x08])
 
         self.write_cmd_data(0x3A, [0x05])
 
@@ -342,6 +348,22 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.need_display_lock.acquire()
         to_return = self.__need_display
         self.need_display_lock.release()
+        return to_return
+
+    def set_need_flip(self):
+        self.need_flip_lock.acquire()
+        self.__need_flip = True
+        self.need_flip_lock.release()
+        
+    def reset_need_flip(self):
+        self.need_flip_lock.acquire()
+        self.__need_flip = False
+        self.need_flip_lock.release()
+
+    def get_need_flip(self):
+        self.need_flip_lock.acquire()
+        to_return = self.__need_flip
+        self.need_flip_lock.release()
         return to_return
 
     def display_rhythms(self):
@@ -740,32 +762,62 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS:
 
-            txt_color = self.selected_color
+            txt_color = self.un_selected_color
+            txt_color_highlight = self.selected_color
 
-            self.circle(120, 120, 82, self.touch_circle_color, True)
-            self.circle(120, 120, 60, self.black, True)
+            self.circle(120, 120, 63, self.touch_circle_color, True)
+            self.circle(120, 120, 63-12, self.black, True)
 
-            self.circle(120, 120, 55, self.touch_circle_color_highlight, True)
-            self.circle(120, 120, 36, self.black, True)
+            self.circle(120, 120, 48, self.touch_circle_color_highlight, True)
+            self.circle(120, 120, 48-12, self.black, True)
+            
+            self.font_writer_freesans20.text("Presets", 87, 110, txt_color_highlight)
 
             page = self.lx_euclid_config.param_presets_page
             page_color = self.light_grey
 
-            if page == 0:
-                self.font_writer_font6.text("load", 108, 130, page_color)
-            else:
-                self.font_writer_font6.text("save", 106, 130, page_color)
+            if page in [0,1]:
+                if page == 0:
+                    self.font_writer_font6.text("load", 108, 130, page_color)
+                    num_color = txt_color_highlight
+                else:
+                    self.font_writer_font6.text("save", 106, 130, page_color)
+                    num_color = txt_color
 
-            self.font_writer_freesans20.text("Presets", 87, 110, txt_color)
 
-            self.font_writer_freesans20.text("1", 116, 5, txt_color)
-            self.font_writer_freesans20.text("2", 197, 38, txt_color)
-            self.font_writer_freesans20.text("3", 225, 110, txt_color)
-            self.font_writer_freesans20.text("4", 197, 184, txt_color)
-            self.font_writer_freesans20.text("5", 113, 218, txt_color)
-            self.font_writer_freesans20.text("6", 34, 184, txt_color)
-            self.font_writer_freesans20.text("7", 3, 110, txt_color)
-            self.font_writer_freesans20.text("8", 34, 38, txt_color)
+
+                self.font_writer_freesans20.text("1", 116, 5, num_color)
+                self.font_writer_freesans20.text("2", 197, 38, num_color)
+                self.font_writer_freesans20.text("3", 225, 110, num_color)
+                self.font_writer_freesans20.text("4", 197, 184, num_color)
+                self.font_writer_freesans20.text("5", 113, 218, num_color)
+                self.font_writer_freesans20.text("6", 34, 184, num_color)
+                self.font_writer_freesans20.text("7", 3, 110, num_color)
+                self.font_writer_freesans20.text("8", 34, 38, num_color)
+            elif page is 2:
+                self.font_writer_font6.text("recall", 104, 130, page_color)
+                
+                preset_recall_index = self.lx_euclid_config.preset_recall_mode
+                
+                txt_colors = [txt_color]*4
+
+                txt_colors[preset_recall_index] = txt_color_highlight
+                self.font_writer_freesans20.text(
+                    "Direct", 94, 6, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "w/ reset", 84, 30, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "Reset", 185, 97, txt_colors[1])
+                self.font_writer_freesans20.text(
+                    "ext", 208, 121, txt_colors[1])
+                self.font_writer_freesans20.text(
+                    "Direct", 94, 188, txt_colors[2])
+                self.font_writer_freesans20.text(
+                    "w/o reset", 78, 212, txt_colors[2])
+                self.font_writer_freesans20.text(
+                    "Reset", 3, 97, txt_colors[3])
+                self.font_writer_freesans20.text(
+                    "int", 3, 121, txt_colors[3])
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU_SELECTION:
 
@@ -786,33 +838,59 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 "Clock", 95, 6, self.white)
             self.font_writer_freesans20.text(
                 "Source", 87, 27, self.white)
+            
             self.font_writer_freesans20.text(
-                "Touch", 95, 182, self.white)
+                "Sensi", 174, 142, self.white)
             self.font_writer_freesans20.text(
-                "Sensitivity", 80, 203, self.white)
+                "Touch", 166, 163, self.white)
+            
+            self.font_writer_freesans20.text(
+                "Rot", 15, 142, self.white)
+            self.font_writer_freesans20.text(
+                "Screen", 15, 163, self.white)
+            
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             txt_color = self.un_selected_color
             txt_color_highlight = self.selected_color
             page_color = self.light_grey
 
-            self.circle(120, 120, 58, self.touch_circle_color, True)
-            self.circle(120, 120, 58-13, self.black, True)
-
-            self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
-            self.circle(120, 120, 42-13, self.black, True)
-
-            other_txt = "More"
-            self.font_writer_freesans20.text(
-                other_txt, 100, 110, self.white)
             page = self.lx_euclid_config.param_menu_page
+            
+            # write more alwayse except in mode 0 in tap mode
+            if not (page == 0 and self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE):
+                self.circle(120, 120, 58, self.touch_circle_color, True)
+                self.circle(120, 120, 58-13, self.black, True)
 
+                self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+                self.circle(120, 120, 42-13, self.black, True)
+
+                other_txt = "More"
+                
+                self.font_writer_freesans20.text(
+                    other_txt, 100, 110, self.white)
+            else:
+                # if in page 0 and tap mode, both circle are active
+                self.circle(120, 120, 58, self.touch_circle_color_highlight, True)
+                self.circle(120, 120, 58-13, self.black, True)
+
+                self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+                self.circle(120, 120, 42-13, self.black, True)
+                
             if page == 0:  # config clock source
                 current_channel_setting = "clk src"
                 self.font_writer_font6.text(
                     current_channel_setting, 100, 130, page_color)
 
                 clk_index = self.lx_euclid_config.clk_mode
+                
+                if clk_index == LxEuclidConstant.TAP_MODE:
+                    other_txt = str(self.lx_euclid_config.get_int_bpm())                    
+                    
+                    txt_len = self.font_writer_freesans20.stringlen(other_txt)
+                        
+                    self.font_writer_freesans20.text(
+                        other_txt, int(120-txt_len/2), 110, self.white)
 
                 txt_colors = [txt_color]*2
 
@@ -839,6 +917,22 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     "Medium", 154, 168, txt_colors[1])
                 self.font_writer_freesans20.text(
                     "High", 19, 168, txt_colors[2])
+            elif page == 2:  # config screen orientation
+                current_channel_setting = "screen"
+                self.font_writer_font6.text(
+                    current_channel_setting, 100, 130, page_color)
+
+                flip_index = self.lx_euclid_config.flip
+
+                txt_colors = [txt_color]*2
+
+                txt_colors[flip_index] = txt_color_highlight
+                self.font_writer_freesans20.text(
+                    "Normal", 88, 10, txt_colors[0])
+                self.font_writer_freesans20.text(
+                    "Inverted", 88, 208, txt_colors[1])
+                
+                
 
         elif local_state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 
