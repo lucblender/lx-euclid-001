@@ -381,10 +381,20 @@ class LCD_1inch28(framebuf.FrameBuffer):
             cv_v_values = []
             for cv in cv_values:
                 cv_v_values.append(round(((cv/100)*5),1))
+            enabled_trace_count = 0
+            value_cv_traces = []
+            value_cv_index = []
+            for index, trace in enumerate(self.lx_euclid_config.display_traces):
+                if trace:
+                    enabled_trace_count += 1
+                    value_cv_traces.append(self.lx_euclid_config.lx_hardware.value_cv[index])
+                    value_cv_index.append(index)
             
-            trace_scale_y = 40
-            for trace_index, cv_array in enumerate(self.lx_euclid_config.lx_hardware.value_cv):    
-                trace_height = 48*(trace_index+1)
+            trace_height_factor = int(240/(enabled_trace_count+1))            
+            trace_scale_y = int(trace_height_factor*(1-(5-enabled_trace_count)*0.1))
+            
+            for trace_index, cv_array in enumerate(value_cv_traces):    
+                trace_height = trace_height_factor*(trace_index+1)
                 x = 0
                 y = 0
                 self.line(0,trace_height,240,trace_height,self.un_selected_color)
@@ -397,18 +407,13 @@ class LCD_1inch28(framebuf.FrameBuffer):
                         y1 = y
                         y2 = trace_height-(int(((val/100)*trace_scale_y)))
                         
-                        self.line(x1,y1,x2,y2,self.rhythm_colors[trace_index])
+                        self.line(x1,y1,x2,y2,self.rhythm_colors[value_cv_index[trace_index]])
                         x = x2
                         y = y2
-
-            txt = f"{cv_v_values[0]}V"
-            self.text(txt, 30, 48, self.white)
-            txt = f"{cv_v_values[1]}V"
-            self.text(txt, 5, 96, self.white)
-            txt = f"{cv_v_values[2]}V"
-            self.text(txt, 5, 144, self.white)
-            txt = f"{cv_v_values[3]}V"
-            self.text(txt, 30, 192, self.white)
+            for trace_index, cv_array in enumerate(value_cv_traces):
+                txt = f"{cv_v_values[value_cv_index[trace_index]]}V"
+                self.font_writer_font6.text(txt, 35, trace_height_factor*(trace_index+1), self.white)                
+          
             
         if local_state == LxEuclidConstant.STATE_TEST:            
             angle_outer = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.outer_circle_angle

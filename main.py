@@ -5,7 +5,7 @@ from Rp2040Lcd import LCD_1inch28
 # minor.major.fix + add
 MAJOR = 1
 MINOR = 14
-FIX = 1
+FIX = 2
 ADD = "_oscillo"
 
 MEMORY_MAJOR = 1
@@ -65,101 +65,22 @@ def debug_print(txt):
 def lxhardware_changed(handlerEventData):
     global tap_btn_press, btn_menu_press
     event = handlerEventData.event
-    if event == lx_hardware.CLK_RISE:
-        if lx_euclid_config.state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_LIVE]:
-            LCD.set_need_display()
-        lx_euclid_config.random_gate_length_update()
-    elif event == lx_hardware.RST_RISE:
-        if lx_euclid_config.preset_recall_ext_reset:
-            lx_euclid_config.delegate_load_preset()                    
-            lx_euclid_config.preset_recall_ext_reset = False
-        LCD.set_need_display()
-    elif event == lx_hardware.BTN_TAP_RISE:
-        tap_btn_press = ticks_ms()
-    elif event == lx_hardware.BTN_TAP_FALL:
-        global last_tap_ms
-        if lx_euclid_config.state != LxEuclidConstant.STATE_LIVE:
-            lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN)
-            LCD.set_need_display()
-        else:
-
-            temp_last_tap_ms = ticks_ms()
-
-            # when in live mode, detect long press on tap btn to do a reset of rhyhtm
-            if temp_last_tap_ms-tap_btn_press >= LONG_PRESS_MS:                
-                lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN_LONG)
-            else:
-                temp_tap_delay = temp_last_tap_ms - last_tap_ms
-                if temp_tap_delay > DEBOUNCE_MS and temp_tap_delay < LxEuclidConstant.MAX_TAP_DELAY_MS:
-                    temp_tap_delay = max(LxEuclidConstant.MIN_TAP_DELAY_MS,temp_tap_delay)
-                    # here the tap tempo time is divided by 4, for a 4/4 rhythm
-                    lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
-                    # tap tempo is saved in eeprom
-                    lx_euclid_config.save_data()  
-                    if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                        lx_hardware.relaunch_internal_clk()
-                        if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
-                            LCD.set_need_display()
-                last_tap_ms = temp_last_tap_ms
-
-        LCD.set_need_display()
-    elif event == lx_hardware.INNER_CIRCLE_INCR:
-        lx_euclid_config.on_event(
-            LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, handlerEventData.data)
-        LCD.set_need_display()
-    elif event == lx_hardware.INNER_CIRCLE_DECR:
-        lx_euclid_config.on_event(
-            LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, handlerEventData.data)
-        LCD.set_need_display()
-    elif event == lx_hardware.OUTER_CIRCLE_INCR:
-        lx_euclid_config.on_event(
-            LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR, handlerEventData.data)
-        LCD.set_need_display()
-    elif event == lx_hardware.OUTER_CIRCLE_DECR:
-        lx_euclid_config.on_event(
-            LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR, handlerEventData.data)
-        LCD.set_need_display()
-    elif event == lx_hardware.INNER_CIRCLE_TOUCH:
-        lx_euclid_config.on_event(
-            LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH, handlerEventData.data)
-        LCD.set_need_display()
-    elif event == lx_hardware.OUTER_CIRCLE_TOUCH:
-        lx_euclid_config.on_event(
-            LxEuclidConstant.EVENT_OUTER_CIRCLE_TOUCH, handlerEventData.data)
-        LCD.set_need_display()
-    elif event == lx_hardware.INNER_CIRCLE_TAP:
-        lx_euclid_config.on_event(
-            LxEuclidConstant.EVENT_INNER_CIRCLE_TAP, handlerEventData.data)
-        LCD.set_need_display()
-    elif event == lx_hardware.OUTER_CIRCLE_TAP:
-        lx_euclid_config.on_event(
-            LxEuclidConstant.EVENT_OUTER_CIRCLE_TAP, handlerEventData.data)
-        LCD.set_need_display()
-    elif event == lx_hardware.BTN_SWITCHES_RISE:
-        tmp_time = ticks_ms()
-        if (tmp_time - sw_btns_press[handlerEventData.data]) > DEBOUNCE_MS:
-            sw_btns_press[handlerEventData.data] = tmp_time
+    if event == lx_hardware.BTN_SWITCHES_RISE:
+        pass
     elif event == lx_hardware.BTN_SWITCHES_FALL:
-        lx_euclid_config.on_event(
-            LxEuclidConstant.EVENT_BTN_SWITCHES, handlerEventData.data)
-        LCD.set_need_display()
-    elif event == lx_hardware.BTN_MENU_RISE:
-        tmp_time = ticks_ms()
-        if (tmp_time - btn_menu_press) > DEBOUNCE_MS:
-            btn_menu_press = tmp_time
-    elif event == lx_hardware.BTN_MENU_FALL:
-        global last_config_ms
+        btn_index = handlerEventData.data
         
-        if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
-            temp_last_config_ms = ticks_ms()            
-            if temp_last_config_ms-btn_menu_press >= LONG_PRESS_MS:
-                lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN_LONG)
-            else:                
-                last_config_ms = temp_last_config_ms
-                lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
-        else:        
-            lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
-        LCD.set_need_display()
+        enabled_trace_count = 0
+        for trace in lx_euclid_config.display_traces:
+            if trace:
+                enabled_trace_count += 1
+        
+        if not(enabled_trace_count == 1 and lx_euclid_config.display_traces[btn_index] == True):
+            lx_euclid_config.display_traces[btn_index] = not lx_euclid_config.display_traces[btn_index]
+            if lx_euclid_config.display_traces[btn_index]:
+                lx_euclid_config.lx_hardware.set_sw_leds(btn_index)
+            else:
+                lx_euclid_config.lx_hardware.clear_sw_leds(btn_index)
 
 
 def display_thread():
@@ -245,6 +166,13 @@ if __name__ == '__main__':
             has_cvs_changed = lx_hardware.update_cv_values()
             if has_cvs_changed is not None:
                 LCD.set_need_display()
+            
+            if len(lx_hardware.lxHardwareEventFifo) > 0:
+                in_lxhardware_changed = True
+                lxhardware_changed(
+                    lx_hardware.lxHardwareEventFifo.popleft())
+                in_lxhardware_changed = False
+            
 
         print("quit")
     except Exception as e:

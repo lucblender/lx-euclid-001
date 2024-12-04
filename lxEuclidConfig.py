@@ -640,6 +640,12 @@ class LxEuclidConfig:
             self.LCD.show()
             self.LCD.init_display(self._flip)
             
+        self.display_traces = [True, True, True, True]
+        self.lx_hardware.set_sw_leds(0)
+        self.lx_hardware.set_sw_leds(1)
+        self.lx_hardware.set_sw_leds(2)
+        self.lx_hardware.set_sw_leds(3)
+            
     @property
     def flip(self):
         to_return = 0
