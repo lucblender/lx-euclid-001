@@ -6,7 +6,7 @@ from machine import Pin, SPI, PWM
 import framebuf
 from utime import sleep, ticks_ms
 from micropython import const
-from math import sin, cos, radians
+from math import sin, cos, radians, sqrt
 from lxEuclidConfig import LxEuclidConstant
 from cvManager import CvChannel
 
@@ -39,6 +39,29 @@ def polar_to_cartesian(radius, theta):
     x = radius * cos(rad_theta)
     y = radius * sin(rad_theta)
     return int(x), int(y)
+
+def get_tangent_rectangle_position(angle_deg, width, height, radius):
+    # Compute d from the equation:
+    # d = (- (w*cos(theta) + h*sin(theta)) + sqrt((w*cos(theta)+h*sin(theta))^2 - (w^2+h^2-4R^2))/2
+    angle_deg = (angle_deg)%360
+    ange_rad = radians(angle_deg)  
+    
+    # compute correctly accoarding to quadrant
+    if angle_deg >= 0 and angle_deg < 90:
+        B = int(width * cos(ange_rad) + height * sin(ange_rad))
+    elif angle_deg >=90  and angle_deg < 180:
+        B = int(- width * cos(ange_rad) + height * sin(ange_rad))
+    elif angle_deg >= 180  and angle_deg < 270:
+        B = int(- width * cos(ange_rad) - height * sin(ange_rad))
+    elif angle_deg >= 270 and angle_deg < 360:
+        B = int(width * cos(ange_rad) - height * sin(ange_rad))
+        
+    C = int((width**2 + height**2)/4 - radius**2)
+
+    discriminant = B**2 - 4*C
+
+    d = int((-B + sqrt(discriminant)) / 2)
+    return polar_to_cartesian(d,angle_deg)
 
 
 class LCD_1inch28(framebuf.FrameBuffer):
@@ -413,13 +436,106 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
 
         if local_state == LxEuclidConstant.STATE_LIVE:
-            self.display_rhythm_circles()
+            #self.display_rhythm_circles()
+            
+             # TODO
+            #texts = [["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"]]
+            #texts = [["ab","abc"],["ab","abc"],["ab","abc"],["ab","abc"],["ab","abc"],["ab","abc"],["ab","abc"],["ab","abc"]]
+            texts = [["Clock","Source"],["Sensi","Touch"],["Rot","Screen"]]
+            #texts = [["None"], ["Rst"], ["Lgth"], ["Pulse"], ["Rot"], ["Prob"], ["Fill"], ["Mute"]]
+            txt_color = self.selected_color
+
+            len_texts = len(texts)
+            txt_height = self.font_writer_freesans20.font.height()
+            
+            angle = -90
+            angle_step = int(360/len_texts)
+            radius = 120
+
+            for text in texts:
+                angle = angle%360
+                if len(text) == 1:
+                    text = text[0]
+                    txt_width = self.font_writer_freesans20.stringlen(text)
+                    
+                    x_c, y_c = get_tangent_rectangle_position(angle,txt_width, txt_height,radius)
+                    x_c += 120
+                    y_c += 120
+                                    
+                    x = int(x_c - txt_width/2)
+                    y = int(y_c - txt_height/2)
+
+                    print(text, x, y, angle)
+                    self.rect(x,y,txt_width,txt_height,self.blue)
+                    self.font_writer_freesans20.text(text, x, y, txt_color)
+                else:
+                    print("angle", angle)
+                    txt_width_0 = self.font_writer_freesans20.stringlen(text[0])
+                    txt_width_1 = self.font_writer_freesans20.stringlen(text[1])
+                    txt_width = max(txt_width_0,txt_width_1)
+                    
+                    if txt_width_0 > txt_width_1:
+                        index_bigger = 0
+                    else:
+                        index_bigger = 1
+                    
+                    x_c, y_c = get_tangent_rectangle_position(angle,txt_width, txt_height*2,radius)
+                    x_c += 120
+                    y_c += 120
+                    if angle == 270 or angle == 90:
+                        print("a")
+                        x_0 = int(x_c - txt_width_0/2)
+                        y_0 = int(y_c - txt_height)
+                        
+                        x_1 = int(x_c - txt_width_1/2)
+                        y_1 = int(y_c)
+                    elif angle > 270 or angle < 90:
+                        if index_bigger == 0:
+                            print("b")
+                            x_0 = int(x_c - txt_width_0/2)
+                            y_0 = int(y_c - txt_height)
+                            
+                            x_1 = int(x_c - txt_width_0/2)+(txt_width_0-txt_width_1)
+                            y_1 = int(y_c)
+                        else:
+                            print("c")
+                            x_0 = int(x_c - txt_width_1/2)+(txt_width_1-txt_width_0)
+                            y_0 = int(y_c - txt_height)
+                            
+                            x_1 = int(x_c - txt_width_1/2)
+                            y_1 = int(y_c)
+                    else:
+                        if index_bigger == 0:
+                            print("d")
+                            x_0 = int(x_c - txt_width_0/2)
+                            y_0 = int(y_c - txt_height)
+                            
+                            x_1 = int(x_c - txt_width_0/2)
+                            y_1 = int(y_c)
+                        else:
+                            print("e")
+                            x_0 = int(x_c - txt_width_1/2)
+                            y_0 = int(y_c - txt_height)
+                            
+                            x_1 = int(x_c - txt_width_1/2)
+                            y_1 = int(y_c)
+                    
+                    self.rect(x_0,y_0,txt_width_0,txt_height,self.blue)
+                    self.rect(x_1,y_1,txt_width_1,txt_height,self.blue)
+                    self.font_writer_freesans20.text(text[0], x_0, y_0, txt_color)
+                    self.font_writer_freesans20.text(text[1], x_1, y_1, txt_color)
+
+                
+                
+                angle+=angle_step
+             
             if self.lx_euclid_config.need_circle_action_display:
                 txt = self.lx_euclid_config.action_display_info
                 txt_len = self.font_writer_freesans20.stringlen(txt)
                 color = self.rhythm_colors[self.lx_euclid_config.action_display_index]
                 self.font_writer_freesans20.text(
                     txt, 120-int(txt_len/2), 110, color)
+           
         elif local_state == LxEuclidConstant.STATE_MENU_SELECT:
 
             self.circle(120, 120, 58, self.touch_circle_color, True)
@@ -1100,3 +1216,4 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         # Draw the polygon
         self.poly(0, 0, array("h", points), color, True)
+
