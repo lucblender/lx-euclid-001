@@ -34,34 +34,37 @@ def pict_to_fbuff(path, x, y):
     return framebuf.FrameBuffer(data, x, y, framebuf.RGB565)
 
 
+@micropython.native
 def polar_to_cartesian(radius, theta):
     rad_theta = radians(theta)
     x = radius * cos(rad_theta)
     y = radius * sin(rad_theta)
     return int(x), int(y)
 
+
+@micropython.native
 def get_tangent_rectangle_position(angle_deg, width, height, radius):
     # Compute d from the equation:
     # d = (- (w*cos(theta) + h*sin(theta)) + sqrt((w*cos(theta)+h*sin(theta))^2 - (w^2+h^2-4R^2))/2
-    angle_deg = (angle_deg)%360
-    ange_rad = radians(angle_deg)  
-    
+    angle_deg = (angle_deg) % 360
+    ange_rad = radians(angle_deg)
+
     # compute correctly accoarding to quadrant
     if angle_deg >= 0 and angle_deg < 90:
         B = int(width * cos(ange_rad) + height * sin(ange_rad))
-    elif angle_deg >=90  and angle_deg < 180:
+    elif angle_deg >= 90 and angle_deg < 180:
         B = int(- width * cos(ange_rad) + height * sin(ange_rad))
-    elif angle_deg >= 180  and angle_deg < 270:
+    elif angle_deg >= 180 and angle_deg < 270:
         B = int(- width * cos(ange_rad) - height * sin(ange_rad))
     elif angle_deg >= 270 and angle_deg < 360:
         B = int(width * cos(ange_rad) - height * sin(ange_rad))
-        
+
     C = int((width**2 + height**2)/4 - radius**2)
 
     discriminant = B**2 - 4*C
 
     d = int((-B + sqrt(discriminant)) / 2)
-    return polar_to_cartesian(d,angle_deg)
+    return polar_to_cartesian(d, angle_deg)
 
 
 class LCD_1inch28(framebuf.FrameBuffer):
@@ -121,7 +124,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.__need_display = False
         self.need_display_lock = allocate_lock()
-        
+
         self.__need_flip = False
         self.need_flip_lock = allocate_lock()
 
@@ -229,8 +232,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         self.write_cmd_data(0xB6, [0x00, 0x20])
 
-        # 0x08 normal config 0x58 flipped config        
-        if flip:            
+        # 0x08 normal config 0x58 flipped config
+        if flip:
             self.write_cmd_data(0x36, [0x58])
         else:
             self.write_cmd_data(0x36, [0x08])
@@ -377,7 +380,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.need_flip_lock.acquire()
         self.__need_flip = True
         self.need_flip_lock.release()
-        
+
     def reset_need_flip(self):
         self.need_flip_lock.acquire()
         self.__need_flip = False
@@ -389,37 +392,123 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.need_flip_lock.release()
         return to_return
 
+    def display_circle_texts(self, texts, colours, angle_start=-90, total_angle=360):
+        txt_height = self.font_writer_freesans20.font.height()
+
+        len_texts = len(texts)
+
+        angle = angle_start
+        angle_step = int(total_angle/len_texts)
+        radius = 120
+        for index, text in enumerate(texts):
+            angle = angle % 360
+            # if we have only one line of text
+            if len(text) == 1:
+                text = text[0]
+                txt_width = self.font_writer_freesans20.stringlen(text)
+
+                x_c, y_c = get_tangent_rectangle_position(
+                    angle, txt_width, txt_height, radius)
+                x_c += 120
+                y_c += 120
+
+                x = int(x_c - txt_width/2)
+                y = int(y_c - txt_height/2)
+
+                # uncomment to show bouding box
+                # self.rect(x,y,txt_width,txt_height,self.blue)
+
+                self.font_writer_freesans20.text(text, x, y, colours[index])
+            else:  # if we have two lines of text
+                txt_width_0 = self.font_writer_freesans20.stringlen(text[0])
+                txt_width_1 = self.font_writer_freesans20.stringlen(text[1])
+                txt_width = max(txt_width_0, txt_width_1)
+
+                if txt_width_0 > txt_width_1:
+                    index_bigger = 0
+                else:
+                    index_bigger = 1
+
+                x_c, y_c = get_tangent_rectangle_position(
+                    angle, txt_width, txt_height*2, radius)
+                x_c += 120
+                y_c += 120
+                if angle == 270 or angle == 90:
+                    x_0 = int(x_c - txt_width_0/2)
+                    y_0 = int(y_c - txt_height)
+
+                    x_1 = int(x_c - txt_width_1/2)
+                    y_1 = int(y_c)
+                elif angle > 270 or angle < 90:
+                    if index_bigger == 0:
+                        x_0 = int(x_c - txt_width_0/2)
+                        y_0 = int(y_c - txt_height)
+
+                        x_1 = int(x_c - txt_width_0/2) + \
+                            (txt_width_0-txt_width_1)
+                        y_1 = int(y_c)
+                    else:
+                        x_0 = int(x_c - txt_width_1/2) + \
+                            (txt_width_1-txt_width_0)
+                        y_0 = int(y_c - txt_height)
+
+                        x_1 = int(x_c - txt_width_1/2)
+                        y_1 = int(y_c)
+                else:
+                    if index_bigger == 0:
+                        x_0 = int(x_c - txt_width_0/2)
+                        y_0 = int(y_c - txt_height)
+
+                        x_1 = int(x_c - txt_width_0/2)
+                        y_1 = int(y_c)
+                    else:
+                        x_0 = int(x_c - txt_width_1/2)
+                        y_0 = int(y_c - txt_height)
+
+                        x_1 = int(x_c - txt_width_1/2)
+                        y_1 = int(y_c)
+
+                # uncomment to show bouding box
+                # self.rect(x_0,y_0,txt_width_0,txt_height,self.blue)
+                # self.rect(x_1,y_1,txt_width_1,txt_height,self.blue)
+
+                self.font_writer_freesans20.text(
+                    text[0], x_0, y_0, colours[index])
+                self.font_writer_freesans20.text(
+                    text[1], x_1, y_1, colours[index])
+
+            angle += angle_step
+
     def display_rhythms(self):
 
         self.__need_display = False
         pre_tick = ticks_ms()
 
-
         self.lx_euclid_config.state_lock.acquire()
         local_state = self.lx_euclid_config.state
         self.lx_euclid_config.state_lock.release()
-        
-        if local_state == LxEuclidConstant.STATE_TEST:            
+
+        if local_state == LxEuclidConstant.STATE_TEST:
             angle_outer = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.outer_circle_angle
             self.draw_approx_pie_slice(
-               [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.white)
+                [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.white)
             angle_inner = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.inner_circle_angle
             self.draw_approx_pie_slice(
-               [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.white)
-            
+                [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.white)
+
             txt = "debug"
             txt_len = self.font_writer_freesans20.stringlen(txt)
             self.font_writer_freesans20.text(
                 txt, 120-int(txt_len/2), 20, self.white)
-            
+
             clk_value = self.lx_euclid_config.lx_hardware.clk_pin.value()
             rst_value = self.lx_euclid_config.lx_hardware.rst_pin.value()
             cv_values = self.lx_euclid_config.lx_hardware.cv_manager.percent_values
             cv_v_values = []
-            
+
             for cv in cv_values:
-                cv_v_values.append(round(((cv/100)*5),1))
-            
+                cv_v_values.append(round(((cv/100)*5), 1))
+
             txt = f"clk:{1-clk_value}"
             self.font_writer_freesans20.text(txt, 80, 60, self.white)
             txt = f"rst:{1-rst_value}"
@@ -432,110 +521,31 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(txt, 80, 140, self.white)
             txt = f"cv4:{cv_v_values[3]}V"
             self.font_writer_freesans20.text(txt, 80, 160, self.white)
-            
-
 
         if local_state == LxEuclidConstant.STATE_LIVE:
-            #self.display_rhythm_circles()
-            
-             # TODO
-            #texts = [["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"]]
-            #texts = [["ab","abc"],["ab","abc"],["ab","abc"],["ab","abc"],["ab","abc"],["ab","abc"],["ab","abc"],["ab","abc"]]
-            texts = [["Clock","Source"],["Sensi","Touch"],["Rot","Screen"]]
-            #texts = [["None"], ["Rst"], ["Lgth"], ["Pulse"], ["Rot"], ["Prob"], ["Fill"], ["Mute"]]
-            txt_color = self.selected_color
+            # self.display_rhythm_circles()
 
+            a = ticks_ms()
+            # TODO
+            # texts = [["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"]]
+            texts = [["ab", "abc"], ["ab", "abc"], ["ab", "abc"], ["ab", "abc"], [
+                "ab", "abc"], ["ab", "abc"], ["ab", "abc"], ["ab", "abc"]]
+            # texts = [["Clock","Source"],["Sensi","Touch"],["Rot","Screen"]]
+            # texts = [["None"], ["Rst"], ["Lgth"], ["Pulse"], ["Rot"], ["Prob"], ["Fill"], ["Mute"]]
             len_texts = len(texts)
-            txt_height = self.font_writer_freesans20.font.height()
-            
-            angle = -90
-            angle_step = int(360/len_texts)
-            radius = 120
+            txt_color = [self.selected_color]*len_texts
 
-            for text in texts:
-                angle = angle%360
-                if len(text) == 1:
-                    text = text[0]
-                    txt_width = self.font_writer_freesans20.stringlen(text)
-                    
-                    x_c, y_c = get_tangent_rectangle_position(angle,txt_width, txt_height,radius)
-                    x_c += 120
-                    y_c += 120
-                                    
-                    x = int(x_c - txt_width/2)
-                    y = int(y_c - txt_height/2)
+            self.display_circle_texts(texts, txt_color)
 
-                    print(text, x, y, angle)
-                    self.rect(x,y,txt_width,txt_height,self.blue)
-                    self.font_writer_freesans20.text(text, x, y, txt_color)
-                else:
-                    print("angle", angle)
-                    txt_width_0 = self.font_writer_freesans20.stringlen(text[0])
-                    txt_width_1 = self.font_writer_freesans20.stringlen(text[1])
-                    txt_width = max(txt_width_0,txt_width_1)
-                    
-                    if txt_width_0 > txt_width_1:
-                        index_bigger = 0
-                    else:
-                        index_bigger = 1
-                    
-                    x_c, y_c = get_tangent_rectangle_position(angle,txt_width, txt_height*2,radius)
-                    x_c += 120
-                    y_c += 120
-                    if angle == 270 or angle == 90:
-                        print("a")
-                        x_0 = int(x_c - txt_width_0/2)
-                        y_0 = int(y_c - txt_height)
-                        
-                        x_1 = int(x_c - txt_width_1/2)
-                        y_1 = int(y_c)
-                    elif angle > 270 or angle < 90:
-                        if index_bigger == 0:
-                            print("b")
-                            x_0 = int(x_c - txt_width_0/2)
-                            y_0 = int(y_c - txt_height)
-                            
-                            x_1 = int(x_c - txt_width_0/2)+(txt_width_0-txt_width_1)
-                            y_1 = int(y_c)
-                        else:
-                            print("c")
-                            x_0 = int(x_c - txt_width_1/2)+(txt_width_1-txt_width_0)
-                            y_0 = int(y_c - txt_height)
-                            
-                            x_1 = int(x_c - txt_width_1/2)
-                            y_1 = int(y_c)
-                    else:
-                        if index_bigger == 0:
-                            print("d")
-                            x_0 = int(x_c - txt_width_0/2)
-                            y_0 = int(y_c - txt_height)
-                            
-                            x_1 = int(x_c - txt_width_0/2)
-                            y_1 = int(y_c)
-                        else:
-                            print("e")
-                            x_0 = int(x_c - txt_width_1/2)
-                            y_0 = int(y_c - txt_height)
-                            
-                            x_1 = int(x_c - txt_width_1/2)
-                            y_1 = int(y_c)
-                    
-                    self.rect(x_0,y_0,txt_width_0,txt_height,self.blue)
-                    self.rect(x_1,y_1,txt_width_1,txt_height,self.blue)
-                    self.font_writer_freesans20.text(text[0], x_0, y_0, txt_color)
-                    self.font_writer_freesans20.text(text[1], x_1, y_1, txt_color)
+            print("time", ticks_ms()-a)
 
-                
-                
-                angle+=angle_step
-             
             if self.lx_euclid_config.need_circle_action_display:
                 txt = self.lx_euclid_config.action_display_info
                 txt_len = self.font_writer_freesans20.stringlen(txt)
                 color = self.rhythm_colors[self.lx_euclid_config.action_display_index]
                 self.font_writer_freesans20.text(
                     txt, 120-int(txt_len/2), 110, color)
-           
+
         elif local_state == LxEuclidConstant.STATE_MENU_SELECT:
 
             self.circle(120, 120, 58, self.touch_circle_color, True)
@@ -638,14 +648,16 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     # action_rhythm are stored by bit
                     if action_rhythm & (1 << i) != 0:
                         txt_colors[i] = txt_color_highlight
-                        
-                macro_txts = ["rst", "lgth", "pulse", "rot", "prob", "fill", "mute"]
-                
-                macro_txt = macro_txts[rotate_action-1] # -1 because 0 is "None"
+
+                macro_txts = ["rst", "lgth", "pulse",
+                              "rot", "prob", "fill", "mute"]
+
+                # -1 because 0 is "None"
+                macro_txt = macro_txts[rotate_action-1]
                 macro_txt_len = self.font_writer_font6.stringlen(macro_txt)
-                
+
                 self.font_writer_font6.text(
-                    macro_txt, 120-int(macro_txt_len/2), 95, page_color)      
+                    macro_txt, 120-int(macro_txt_len/2), 95, page_color)
 
                 self.font_writer_freesans20.text(
                     "Ch1", 101, 12, txt_colors[0])
@@ -743,25 +755,27 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     self.font_writer_freesans20.text(
                         "Mute", 31, 41, txt_colors[7])
                 else:  # channel selection
-                    
+
                     txt_colors = [txt_color]*5
 
                     param_channel_config_action_index = self.lx_euclid_config.param_channel_config_action_index
                     channel_index = self.lx_euclid_config.sm_rhythm_param_counter
                     cv_actions_channel = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
                         channel_index].cv_actions_channel
-                                        
-                    cv_txts = ["rst", "lgth", "pulse", "rot", "prob", "fill", "mute"]
-                    
-                    cv_txt = cv_txts[param_channel_config_action_index-1] # -1 because 0 is "clear cv"
+
+                    cv_txts = ["rst", "lgth", "pulse",
+                               "rot", "prob", "fill", "mute"]
+
+                    # -1 because 0 is "clear cv"
+                    cv_txt = cv_txts[param_channel_config_action_index-1]
                     cv_txt_len = self.font_writer_font6.stringlen(cv_txt)
-                    
+
                     self.font_writer_font6.text(
-                        cv_txt, 120-int(cv_txt_len/2), 95, page_color)         
+                        cv_txt, 120-int(cv_txt_len/2), 95, page_color)
 
                     highlight_index = cv_actions_channel[param_channel_config_action_index]
                     txt_colors[highlight_index] = txt_color_highlight
-                    
+
                     self.font_writer_freesans20.text(
                         "None", 97, 12, txt_colors[0])
 
@@ -886,21 +900,20 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             self.circle(120, 120, 48, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 48-12, self.black, True)
-            
-            self.font_writer_freesans20.text("Presets", 87, 110, txt_color_highlight)
+
+            self.font_writer_freesans20.text(
+                "Presets", 87, 110, txt_color_highlight)
 
             page = self.lx_euclid_config.param_presets_page
             page_color = self.light_grey
 
-            if page in [0,1]:
+            if page in [0, 1]:
                 if page == 0:
                     self.font_writer_font6.text("load", 108, 130, page_color)
                     num_color = txt_color_highlight
                 else:
                     self.font_writer_font6.text("save", 106, 130, page_color)
                     num_color = txt_color
-
-
 
                 self.font_writer_freesans20.text("1", 116, 5, num_color)
                 self.font_writer_freesans20.text("2", 197, 38, num_color)
@@ -912,9 +925,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text("8", 34, 38, num_color)
             elif page is 2:
                 self.font_writer_font6.text("recall", 104, 130, page_color)
-                
+
                 preset_recall_index = self.lx_euclid_config.preset_recall_mode
-                
+
                 txt_colors = [txt_color]*4
 
                 txt_colors[preset_recall_index] = txt_color_highlight
@@ -954,17 +967,16 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 "Clock", 95, 6, self.white)
             self.font_writer_freesans20.text(
                 "Source", 87, 27, self.white)
-            
+
             self.font_writer_freesans20.text(
                 "Sensi", 174, 142, self.white)
             self.font_writer_freesans20.text(
                 "Touch", 166, 163, self.white)
-            
+
             self.font_writer_freesans20.text(
                 "Rot", 15, 142, self.white)
             self.font_writer_freesans20.text(
                 "Screen", 15, 163, self.white)
-            
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             txt_color = self.un_selected_color
@@ -972,39 +984,42 @@ class LCD_1inch28(framebuf.FrameBuffer):
             page_color = self.light_grey
 
             page = self.lx_euclid_config.param_menu_page
-            
+
             # write more alwayse except in mode 0 in tap mode
             if not (page == 0 and self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE):
                 self.circle(120, 120, 58, self.touch_circle_color, True)
                 self.circle(120, 120, 58-13, self.black, True)
 
-                self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+                self.circle(
+                    120, 120, 42, self.touch_circle_color_highlight, True)
                 self.circle(120, 120, 42-13, self.black, True)
 
                 other_txt = "More"
-                
+
                 self.font_writer_freesans20.text(
                     other_txt, 100, 110, self.white)
             else:
                 # if in page 0 and tap mode, both circle are active
-                self.circle(120, 120, 58, self.touch_circle_color_highlight, True)
+                self.circle(
+                    120, 120, 58, self.touch_circle_color_highlight, True)
                 self.circle(120, 120, 58-13, self.black, True)
 
-                self.circle(120, 120, 42, self.touch_circle_color_highlight, True)
+                self.circle(
+                    120, 120, 42, self.touch_circle_color_highlight, True)
                 self.circle(120, 120, 42-13, self.black, True)
-                
+
             if page == 0:  # config clock source
                 current_channel_setting = "clk src"
                 self.font_writer_font6.text(
                     current_channel_setting, 100, 130, page_color)
 
                 clk_index = self.lx_euclid_config.clk_mode
-                
+
                 if clk_index == LxEuclidConstant.TAP_MODE:
-                    other_txt = str(self.lx_euclid_config.get_int_bpm())                    
-                    
+                    other_txt = str(self.lx_euclid_config.get_int_bpm())
+
                     txt_len = self.font_writer_freesans20.stringlen(other_txt)
-                        
+
                     self.font_writer_freesans20.text(
                         other_txt, int(120-txt_len/2), 110, self.white)
 
@@ -1047,8 +1062,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     "Normal", 88, 10, txt_colors[0])
                 self.font_writer_freesans20.text(
                     "Inverted", 88, 208, txt_colors[1])
-                
-                
 
         elif local_state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 
@@ -1132,7 +1145,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
 
             self.circle(120, 120, radius, beat_color, False)
-            
+
             # when a reset step occure, we put the current step to zero in grey so user know it will
             # be the next step to play
             if euclidieanRhythm.reset_step_occure == True:
@@ -1216,4 +1229,3 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         # Draw the polygon
         self.poly(0, 0, array("h", points), color, True)
-
