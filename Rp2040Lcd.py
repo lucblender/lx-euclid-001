@@ -393,6 +393,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
         return to_return
 
     def display_circle_texts(self, texts, colours, angle_start=-90, total_angle=360):
+        
+        if type(colours) != list:
+            colours = [colours]*len(texts)
+        
         txt_height = self.font_writer_freesans20.font.height()
 
         len_texts = len(texts)
@@ -523,21 +527,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(txt, 80, 160, self.white)
 
         if local_state == LxEuclidConstant.STATE_LIVE:
-            # self.display_rhythm_circles()
-
-            a = ticks_ms()
-            # TODO
-            # texts = [["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"],["abc","bc"]]
-            texts = [["ab", "abc"], ["ab", "abc"], ["ab", "abc"], ["ab", "abc"], [
-                "ab", "abc"], ["ab", "abc"], ["ab", "abc"], ["ab", "abc"]]
-            # texts = [["Clock","Source"],["Sensi","Touch"],["Rot","Screen"]]
-            # texts = [["None"], ["Rst"], ["Lgth"], ["Pulse"], ["Rot"], ["Prob"], ["Fill"], ["Mute"]]
-            len_texts = len(texts)
-            txt_color = [self.selected_color]*len_texts
-
-            self.display_circle_texts(texts, txt_color)
-
-            print("time", ticks_ms()-a)
+            self.display_rhythm_circles()
 
             if self.lx_euclid_config.need_circle_action_display:
                 txt = self.lx_euclid_config.action_display_info
@@ -555,15 +545,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.circle(120, 120, 42-13, self.black, True)
 
             txt_color = self.selected_color
-
-            self.font_writer_freesans20.text(
-                "Presets", 87, 12, txt_color)
-
-            self.font_writer_freesans20.text(
-                "Macro", 170, 158, txt_color)
-
-            self.font_writer_freesans20.text(
-                "More", 19, 158, txt_color)
+            
+            texts = [["Presets"],["Macro"],["More"]]
+            self.display_circle_texts(texts, txt_color)
 
             if self.parameter_unselected is not None:
                 self.blit(self.parameter_unselected, 100, 100)
@@ -580,16 +564,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             self.font_writer_freesans20.text(
                 "Macro", 94, 110, txt_color_highlight)
+            
+            texts = [["Inner","Ring"],["Outer","Ring"]]
 
-            self.font_writer_freesans20.text(
-                "Inner", 101, 12, self.white)
-            self.font_writer_freesans20.text(
-                "Ring", 105, 38, self.white)
-
-            self.font_writer_freesans20.text(
-                "Outer", 98, 186, self.white)
-            self.font_writer_freesans20.text(
-                "Ring", 105, 212, self.white)
+            self.display_circle_texts(texts, self.white)
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PADS:
             txt_color = self.un_selected_color
@@ -619,21 +597,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     txt_colors[self.lx_euclid_config.inner_rotate_action] = txt_color_highlight
                 else:  # outer
                     txt_colors[self.lx_euclid_config.outer_rotate_action] = txt_color_highlight
+                    
+                texts = [["None"],["Rst"],["Lgth"],["Pulse"],["Rot"],["Prob"],["Fill"],["Mute"]]
 
-                self.font_writer_freesans20.text(
-                    "None", 97, 12, txt_colors[0])
-                self.font_writer_freesans20.text(
-                    "Rst", 178, 40, txt_colors[1])
-                self.font_writer_freesans20.text(
-                    "Lgth", 198, 109, txt_colors[2])
-                self.font_writer_freesans20.text(
-                    "Pulse", 163, 176, txt_colors[3])
-                self.font_writer_freesans20.text(
-                    "Rot", 105, 214, txt_colors[4])
-                self.font_writer_freesans20.text(
-                    "Prob", 32, 178, txt_colors[5])
-                self.font_writer_freesans20.text("Fill", 5, 111, txt_colors[6])
-                self.font_writer_freesans20.text("Mute", 31, 41, txt_colors[7])
+                self.display_circle_texts(texts, txt_colors)
+              
             elif page == 1:
                 txt_colors = [txt_color]*4
 
@@ -659,14 +627,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_font6.text(
                     macro_txt, 120-int(macro_txt_len/2), 95, page_color)
 
-                self.font_writer_freesans20.text(
-                    "Ch1", 101, 12, txt_colors[0])
-                self.font_writer_freesans20.text(
-                    "Ch2", 198, 110, txt_colors[1])
-                self.font_writer_freesans20.text(
-                    "Ch3", 101, 213, txt_colors[2])
-                self.font_writer_freesans20.text(
-                    "Ch4", 2, 110, txt_colors[3])
+                texts = [["Ch1"],["Ch2"],["Ch3"],["Ch4"]]
+
+                self.display_circle_texts(texts, txt_colors)
 
         elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION:
 
@@ -688,18 +651,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             current_channel_setting = "param"
             self.font_writer_font6.text(
-                current_channel_setting, 101, 130, page_color)
+                current_channel_setting, 101, 130, page_color)            
 
-            self.font_writer_freesans20.text(
-                "CVs", 105, 6, self.white)
-            self.font_writer_freesans20.text(
-                "Algo", 196, 107, self.white)
-            self.font_writer_freesans20.text(
-                "Clk Div", 90, 209, self.white)
-            self.font_writer_freesans20.text(
-                "Gate", 6, 97, self.white)
-            self.font_writer_freesans20.text(
-                "Time", 6, 121, self.white)
+            texts = [["CVs"],["Algo"],["Clk Div"],["Gate","Time"]]
+
+            self.display_circle_texts(texts, self.white)
 
         elif local_state == LxEuclidConstant.STATE_CHANNEL_CONFIG:
 
@@ -737,23 +693,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     for index, cv_action_channel in enumerate(cv_actions_channel):
                         if cv_action_channel != CvChannel.CV_CHANNEL_NONE:
                             txt_colors[index] = txt_color_highlight
+                    txt_colors[0] = self.white
+                    
+                    texts = [["Clear CV"],["Rst"],["Lgth"],["Pulse"],["Rot"],["Prob"],["Fill"],["Mute"]]
 
-                    self.font_writer_freesans20.text(
-                        "Clear CV", 79, 12, self.white)
-                    self.font_writer_freesans20.text(
-                        "Rst", 178, 40, txt_colors[1])
-                    self.font_writer_freesans20.text(
-                        "Lgth", 198, 109, txt_colors[2])
-                    self.font_writer_freesans20.text(
-                        "Pulse", 163, 176, txt_colors[3])
-                    self.font_writer_freesans20.text(
-                        "Rot", 105, 214, txt_colors[4])
-                    self.font_writer_freesans20.text(
-                        "Prob", 32, 178, txt_colors[5])
-                    self.font_writer_freesans20.text(
-                        "Fill", 5, 111, txt_colors[6])
-                    self.font_writer_freesans20.text(
-                        "Mute", 31, 41, txt_colors[7])
+                    self.display_circle_texts(texts, txt_colors)
                 else:  # channel selection
 
                     txt_colors = [txt_color]*5
@@ -775,18 +719,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                     highlight_index = cv_actions_channel[param_channel_config_action_index]
                     txt_colors[highlight_index] = txt_color_highlight
+                    
+                    texts = [["None"],["CV1"],["CV2"],["CV3"],["CV4"]]
 
-                    self.font_writer_freesans20.text(
-                        "None", 97, 12, txt_colors[0])
-
-                    self.font_writer_freesans20.text(
-                        "CV1", 184, 77, txt_colors[1])
-                    self.font_writer_freesans20.text(
-                        "CV2", 162, 183, txt_colors[2])
-                    self.font_writer_freesans20.text(
-                        "CV3", 36, 183, txt_colors[3])
-                    self.font_writer_freesans20.text(
-                        "CV4", 9, 77, txt_colors[4])
+                    self.display_circle_texts(texts, txt_colors)
 
             elif page == 1:  # algo
                 current_channel_setting = "algo"
@@ -800,23 +736,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                 txt_colors[algo_index] = txt_color_highlight
 
-                self.font_writer_freesans20.text(
-                    "Eucl.", 101, 12, txt_colors[0])
+                texts = [["Eucl."],["Exp.","Eucl."],["Inv.","Exp."],["Sym.","Eucl."],]
 
-                self.font_writer_freesans20.text(
-                    "Exp.", 191, 95, txt_colors[1])
-                self.font_writer_freesans20.text(
-                    "Eucl.", 191, 121, txt_colors[1])
-
-                self.font_writer_freesans20.text(
-                    "Inv.", 107, 186, txt_colors[2])
-                self.font_writer_freesans20.text(
-                    "Exp.", 105, 212, txt_colors[2])
-
-                self.font_writer_freesans20.text(
-                    "Sym.", 5, 95, txt_colors[3])
-                self.font_writer_freesans20.text(
-                    "Eucl.", 5, 121, txt_colors[3])
+                self.display_circle_texts(texts, txt_colors)
 
             elif page == 2:  # time division
                 current_channel_setting = "clk div"
@@ -829,21 +751,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     channel_index].prescaler_index
 
                 txt_colors[prescaler_index] = txt_color_highlight
+                
+                texts = [["1"],["2"],["3"],["4"],["6"],["8"],["16"]]
 
-                self.font_writer_freesans20.text(
-                    "1", 116, 3, txt_colors[0])
-                self.font_writer_freesans20.text(
-                    "2", 199, 42, txt_colors[1])
-                self.font_writer_freesans20.text(
-                    "3", 220, 136, txt_colors[2])
-                self.font_writer_freesans20.text(
-                    "4", 160, 205, txt_colors[3])
-                self.font_writer_freesans20.text(
-                    "6", 71, 205, txt_colors[4])
-                self.font_writer_freesans20.text(
-                    "8", 8, 136, txt_colors[5])
-                self.font_writer_freesans20.text(
-                    "16", 31, 42, txt_colors[6])
+                self.display_circle_texts(texts, txt_colors)
 
             elif page == 3:  # gate time
                 current_channel_setting = "time"
@@ -915,14 +826,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     self.font_writer_font6.text("save", 106, 130, page_color)
                     num_color = txt_color
 
-                self.font_writer_freesans20.text("1", 116, 5, num_color)
-                self.font_writer_freesans20.text("2", 197, 38, num_color)
-                self.font_writer_freesans20.text("3", 225, 110, num_color)
-                self.font_writer_freesans20.text("4", 197, 184, num_color)
-                self.font_writer_freesans20.text("5", 113, 218, num_color)
-                self.font_writer_freesans20.text("6", 34, 184, num_color)
-                self.font_writer_freesans20.text("7", 3, 110, num_color)
-                self.font_writer_freesans20.text("8", 34, 38, num_color)
+                texts = [["1"],["2"],["3"],["4"],["5"],["6"],["7"],["8"]]
+
+                self.display_circle_texts(texts, num_color)
             elif page is 2:
                 self.font_writer_font6.text("recall", 104, 130, page_color)
 
@@ -931,22 +837,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 txt_colors = [txt_color]*4
 
                 txt_colors[preset_recall_index] = txt_color_highlight
-                self.font_writer_freesans20.text(
-                    "Direct", 94, 6, txt_colors[0])
-                self.font_writer_freesans20.text(
-                    "w/ reset", 84, 30, txt_colors[0])
-                self.font_writer_freesans20.text(
-                    "Reset", 185, 97, txt_colors[1])
-                self.font_writer_freesans20.text(
-                    "ext", 208, 121, txt_colors[1])
-                self.font_writer_freesans20.text(
-                    "Direct", 94, 188, txt_colors[2])
-                self.font_writer_freesans20.text(
-                    "w/o reset", 78, 212, txt_colors[2])
-                self.font_writer_freesans20.text(
-                    "Reset", 3, 97, txt_colors[3])
-                self.font_writer_freesans20.text(
-                    "int", 3, 121, txt_colors[3])
+
+                texts = [["Direct","w/ reset"],["Reset","ext"],["Direct","w/o reset"],["Reset","int"]]
+
+                self.display_circle_texts(texts, txt_colors)
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU_SELECTION:
 
@@ -963,20 +857,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
             other_txt = "More"
             self.font_writer_freesans20.text(
                 other_txt, 100, 110, self.white)
-            self.font_writer_freesans20.text(
-                "Clock", 95, 6, self.white)
-            self.font_writer_freesans20.text(
-                "Source", 87, 27, self.white)
+  
+            texts = [["Clock","Source"],["Sensi","Touch"],["Rot","Screen"]]
 
-            self.font_writer_freesans20.text(
-                "Sensi", 174, 142, self.white)
-            self.font_writer_freesans20.text(
-                "Touch", 166, 163, self.white)
-
-            self.font_writer_freesans20.text(
-                "Rot", 15, 142, self.white)
-            self.font_writer_freesans20.text(
-                "Screen", 15, 163, self.white)
+            self.display_circle_texts(texts, self.white)
 
         elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             txt_color = self.un_selected_color
@@ -1026,10 +910,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 txt_colors = [txt_color]*2
 
                 txt_colors[clk_index] = txt_color_highlight
-                self.font_writer_freesans20.text(
-                    "Internal", 88, 10, txt_colors[0])
-                self.font_writer_freesans20.text(
-                    "External", 88, 208, txt_colors[1])
+                                
+                texts = [["Internal"],["External"]]
+
+                self.display_circle_texts(texts, txt_colors)
 
             elif page == 1:  # config sensitivity
                 current_channel_setting = "sensi"
@@ -1041,13 +925,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 sensi_index = self.lx_euclid_config.lx_hardware.capacitives_circles.touch_sensitivity
 
                 txt_colors[sensi_index] = txt_color_highlight
+                                
+                texts = [["Low"],["Med"],["High"]]
 
-                self.font_writer_freesans20.text(
-                    "Low", 104, 4, txt_colors[0])
-                self.font_writer_freesans20.text(
-                    "Medium", 154, 168, txt_colors[1])
-                self.font_writer_freesans20.text(
-                    "High", 19, 168, txt_colors[2])
+                self.display_circle_texts(texts, txt_colors)
             elif page == 2:  # config screen orientation
                 current_channel_setting = "screen"
                 self.font_writer_font6.text(
@@ -1058,10 +939,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 txt_colors = [txt_color]*2
 
                 txt_colors[flip_index] = txt_color_highlight
-                self.font_writer_freesans20.text(
-                    "Normal", 88, 10, txt_colors[0])
-                self.font_writer_freesans20.text(
-                    "Inverted", 88, 208, txt_colors[1])
+                
+                texts = [["Normal"],["Inverted"],["High"]]
+
+                self.display_circle_texts(texts, txt_colors)
 
         elif local_state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 
