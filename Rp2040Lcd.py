@@ -1058,7 +1058,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 local_current_step = 0
                 beat_color_hightlight = self.grey
             else:
-                local_current_step = euclidieanRhythm.current_step
+                if euclidieanRhythm.in_burst:
+                    local_current_step = euclidieanRhythm.current_burst_step
+                else:
+                    local_current_step = euclidieanRhythm.current_step
 
             local_offset = euclidieanRhythm.offset
             if euclidieanRhythm.has_cv_offset:
@@ -1091,8 +1094,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             for index in range(0, len_euclidiean_rhythm):
                 coord = coords[index]
-
-                final_beat_color = beat_color
+                if euclidieanRhythm.in_burst:
+                    final_beat_color = beat_color_hightlight
+                else:
+                    final_beat_color = beat_color
 
                 if index == local_current_step:
                     self.circle(coord[0]+120, coord[1] +

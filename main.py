@@ -65,7 +65,7 @@ def debug_print(txt):
 def lxhardware_changed(handlerEventData):
     global tap_btn_press, btn_menu_press
     event = handlerEventData.event
-    if event == lx_hardware.CLK_RISE:
+    if event == lx_hardware.CLK_RISE or event == lx_hardware.BURST_CLK_RISE:
         if lx_euclid_config.state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_LIVE]:
             LCD.set_need_display()
         lx_euclid_config.random_gate_length_update()
@@ -271,3 +271,4 @@ if __name__ == '__main__':
         print("quit")
     except Exception as e:
         append_error(e)
+

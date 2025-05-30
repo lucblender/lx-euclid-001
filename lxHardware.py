@@ -77,20 +77,21 @@ class LxHardware:
     BTN_TAP_RISE = const(1)
     BTN_TAP_FALL = const(2)
     CLK_RISE = const(3)
-    BTN_MENU_RISE = const(4)
-    BTN_MENU_FALL = const(5)
+    BURST_CLK_RISE = const(4)
+    BTN_MENU_RISE = const(5)
+    BTN_MENU_FALL = const(6)
 
-    INNER_CIRCLE_INCR = const(6)
-    INNER_CIRCLE_DECR = const(7)
-    OUTER_CIRCLE_INCR = const(8)
-    OUTER_CIRCLE_DECR = const(9)
-    INNER_CIRCLE_TOUCH = const(10)
-    OUTER_CIRCLE_TOUCH = const(11)
-    INNER_CIRCLE_TAP = const(12)
-    OUTER_CIRCLE_TAP = const(13)
+    INNER_CIRCLE_INCR = const(7)
+    INNER_CIRCLE_DECR = const(8)
+    OUTER_CIRCLE_INCR = const(9)
+    OUTER_CIRCLE_DECR = const(10)
+    INNER_CIRCLE_TOUCH = const(11)
+    OUTER_CIRCLE_TOUCH = const(12)
+    INNER_CIRCLE_TAP = const(13)
+    OUTER_CIRCLE_TAP = const(14)
 
-    BTN_SWITCHES_RISE = const(14)
-    BTN_SWITCHES_FALL = const(15)
+    BTN_SWITCHES_RISE = const(15)
+    BTN_SWITCHES_FALL = const(16)
 
     EEPROM_ADDR = const(0x50)
 
@@ -99,6 +100,7 @@ class LxHardware:
         self.btn_fall_event = HandlerEventData(LxHardware.BTN_TAP_FALL)
         self.btn_rise_event = HandlerEventData(LxHardware.BTN_TAP_RISE)
         self.clk_rise_event = HandlerEventData(LxHardware.CLK_RISE)
+        self.clk_burst_rise_event = HandlerEventData(LxHardware.BURST_CLK_RISE)
 
         self.btn_menu_fall_event = HandlerEventData(LxHardware.BTN_MENU_FALL)
         self.btn_menu_rise_event = HandlerEventData(LxHardware.BTN_MENU_RISE)
@@ -233,6 +235,10 @@ class LxHardware:
         self.sm_internal_clock.restart()
 
     def internal_clk_pin_change(self, pin):
+        
+        if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
+            self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
+            
         if self.clk_subdivision_counter == 0:
             self.lx_euclid_config.incr_steps()
             self.lxHardwareEventFifo.append(self.clk_rise_event)

@@ -23,7 +23,9 @@ MENU_PAGE_MAX = const(2)
 
 PRESCALER_LIST = [1, 2, 3, 4, 6, 8, 16]
 
-BURST_LIST = [2, 3, 4, 6, 8]
+# BURST_LIST is in subdivision of 24
+# so [2, 3, 4, 6, 8]
+BURST_LIST = [12, 8, 6, 4, 3]
 
 # pass from 360° (in capacitive circle referential) to 0..steps
 
@@ -163,8 +165,21 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
     @prescaler_index.setter
     def prescaler_index(self, prescaler_index):
+        if prescaler_index > len(PRESCALER_LIST)-1:
+            prescaler_index = len(PRESCALER_LIST)-1
         self._prescaler_index = prescaler_index
         self.prescaler = PRESCALER_LIST[self._prescaler_index]
+        
+    @property
+    def burst_div_index(self):
+        return self._burst_div_index
+
+    @burst_div_index.setter
+    def burst_div_index(self, burst_div_index):
+        if burst_div_index > len(BURST_LIST)-1:
+            burst_div_index = len(BURST_LIST)-1
+        self._burst_div_index = burst_div_index
+        self.burst_div = BURST_LIST[self._burst_div_index]
 
     def mute(self, mute_by_macro=False):
         self.is_mute = True
@@ -302,21 +317,24 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.prescaler_rhythm_counter = 0
         return to_return
 
-    def incr_burst_step(self):
+    def incr_burst_step(self, subdivision_24th):
+        to_return = False
         if self.in_burst:
+            if subdivision_24th % self.burst_div == 0:           
+                self.current_burst_step = self.current_burst_step + 1
+                to_return = True
+
+                beat_limit = len(self.rhythm)-1
+                if self.current_burst_step > beat_limit:
+                    self.current_burst_step = 0
                        
-            self.current_burst_step = self.current_burst_step + 1
+                if self.burst_steps_left == 0:
+                    if self.current_burst_step == self.current_step:
+                        self.in_burst = False
+                else:
+                   self.burst_steps_left = self.burst_steps_left - 1 
 
-            beat_limit = len(self.rhythm)-1
-            if self.current_burst_step > beat_limit:
-                self.current_burst_step = 0
-                   
-            if self.burst_steps_left == 0:
-                if self.current_burst_step == self.current_step:
-                    self.in_burst = False
-            else:
-               self.burst_steps_left = self.burst_steps_left - 1 
-
+        return to_return
 
 
     def start_continue_burst(self):
@@ -343,6 +361,36 @@ class EuclideanRhythm(EuclideanRhythmParameters):
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def reset_step(self):
         self.reset_step_occure = True
+        
+    def get_current_burst_step(self):
+        try:
+            self.get_current_step_offset = self.offset
+            self.get_current_step_beats = len(self.rhythm)
+            if self.has_cv_offset:
+                self.get_current_step_offset = self.global_cv_offset
+
+            to_return = self.rhythm[(
+                self.current_burst_step-self.get_current_step_offset) % self.get_current_step_beats]
+
+            if to_return == 0:
+                return 0
+            else:
+                if self.has_cv_prob:
+                    if self.global_cv_probability == 100:
+                        return to_return
+                    elif randint(0, 100) < self.global_cv_probability:
+                        return to_return
+                    else:
+                        return 0
+                else:
+                    if self.pulses_probability == 100:
+                        return to_return
+                    elif randint(0, 100) < self.pulses_probability:
+                        return to_return
+                    else:
+                        return 0
+        except Exception as e:
+            print(e, "x")
 
     def get_current_step(self):
         try:
@@ -1453,7 +1501,28 @@ class LxEuclidConfig:
                 elif self.param_menu_page == 2:  # display flip
                     flip_index = angle_to_index(angle_inner, 2)
                     self.flip = flip_index
+                    
+                    
+    def incr_burst_steps(self, subdivision_24th):
+        to_return = False
+        self.computation_index_incr_step = 0
+        for euclidean_rhythm in self.euclidean_rhythms:
+            did_step = euclidean_rhythm.incr_burst_step(subdivision_24th)
+            
+            if did_step:
+                to_return = True
+            
+            if euclidean_rhythm.get_current_burst_step() and did_step and euclidean_rhythm.in_burst:
+                if euclidean_rhythm.randomize_gate_length:
+                    self.lx_hardware.set_gate(
+                        self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_ms)
+                else:
+                    self.lx_hardware.set_gate(
+                        self.computation_index_incr_step, euclidean_rhythm.gate_length_ms)
+            self.computation_index_incr_step = self.computation_index_incr_step + 1
+        return to_return
 
+        
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def incr_steps(self):
         self.computation_index_incr_step = 0
@@ -1688,7 +1757,7 @@ class LxEuclidConfig:
 
                 inner_rotate_action = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
-                if inner_rotate_action >= LxEuclidConstant.CIRCLE_ACTION_NONE and inner_rotate_action <= LxEuclidConstant.CIRCLE_ACTION_MUTE:
+                if inner_rotate_action >= LxEuclidConstant.CIRCLE_ACTION_NONE and inner_rotate_action <= LxEuclidConstant.CIRCLE_ACTION_BURST:
                     self.inner_rotate_action = inner_rotate_action
 
                 inner_action_rhythm = self.lx_hardware.get_eeprom_data_int(
@@ -1698,7 +1767,7 @@ class LxEuclidConfig:
 
                 outer_rotate_action = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
-                if outer_rotate_action >= LxEuclidConstant.CIRCLE_ACTION_NONE and outer_rotate_action <= LxEuclidConstant.CIRCLE_ACTION_MUTE:
+                if outer_rotate_action >= LxEuclidConstant.CIRCLE_ACTION_NONE and outer_rotate_action <= LxEuclidConstant.CIRCLE_ACTION_BURST:
                     self.outer_rotate_action = outer_rotate_action
 
                 outer_action_rhythm = self.lx_hardware.get_eeprom_data_int(
