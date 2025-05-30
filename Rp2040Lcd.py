@@ -1049,8 +1049,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 elif euclidieanRhythm.is_fill:
                     beat_color = self.rhythm_colors_highlight[rhythm_index]
                     beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
-
-            self.circle(120, 120, radius, beat_color, False)
+            
+            if euclidieanRhythm.in_burst:
+                circle_color =  self.white
+            else:
+                circle_color = beat_color
+            self.circle(120, 120, radius, circle_color, False)
 
             # when a reset step occure, we put the current step to zero in grey so user know it will
             # be the next step to play
@@ -1094,10 +1098,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             for index in range(0, len_euclidiean_rhythm):
                 coord = coords[index]
-                if euclidieanRhythm.in_burst:
-                    final_beat_color = beat_color_hightlight
-                else:
-                    final_beat_color = beat_color
+                final_beat_color = beat_color
 
                 if index == local_current_step:
                     self.circle(coord[0]+120, coord[1] +
