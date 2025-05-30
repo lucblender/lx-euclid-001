@@ -238,15 +238,16 @@ class LxHardware:
         
         if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
             self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
-            
-        if self.clk_subdivision_counter == 0:
-            self.lx_euclid_config.incr_steps()
-            self.lxHardwareEventFifo.append(self.clk_rise_event)
+        
+        if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:   
+            if self.clk_subdivision_counter == 0:
+                self.lx_euclid_config.incr_steps()
+                self.lxHardwareEventFifo.append(self.clk_rise_event)
             # relauch only when using tap mode
-        if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-            # we are using 16 bit on the SM
-            # --> 2**16/10/1000 = 6.5536 s
-            self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
+        #
+        # we are using 16 bit on the SM
+        # --> 2**16/10/1000 = 6.5536 s
+        self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
         self.clk_subdivision_counter = (self.clk_subdivision_counter + 1)%24
         
     def clk_pin_change(self, pin):
