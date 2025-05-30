@@ -252,7 +252,7 @@ class LxHardware:
             self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
         
         if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:   
-            if self.clk_subdivision_counter == 0:
+            if self.clk_subdivision_counter%24 == 0:
                 self.lx_euclid_config.incr_steps()
                 self.lxHardwareEventFifo.append(self.clk_rise_event)
             # relauch only when using tap mode
@@ -264,7 +264,10 @@ class LxHardware:
         else:
             self.sm_internal_clock.put(self.clock_period_avg_ms*10)
             
-        self.clk_subdivision_counter = (self.clk_subdivision_counter + 1)%24
+        # 24 --> smallest common multiplier of burst
+        # *
+        # 16 --> biggest clock divider
+        self.clk_subdivision_counter = (self.clk_subdivision_counter + 1)%(24*16)
         
     def clk_pin_change(self, pin):
         try:

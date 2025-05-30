@@ -320,7 +320,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
     def incr_burst_step(self, subdivision_24th):
         to_return = False
         if self.in_burst:
-            if subdivision_24th % self.burst_div == 0:           
+            if subdivision_24th % (self.burst_div*self.prescaler) == 0:           
                 self.current_burst_step = self.current_burst_step + 1
                 to_return = True
 
