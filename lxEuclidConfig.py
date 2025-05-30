@@ -23,6 +23,8 @@ MENU_PAGE_MAX = const(2)
 
 PRESCALER_LIST = [1, 2, 3, 4, 6, 8, 16]
 
+BURST_LIST = [2, 3, 4, 6, 8]
+
 # pass from 360° (in capacitive circle referential) to 0..steps
 
 
@@ -67,12 +69,12 @@ class EuclideanRhythmParameters:
             self.beats = 1
         if self.pulses < 0:
             self.pulses = 0
-            
+
         if self.pulses <= 1:
             self.pulses_set_0_1 = True
         else:
             self.pulses_set_0_1 = False
-            
+
         self.__pulses_ratio = self.pulses / self.beats
         self.clear_gate_needed = False
         self.gate_length_ms = gate_length_ms
@@ -80,6 +82,9 @@ class EuclideanRhythmParameters:
         self.randomized_gate_length_ms = gate_length_ms
 
         self.algo_index = algo_index
+        
+        self._burst_div_index = 0
+        self.burst_div = BURST_LIST[prescaler_index]
 
     @property
     def prescaler_index(self):
@@ -88,6 +93,14 @@ class EuclideanRhythmParameters:
     @prescaler_index.setter
     def prescaler_index(self, prescaler_index):
         self._prescaler_index = prescaler_index
+
+    @property
+    def burst_div_index(self):
+        return self._burst_div_index
+
+    @burst_div_index.setter
+    def burst_div_index(self, burst_div_index):
+        self._burst_div_index = burst_div_index
 
 
 class EuclideanRhythm(EuclideanRhythmParameters):
@@ -106,8 +119,8 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.get_current_step_beats = 0
         self.global_cv_offset = 0
         self.global_cv_probability = 0
-        
-        # when we start, it's like we are in a reset step and we wait for the 1st 
+
+        # when we start, it's like we are in a reset step and we wait for the 1st
         # clock to play the first beat
         self.reset_step_occure = True
 
@@ -295,7 +308,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.gate_length_ms = self.gate_length_ms - 10
         else:
             self.gate_length_ms = 10
-            
+
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def reset_step(self):
         self.reset_step_occure = True
@@ -472,17 +485,14 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 class LxEuclidConstant:
     TAP_MODE = const(0)
     CLK_IN = const(1)
-    
-    
+
     MAX_BPM = const(250)
     MIN_BPM = const(8)
-    
+
     # tap is in 4/4 so time is 4x delay time
     MIN_TAP_DELAY_MS = int(((60/MAX_BPM)*1000))
     # equivalent to ~2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
     MAX_TAP_DELAY_MS = int(((60/MIN_BPM)*1000))
-
-
 
     CIRCLE_ACTION_NONE = const(0)
     CIRCLE_ACTION_RESET = const(1)
@@ -492,6 +502,7 @@ class LxEuclidConstant:
     CIRCLE_ACTION_PROB = const(5)
     CIRCLE_ACTION_FILL = const(6)
     CIRCLE_ACTION_MUTE = const(7)
+    CIRCLE_ACTION_BURST = const(8)
 
     CIRCLE_RHYTHM_1 = const(0)
     CIRCLE_RHYTHM_2 = const(1)
@@ -511,7 +522,7 @@ class LxEuclidConstant:
     STATE_PARAM_PADS = const(9)
     STATE_CHANNEL_CONFIG = const(10)
     STATE_CHANNEL_CONFIG_SELECTION = const(11)
-    STATE_TEST= const(100)
+    STATE_TEST = const(100)
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
@@ -527,7 +538,7 @@ class LxEuclidConstant:
     EVENT_INNER_CIRCLE_TAP = const(11)
     EVENT_OUTER_CIRCLE_TAP = const(12)
     EVENT_BTN_SWITCHES = const(13)
-    
+
     PRESET_RECALL_DIRECT_W_RESET = const(0)
     PRESET_EXTERNAL_RESET = const(1)
     PRESET_RECALL_DIRECT_WO_RESET = const(2)
@@ -542,12 +553,12 @@ class LxEuclidConfig:
         self.v_major = software_version[0]
         self.v_minor = software_version[1]
         self.v_fix = software_version[2]
-        
+
         self.lx_hardware = lx_hardware
         self.LCD = LCD
         self._flip = False
         self.flip_lock = allocate_lock()
-        
+
         self.LCD.set_config(self)
         self.euclidean_rhythms = []
         self.euclidean_rhythms.append(EuclideanRhythm(16, 4, 0, 100))
@@ -618,7 +629,8 @@ class LxEuclidConfig:
 
         self.param_menu_page = 0
 
-        self.computation_index_incr_step = 0  # used in interrupt function that can't create memory
+        # used in interrupt function that can't create memory
+        self.computation_index_incr_step = 0
 
         self._tap_delay_ms = 125  # default tap tempo 120bmp 125ms for 16th note
         self.tap_delay_ms_lock = allocate_lock()
@@ -631,14 +643,14 @@ class LxEuclidConfig:
 
         self.load_data()
         self.reload_rhythms()
-        
+
         self.lx_hardware.capacitives_circles.flip = self._flip
         if self._flip == True:
             # flip the display at boot if needed
             self.LCD.fill(self.LCD.black)
             self.LCD.show()
             self.LCD.init_display(self._flip)
-            
+
     @property
     def flip(self):
         to_return = 0
@@ -655,7 +667,6 @@ class LxEuclidConfig:
         self._flip = flip
         self.lx_hardware.capacitives_circles.flip = self._flip
         self.flip_lock.release()
-            
 
     @property
     def need_circle_action_display(self):
@@ -692,7 +703,7 @@ class LxEuclidConfig:
         self._load_preset_index = load_preset_index
         if self.preset_recall_mode in [LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET,
                                        LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET]:
-            
+
             # if previous reset recall were launched, clear them, only one preset load can be in queue
             self.preset_recall_int_reset = False
             self.preset_recall_ext_reset = False
@@ -706,19 +717,18 @@ class LxEuclidConfig:
             self.preset_recall_ext_reset = True
             # if previous reset recall were launched, clear them, only one preset load can be in queue
             self.preset_recall_int_reset = False
-                
+
     def delegate_load_preset(self):
         for index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
             euclidean_rhythm.set_parameters_from_rhythm(
                 self.presets[self._load_preset_index][index])
 
-            euclidean_rhythm.set_rhythm()            
+            euclidean_rhythm.set_rhythm()
 
-        # if current recall mode is direct wo reset or, we called previously a preset_recall_ext_reset 
-        if self.preset_recall_mode is not LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET and self.preset_recall_ext_reset is False:                
+        # if current recall mode is direct wo reset or, we called previously a preset_recall_ext_reset
+        if self.preset_recall_mode is not LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET and self.preset_recall_ext_reset is False:
             self.reset_steps()
-            
-            
+
     @property
     def tap_delay_ms(self):
         to_return = 0
@@ -732,37 +742,37 @@ class LxEuclidConfig:
         self.tap_delay_ms_lock.acquire()
         self._tap_delay_ms = tap_delay_ms
         self.tap_delay_ms_lock.release()
-    
+
     def get_int_bpm(self):
         return round((60/(self.tap_delay_ms/1000))/4)
-    
+
     def incr_bpm(self, incr):
         old_delay_ms = self.tap_delay_ms
-        bpm = min(LxEuclidConstant.MAX_BPM,self.get_int_bpm()+incr)
-        
+        bpm = min(LxEuclidConstant.MAX_BPM, self.get_int_bpm()+incr)
+
         delay_ms = round((60/(bpm*4))*1000)
-        
+
         # incr of bpm mean exp incr of delay ms
         # this mean with high bpm decr, the delta ms of 1 bpm can be smaller than 1ms
         # if so --> force decr of 1ms
         if bpm != LxEuclidConstant.MAX_BPM and old_delay_ms-delay_ms == 0:
-            delay_ms = delay_ms-1        
-        
+            delay_ms = delay_ms-1
+
         self.tap_delay_ms = delay_ms
-    
+
     def decr_bpm(self, decr):
         old_delay_ms = self.tap_delay_ms
-        bpm = max(LxEuclidConstant.MIN_BPM,self.get_int_bpm()-decr)        
-        
+        bpm = max(LxEuclidConstant.MIN_BPM, self.get_int_bpm()-decr)
+
         delay_ms = round((60/(bpm*4))*1000)
-        
+
         # incr of bpm mean exp incr of delay ms
         # this mean with high bpm decr, the delta ms of 1 bpm can be smaller than 1ms
         # if so --> force decr of 1ms
         if bpm != LxEuclidConstant.MIN_BPM and old_delay_ms-delay_ms == 0:
             delay_ms = delay_ms+1
-        
-        self.tap_delay_ms = delay_ms  
+
+        self.tap_delay_ms = delay_ms
 
     def on_event(self, event, data=None):
         self.state_lock.acquire()
@@ -792,7 +802,7 @@ class LxEuclidConfig:
                 self.lx_hardware.set_menu_led()
                 self.param_presets_page = 0
             elif event == LxEuclidConstant.EVENT_TAP_BTN_LONG:
-                if self.preset_recall_int_reset:                    
+                if self.preset_recall_int_reset:
                     self.preset_recall_int_reset = False
                     self.delegate_load_preset()
                 self.reset_steps()
@@ -966,7 +976,7 @@ class LxEuclidConfig:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 if self.param_pads_page == 0:  # action
-                    rotate_action_index = angle_to_index(angle_inner, 8)
+                    rotate_action_index = angle_to_index(angle_inner, 9)
                     if self.param_pads_inner_outer_page == 0:  # inner
                         previous_rotate_action = self.inner_rotate_action
                         action_rhythm = self.inner_action_rhythm
@@ -988,7 +998,7 @@ class LxEuclidConfig:
                                 self.euclidean_rhythms[euclidean_rhythm_index].unmute(
                                 )
                     # go to next macro page if we select any parameter except listed ones
-                    if rotate_action_index not in [LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_RESET, LxEuclidConstant.CIRCLE_ACTION_MUTE, LxEuclidConstant.CIRCLE_ACTION_FILL]:
+                    if rotate_action_index not in [LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_RESET, LxEuclidConstant.CIRCLE_ACTION_MUTE, LxEuclidConstant.CIRCLE_ACTION_FILL, LxEuclidConstant.CIRCLE_ACTION_BURST]:
                         self.param_pads_page = 1
                 elif self.param_pads_page == 1:  # output
                     out_index = angle_to_index(angle_inner, 4)
@@ -1029,16 +1039,15 @@ class LxEuclidConfig:
         elif self.state == LxEuclidConstant.STATE_PARAM_PRESETS:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:  # loading saving preset
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
-                
 
-                if self.param_presets_page in [0,1]:
+                if self.param_presets_page in [0, 1]:
                     preset_index = angle_to_index(angle_inner, 8)
                     if self.param_presets_page == 0:
                         self.load_preset_index = preset_index
                     else:
                         self.save_preset_index = preset_index
-                        
-                    self.state_lock.acquire()                         
+
+                    self.state_lock.acquire()
                     self.state = LxEuclidConstant.STATE_LIVE
                     self.state_lock.release()
                     self.lx_hardware.clear_tap_led()
@@ -1046,8 +1055,6 @@ class LxEuclidConfig:
                 else:
                     preset_recall_index = angle_to_index(angle_inner, 4)
                     self.preset_recall_mode = preset_recall_index
-
-               
 
             elif event == LxEuclidConstant.EVENT_TAP_BTN:
                 self.save_data()
@@ -1057,8 +1064,9 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
-            elif event == LxEuclidConstant.EVENT_MENU_BTN:                
-                self.param_presets_page =  (self.param_presets_page+1)%PRESET_PAGE_MAX
+            elif event == LxEuclidConstant.EVENT_MENU_BTN:
+                self.param_presets_page = (
+                    self.param_presets_page+1) % PRESET_PAGE_MAX
 
         elif self.state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
@@ -1184,7 +1192,7 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_sw_leds()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
-                config_index = angle_to_index(angle_inner, 4)
+                config_index = angle_to_index(angle_inner, 5)
 
                 self.param_channel_config_page = config_index
 
@@ -1312,16 +1320,18 @@ class LxEuclidConfig:
                                 )
 
                         self.init_cvs_parameters()  # cv config has change, refresh cv value
-                elif self.param_channel_config_page == 1:  # algo
-                    algo_index = angle_to_index(angle_inner, 4)
-                    self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index = algo_index
-                    self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
-                    )
-                elif self.param_channel_config_page == 2:  # clk division
+                
+                elif self.param_channel_config_page == 1:  # clk division
                     prescaler_index = angle_to_index(angle_inner, 7)
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].prescaler_index = prescaler_index
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
                     )
+                elif self.param_channel_config_page == 2:  # algo
+                    algo_index = angle_to_index(angle_inner, 4)
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index = algo_index
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
+                    )
+                
                 elif self.param_channel_config_page == 3:  # gate time, also have some scrolling
                     fine_randomize_select = angle_to_index(angle_inner, 8)
                     if fine_randomize_select == 0:
@@ -1329,6 +1339,9 @@ class LxEuclidConfig:
                             self.sm_rhythm_param_counter].randomize_gate_length
                         self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
                         )
+                elif self.param_channel_config_page == 4:  # burst div
+                    burst_div_index = angle_to_index(angle_inner, 5)
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].burst_div_index = burst_div_index
 
             self.save_data()
 
@@ -1354,7 +1367,7 @@ class LxEuclidConfig:
                 self.state = LxEuclidConstant.STATE_MENU_SELECT
                 self.state_lock.release()
 
-        elif local_state == LxEuclidConstant.STATE_PARAM_MENU:#todo
+        elif local_state == LxEuclidConstant.STATE_PARAM_MENU:  # todo
             if event == LxEuclidConstant.EVENT_TAP_BTN:
                 # save data, clear everything, go back to live
                 self.save_data()
@@ -1374,19 +1387,19 @@ class LxEuclidConfig:
                 self.param_menu_page = 0
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
-                    self.incr_bpm(5)                    
+                    self.incr_bpm(5)
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
-                    self.decr_bpm(5)        
+                    self.decr_bpm(5)
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
-                    self.incr_bpm(1)        
+                    self.incr_bpm(1)
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
-                    self.decr_bpm(1)        
+                    self.decr_bpm(1)
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
@@ -1402,7 +1415,7 @@ class LxEuclidConfig:
                 elif self.param_menu_page == 1:  # sensitivity
                     sensi_index = angle_to_index(angle_inner, 3)
                     self.lx_hardware.capacitives_circles.touch_sensitivity = sensi_index
-                    
+
                 elif self.param_menu_page == 2:  # display flip
                     flip_index = angle_to_index(angle_inner, 2)
                     self.flip = flip_index
@@ -1410,10 +1423,10 @@ class LxEuclidConfig:
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def incr_steps(self):
         self.computation_index_incr_step = 0
-        for euclidean_rhythm in self.euclidean_rhythms:            
-            
+        for euclidean_rhythm in self.euclidean_rhythms:
+
             did_step = euclidean_rhythm.incr_step()
-            
+
             if euclidean_rhythm.reset_step_occure:
                 # if a reset occure, we go back to step one, refresh the prescaler counter to 1
                 # and validate that a step can occure
@@ -1423,7 +1436,7 @@ class LxEuclidConfig:
                 if euclidean_rhythm.prescaler_rhythm_counter >= euclidean_rhythm.prescaler:
                     euclidean_rhythm.prescaler_rhythm_counter = 0
                 did_step = True
-                
+
             if euclidean_rhythm.get_current_step() and did_step:
                 if euclidean_rhythm.randomize_gate_length:
                     self.lx_hardware.set_gate(
@@ -1520,9 +1533,9 @@ class LxEuclidConfig:
         local_tap_tempo = self.tap_delay_ms
         self.dict_data["t_t_l"] = local_tap_tempo & 0xff
         self.dict_data["t_t_h"] = (local_tap_tempo >> 8) & 0xff
-        
+
         self.dict_data["d_o_f"] = self.flip
-        
+
         self.dict_data["p_r_m"] = self.preset_recall_mode
 
     def save_data(self):
@@ -1586,12 +1599,13 @@ class LxEuclidConfig:
             if self.v_fix is not eeprom_v_fix:
                 version_main = f"v{self.v_major}.{self.v_minor}.{self.v_fix}"
                 print("Warning: fix memory version is different. Fix changes are backward/forward compatible.",
-                  version_main, version_eeprom)
+                      version_main, version_eeprom)
                 # save fix version number
                 self.lx_hardware.set_eeprom_data_int(FIX_E_ADDR, self.v_fix)
             else:
-                print("Info: main memory version number is the same as in eeprom", version_eeprom)
-                
+                print(
+                    "Info: main memory version number is the same as in eeprom", version_eeprom)
+
             try:
 
                 eeprom_addr = [FIX_E_ADDR+1]
@@ -1639,29 +1653,29 @@ class LxEuclidConfig:
                             self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
 
                 inner_rotate_action = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))                
+                    incr_addr(eeprom_addr))
                 if inner_rotate_action >= LxEuclidConstant.CIRCLE_ACTION_NONE and inner_rotate_action <= LxEuclidConstant.CIRCLE_ACTION_MUTE:
                     self.inner_rotate_action = inner_rotate_action
 
                 inner_action_rhythm = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))                
+                    incr_addr(eeprom_addr))
                 if inner_action_rhythm >= 0 and inner_action_rhythm <= 15:
-                    self.inner_action_rhythm  = inner_action_rhythm
+                    self.inner_action_rhythm = inner_action_rhythm
 
                 outer_rotate_action = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
                 if outer_rotate_action >= LxEuclidConstant.CIRCLE_ACTION_NONE and outer_rotate_action <= LxEuclidConstant.CIRCLE_ACTION_MUTE:
                     self.outer_rotate_action = outer_rotate_action
-                    
+
                 outer_action_rhythm = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
                 if outer_action_rhythm >= 0 and outer_action_rhythm <= 15:
-                    self.outer_action_rhythm  = outer_action_rhythm
+                    self.outer_action_rhythm = outer_action_rhythm
 
                 touch_sensitivity = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))                
+                    incr_addr(eeprom_addr))
                 if touch_sensitivity >= 0 and touch_sensitivity <= 2:
-                   self.lx_hardware.capacitives_circles.touch_sensitivity = touch_sensitivity
+                    self.lx_hardware.capacitives_circles.touch_sensitivity = touch_sensitivity
 
                 clk_mode = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
@@ -1670,8 +1684,9 @@ class LxEuclidConfig:
 
                 for cv_data in self.lx_hardware.cv_manager.cvs_data:
                     for i in range(0, CvAction.CV_ACTION_LEN):
-                        
-                        cv_channel = self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr))                        
+
+                        cv_channel = self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr))
                         if cv_channel >= CvChannel.CV_CHANNEL_NONE and cv_channel <= CvChannel.CV_CHANNEL_THREE:
                             cv_data.set_cv_actions_channel(i, cv_channel)
 
@@ -1682,18 +1697,18 @@ class LxEuclidConfig:
                     incr_addr(eeprom_addr))
 
                 tap_delay_ms = tap_tempo_lsb + (tap_tempo_msb << 8)
-                
+
                 if tap_delay_ms <= LxEuclidConstant.MAX_TAP_DELAY_MS and tap_delay_ms >= LxEuclidConstant.MIN_TAP_DELAY_MS:
                     self.tap_delay_ms = tap_delay_ms
-                
+
                 flip = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
-                
+
                 if flip >= 0 and flip <= 1:
                     self.flip = flip
                 preset_recall_mode = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
-                
+
                 if preset_recall_mode >= LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET and preset_recall_mode <= LxEuclidConstant.PRESET_INTERNAL_RESET:
                     self.preset_recall_mode = preset_recall_mode
 
@@ -1757,27 +1772,30 @@ class LxEuclidConfig:
                             self.euclidean_rhythms[euclidean_rhythm_index].unmute(
                             )
         return to_return
-    
+
     # function used to test the different peripheral of the module
     def test_mode(self):
         self.state = LxEuclidConstant.STATE_TEST
         counter = 0
         while True:
-            for i in range(0,4):
-                self.lx_hardware.sw_leds[i].value(self.lx_hardware.btn_menu_pins[i].value())
-            self.lx_hardware.led_menu.value(self.lx_hardware.btn_menu_pin.value())
-            self.lx_hardware.led_tap.value(self.lx_hardware.btn_tap_pin.value())
+            for i in range(0, 4):
+                self.lx_hardware.sw_leds[i].value(
+                    self.lx_hardware.btn_menu_pins[i].value())
+            self.lx_hardware.led_menu.value(
+                self.lx_hardware.btn_menu_pin.value())
+            self.lx_hardware.led_tap.value(
+                self.lx_hardware.btn_tap_pin.value())
             self.lx_hardware.update_cv_values()
             self.LCD.set_need_display()
-            counter = counter +1
-            
+            counter = counter + 1
+
             if (counter % 4) == 0:
-                self.lx_hardware.set_gate(0,100)
+                self.lx_hardware.set_gate(0, 100)
             if (counter % 8) == 0:
-                self.lx_hardware.set_gate(1,100)
+                self.lx_hardware.set_gate(1, 100)
             if (counter % 16) == 0:
-                self.lx_hardware.set_gate(2,100)
+                self.lx_hardware.set_gate(2, 100)
             if (counter % 32) == 0:
-                self.lx_hardware.set_gate(3,100)
-            
+                self.lx_hardware.set_gate(3, 100)
+
             sleep(0.04)

@@ -23,10 +23,8 @@ DEBUG = False
 LX_LOGO = const("helixbyte_r5g6b5.bin")
 PARAM = const("param.bin")
 
-
 def rgb888_to_rgb565(R: int, G: int, B: int):  # Convert RGB888 to RGB565
     return const((((G & 0b00011100) << 3) + ((B & 0b11111000) >> 3) << 8) + (R & 0b11111000)+((G & 0b11100000) >> 5))
-
 
 def pict_to_fbuff(path, x, y):
     with open(path, 'rb') as f:
@@ -34,7 +32,6 @@ def pict_to_fbuff(path, x, y):
     return framebuf.FrameBuffer(data, x, y, framebuf.RGB565)
 
 
-@micropython.native
 def polar_to_cartesian(radius, theta):
     rad_theta = radians(theta)
     x = radius * cos(rad_theta)
@@ -42,29 +39,33 @@ def polar_to_cartesian(radius, theta):
     return int(x), int(y)
 
 
-@micropython.native
 def get_tangent_rectangle_position(angle_deg, width, height, radius):
     # Compute d from the equation:
     # d = (- (w*cos(theta) + h*sin(theta)) + sqrt((w*cos(theta)+h*sin(theta))^2 - (w^2+h^2-4R^2))/2
     angle_deg = (angle_deg) % 360
     ange_rad = radians(angle_deg)
+    cos_angle = cos(ange_rad)
+    sin_angle = sin(ange_rad)
 
     # compute correctly accoarding to quadrant
     if angle_deg >= 0 and angle_deg < 90:
-        B = int(width * cos(ange_rad) + height * sin(ange_rad))
+        B = int(width * cos_angle + height * sin_angle)
     elif angle_deg >= 90 and angle_deg < 180:
-        B = int(- width * cos(ange_rad) + height * sin(ange_rad))
+        B = int(- width * cos_angle + height * sin_angle)
     elif angle_deg >= 180 and angle_deg < 270:
-        B = int(- width * cos(ange_rad) - height * sin(ange_rad))
+        B = int(- width * cos_angle - height * sin_angle)
     elif angle_deg >= 270 and angle_deg < 360:
-        B = int(width * cos(ange_rad) - height * sin(ange_rad))
+        B = int(width * cos_angle - height * sin_angle)
 
     C = int((width**2 + height**2)/4 - radius**2)
 
     discriminant = B**2 - 4*C
 
     d = int((-B + sqrt(discriminant)) / 2)
-    return polar_to_cartesian(d, angle_deg)
+    
+    x = d * cos_angle
+    y = d * sin_angle
+    return int(x), int(y)
 
 
 class LCD_1inch28(framebuf.FrameBuffer):
@@ -77,6 +78,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.lx_euclid_config = None
         self.width = 240
         self.height = 240
+        
+        # two one byte bytearray buffer used in write_cmd and write_data
+        self.buffer_cmd = bytearray(1)
+        self.buffer_data = bytearray(1)
 
         self.cs = Pin(CS, Pin.OUT)
         self.rst = Pin(RST, Pin.OUT)
@@ -90,7 +95,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.buffer = bytearray(self.height * self.width * 2)
         super().__init__(self.buffer, self.width, self.height, framebuf.RGB565)
         gc.collect()
+        a = ticks_ms()
         self.init_display()
+        print("init", ticks_ms()-a)
         gc.collect()
 
         self.blue = const(0x07E0)
@@ -166,19 +173,21 @@ class LCD_1inch28(framebuf.FrameBuffer):
         import font.font6 as font6
         self.font_writer_freesans20 = writer.Writer(self, freesans20)
         self.font_writer_font6 = writer.Writer(self, font6)
-
+         
     def write_cmd(self, cmd):
         self.cs(1)
         self.dc(0)
         self.cs(0)
-        self.spi.write(bytearray([cmd]))
+        self.buffer_cmd[0] = cmd
+        self.spi.write(self.buffer_cmd)
         self.cs(1)
-
+        
     def write_data(self, buf):
         self.cs(1)
         self.dc(1)
         self.cs(0)
-        self.spi.write(bytearray([buf]))
+        self.buffer_data[0] = buf
+        self.spi.write(self.buffer_data)
         self.cs(1)
 
     def write_cmd_data(self, cmd, datas):
@@ -401,14 +410,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
         len_texts = len(texts)
 
-        angle = angle_start
+        angle = int(angle_start)
         angle_step = int(total_angle/len_texts)
         radius = 120
         for index, text in enumerate(texts):
             angle = angle % 360
             # if we have only one line of text
             if len(text) == 1:
-                text = text[0]
+                text = str(text[0])
                 txt_width = self.font_writer_freesans20.stringlen(text)
 
                 x_c, y_c = get_tangent_rectangle_position(
@@ -592,13 +601,13 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_font6.text(inner_outer_txt, 104, 130, page_color)
 
             if page == 0:
-                txt_colors = [txt_color]*8
+                txt_colors = [txt_color]*9
                 if self.lx_euclid_config.param_pads_inner_outer_page == 0:  # inner
                     txt_colors[self.lx_euclid_config.inner_rotate_action] = txt_color_highlight
                 else:  # outer
                     txt_colors[self.lx_euclid_config.outer_rotate_action] = txt_color_highlight
                     
-                texts = [["None"],["Rst"],["Lgth"],["Pulse"],["Rot"],["Prob"],["Fill"],["Mute"]]
+                texts = [["None"],["Rst"],["Lgth"],["Pulse"],["Rot"],["Prob"],["Fill"],["Mute"],["Burst"]]
 
                 self.display_circle_texts(texts, txt_colors)
               
@@ -618,7 +627,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                         txt_colors[i] = txt_color_highlight
 
                 macro_txts = ["rst", "lgth", "pulse",
-                              "rot", "prob", "fill", "mute"]
+                              "rot", "prob", "fill", "mute","burst"]
 
                 # -1 because 0 is "None"
                 macro_txt = macro_txts[rotate_action-1]
@@ -653,7 +662,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_font6.text(
                 current_channel_setting, 101, 130, page_color)            
 
-            texts = [["CVs"],["Algo"],["Clk Div"],["Gate","Time"]]
+            texts = [["CVs"],["Clk","Div"],["Algo"],["Gate","Time"],["Burst","Div"]]
 
             self.display_circle_texts(texts, self.white)
 
@@ -675,6 +684,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(
                 ch_index_txt, 103, 110, self.rhythm_colors[ch_index])
             page = self.lx_euclid_config.param_channel_config_page
+            
 
             if page == 0:  # CV
                 current_channel_setting = "CV"
@@ -723,24 +733,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     texts = [["None"],["CV1"],["CV2"],["CV3"],["CV4"]]
 
                     self.display_circle_texts(texts, txt_colors)
-
-            elif page == 1:  # algo
-                current_channel_setting = "algo"
-                self.font_writer_font6.text(
-                    current_channel_setting, 108, 130, page_color)
-
-                txt_colors = [txt_color]*4
-
-                channel_index = self.lx_euclid_config.sm_rhythm_param_counter
-                algo_index = self.lx_euclid_config.euclidean_rhythms[channel_index].algo_index
-
-                txt_colors[algo_index] = txt_color_highlight
-
-                texts = [["Eucl."],["Exp.","Eucl."],["Inv.","Exp."],["Sym.","Eucl."],]
-
-                self.display_circle_texts(texts, txt_colors)
-
-            elif page == 2:  # time division
+                    
+            elif page == 1:  # time division
                 current_channel_setting = "clk div"
                 self.font_writer_font6.text(
                     current_channel_setting, 101, 130, page_color)
@@ -753,6 +747,22 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 txt_colors[prescaler_index] = txt_color_highlight
                 
                 texts = [["1"],["2"],["3"],["4"],["6"],["8"],["16"]]
+
+                self.display_circle_texts(texts, txt_colors)
+                
+            elif page == 2:  # algo
+                current_channel_setting = "algo"
+                self.font_writer_font6.text(
+                    current_channel_setting, 108, 130, page_color)
+
+                txt_colors = [txt_color]*4
+
+                channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                algo_index = self.lx_euclid_config.euclidean_rhythms[channel_index].algo_index
+
+                txt_colors[algo_index] = txt_color_highlight
+
+                texts = [["Eucl."],["Exp.","Eucl."],["Inv.","Exp."],["Sym.","Eucl."],]
 
                 self.display_circle_texts(texts, txt_colors)
 
@@ -800,6 +810,22 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                 self.font_writer_freesans20.text(
                     "-", 188, 179, self.light_grey)
+                     
+            elif page == 4:  # burst TODO BURST
+                current_channel_setting = "burst"
+                self.font_writer_font6.text(
+                    current_channel_setting, 104, 130, page_color)
+
+                txt_colors = [txt_color]*5
+
+                channel_index = self.lx_euclid_config.sm_rhythm_param_counter
+                burst_div_index = self.lx_euclid_config.euclidean_rhythms[channel_index].burst_div_index
+
+                txt_colors[burst_div_index] = txt_color_highlight
+
+                texts = [["2"],["3"],["4"],["6"],["8"]]
+
+                self.display_circle_texts(texts, txt_colors)
 
         elif local_state == LxEuclidConstant.STATE_PARAM_PRESETS:
 
@@ -940,7 +966,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                 txt_colors[flip_index] = txt_color_highlight
                 
-                texts = [["Normal"],["Inverted"],["High"]]
+                texts = [["Normal"],["Inverted"]]
 
                 self.display_circle_texts(texts, txt_colors)
 
@@ -987,7 +1013,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     str(o), 120-int(o_len/2), 90, highlight_color)
             self.display_rhythm_circles()
-
         self.show()
         self.fill(self.black)
 
