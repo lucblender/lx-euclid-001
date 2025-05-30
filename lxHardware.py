@@ -133,6 +133,9 @@ class LxHardware:
 
         self.internal_clk_pin.irq(handler=self.internal_clk_pin_change,
                                   trigger=Pin.IRQ_RISING, hard=True)
+        # this sm_internal_clock goes 24 time faster than the clock to handle burst
+        # clk_subdivision_counter handle this 24 time division
+        self.clk_subdivision_counter = 0
 
         self.clk_pin.irq(handler=self.clk_pin_change,
                          trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
@@ -196,8 +199,10 @@ class LxHardware:
         self.sm2.active(1)
         self.sm3.active(1)
 
+        # for a 10th ms pulse clk should be 20_000
+        # but we do a 24subdivider pulse for burst so we up the freq to 480_000
         self.sm_internal_clock = rp2.StateMachine(
-            4, timed_10th_ms_pulse_internal_clock, freq=20_000, set_base=Pin(INTERNAL_CLOCK))
+            4, timed_10th_ms_pulse_internal_clock, freq=480_000, set_base=Pin(INTERNAL_CLOCK))
         self.sm_internal_clock.active(1)
 
         self.i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=800_000)
@@ -228,14 +233,16 @@ class LxHardware:
         self.sm_internal_clock.restart()
 
     def internal_clk_pin_change(self, pin):
-        self.lx_euclid_config.incr_steps()
-        self.lxHardwareEventFifo.append(self.clk_rise_event)
-        # relauch only when using tap mode
+        if self.clk_subdivision_counter == 0:
+            self.lx_euclid_config.incr_steps()
+            self.lxHardwareEventFifo.append(self.clk_rise_event)
+            # relauch only when using tap mode
         if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
             # we are using 16 bit on the SM
             # --> 2**16/10/1000 = 6.5536 s
             self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
-
+        self.clk_subdivision_counter = (self.clk_subdivision_counter + 1)%24
+        
     def clk_pin_change(self, pin):
         try:
             if self.clk_pin_status == self.clk_pin.value():

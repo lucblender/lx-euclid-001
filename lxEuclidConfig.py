@@ -148,6 +148,11 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         # is used to clear mute and fill only if macro or only if cv
         self.mute_by_macro = False
         self.fill_by_macro = False
+        
+        
+        self.in_burst = False
+        self.burst_steps_left = 0
+        self.current_burst_step = 0
 
         self.rhythm = []
         self.set_rhythm()
@@ -296,6 +301,32 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         if self.prescaler_rhythm_counter >= self.prescaler:
             self.prescaler_rhythm_counter = 0
         return to_return
+
+    def incr_burst_step(self):
+        if self.in_burst:
+                       
+            self.current_burst_step = self.current_burst_step + 1
+
+            beat_limit = len(self.rhythm)-1
+            if self.current_burst_step > beat_limit:
+                self.current_burst_step = 0
+                   
+            if self.burst_steps_left == 0:
+                if self.current_burst_step == self.current_step:
+                    self.in_burst = False
+            else:
+               self.burst_steps_left = self.burst_steps_left - 1 
+
+
+
+    def start_continue_burst(self):
+        if not(self.in_burst):
+            self.in_burst = True
+            self.current_burst_step = self.current_step
+            
+        # increment the steps_left by the current beat number        
+        self.burst_steps_left = self.burst_steps_left + self.beats
+        
 
     def incr_gate_length(self):
         if (self.gate_length_ms+10) < 250:
@@ -830,7 +861,7 @@ class LxEuclidConfig:
                     rotate_action = self.outer_rotate_action
                     action_rhythm = self.outer_action_rhythm
                     angle = self.lx_hardware.capacitives_circles.outer_circle_angle
-                if rotate_action in [LxEuclidConstant.CIRCLE_ACTION_RESET, LxEuclidConstant.CIRCLE_ACTION_FILL, LxEuclidConstant.CIRCLE_ACTION_MUTE]:
+                if rotate_action in [LxEuclidConstant.CIRCLE_ACTION_RESET, LxEuclidConstant.CIRCLE_ACTION_FILL, LxEuclidConstant.CIRCLE_ACTION_MUTE, LxEuclidConstant.CIRCLE_ACTION_BURST]:
                     menu_selection_index = angle_to_index(angle, 4)
 
                     if rotate_action == LxEuclidConstant.CIRCLE_ACTION_RESET:
@@ -842,6 +873,9 @@ class LxEuclidConfig:
                     elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
                         self.euclidean_rhythms[menu_selection_index].invert_mute(
                             mute_by_macro=True)
+                    elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST:#todo here
+                        self.euclidean_rhythms[menu_selection_index].start_continue_burst()
+                        print("start_continue_burst")
 
                     self.action_display_index = menu_selection_index
 
@@ -1437,7 +1471,7 @@ class LxEuclidConfig:
                     euclidean_rhythm.prescaler_rhythm_counter = 0
                 did_step = True
 
-            if euclidean_rhythm.get_current_step() and did_step:
+            if euclidean_rhythm.get_current_step() and did_step and not(euclidean_rhythm.in_burst):
                 if euclidean_rhythm.randomize_gate_length:
                     self.lx_hardware.set_gate(
                         self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_ms)
