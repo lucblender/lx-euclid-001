@@ -40,7 +40,7 @@ def angle_to_index(angle, steps, offset_45=False):
 
 class EuclideanRhythmParameters:
 
-    def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, randomize_gate_length=False, algo_index=0, burst_div_index = 0):
+    def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, randomize_gate_length=False, algo_index=0, burst_div_index=0):
         self.set_parameters(beats, pulses, offset, pulses_probability,
                             prescaler_index, gate_length_ms, randomize_gate_length, algo_index, burst_div_index)
 
@@ -84,7 +84,7 @@ class EuclideanRhythmParameters:
         self.randomized_gate_length_ms = gate_length_ms
 
         self.algo_index = algo_index
-        
+
         self._burst_div_index = burst_div_index
         self.burst_div = BURST_LIST[burst_div_index]
 
@@ -150,8 +150,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         # is used to clear mute and fill only if macro or only if cv
         self.mute_by_macro = False
         self.fill_by_macro = False
-        
-        
+
         self.in_burst = False
         self.burst_steps_left = 0
         self.current_burst_step = 0
@@ -169,7 +168,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             prescaler_index = len(PRESCALER_LIST)-1
         self._prescaler_index = prescaler_index
         self.prescaler = PRESCALER_LIST[self._prescaler_index]
-        
+
     @property
     def burst_div_index(self):
         return self._burst_div_index
@@ -320,31 +319,29 @@ class EuclideanRhythm(EuclideanRhythmParameters):
     def incr_burst_step(self, subdivision_24th):
         to_return = False
         if self.in_burst:
-            if subdivision_24th % (self.burst_div*self.prescaler) == 0:           
+            if subdivision_24th % (self.burst_div*self.prescaler) == 0:
                 self.current_burst_step = self.current_burst_step + 1
                 to_return = True
 
                 beat_limit = len(self.rhythm)-1
                 if self.current_burst_step > beat_limit:
                     self.current_burst_step = 0
-                       
+
                 if self.burst_steps_left == 0:
                     if self.current_burst_step == self.current_step:
                         self.in_burst = False
                 else:
-                   self.burst_steps_left = self.burst_steps_left - 1 
+                    self.burst_steps_left = self.burst_steps_left - 1
 
         return to_return
 
-
     def start_continue_burst(self):
-        if not(self.in_burst):
+        if not (self.in_burst):
             self.in_burst = True
             self.current_burst_step = self.current_step
-            
-        # increment the steps_left by the current beat number        
+
+        # increment the steps_left by the current beat number
         self.burst_steps_left = self.burst_steps_left + self.beats
-        
 
     def incr_gate_length(self):
         if (self.gate_length_ms+10) < 250:
@@ -361,7 +358,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def reset_step(self):
         self.reset_step_occure = True
-        
+
     def get_current_burst_step(self):
         try:
             self.get_current_step_offset = self.offset
@@ -922,7 +919,8 @@ class LxEuclidConfig:
                         self.euclidean_rhythms[menu_selection_index].invert_mute(
                             mute_by_macro=True)
                     elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST:
-                        self.euclidean_rhythms[menu_selection_index].start_continue_burst()
+                        self.euclidean_rhythms[menu_selection_index].start_continue_burst(
+                        )
 
                     self.action_display_index = menu_selection_index
 
@@ -1401,7 +1399,7 @@ class LxEuclidConfig:
                                 )
 
                         self.init_cvs_parameters()  # cv config has change, refresh cv value
-                
+
                 elif self.param_channel_config_page == 1:  # clk division
                     prescaler_index = angle_to_index(angle_inner, 7)
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].prescaler_index = prescaler_index
@@ -1412,7 +1410,7 @@ class LxEuclidConfig:
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index = algo_index
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
                     )
-                
+
                 elif self.param_channel_config_page == 3:  # gate time, also have some scrolling
                     fine_randomize_select = angle_to_index(angle_inner, 8)
                     if fine_randomize_select == 0:
@@ -1500,17 +1498,16 @@ class LxEuclidConfig:
                 elif self.param_menu_page == 2:  # display flip
                     flip_index = angle_to_index(angle_inner, 2)
                     self.flip = flip_index
-                    
-                    
+
     def incr_burst_steps(self, subdivision_24th):
         to_return = False
         self.computation_index_incr_step = 0
         for euclidean_rhythm in self.euclidean_rhythms:
             did_step = euclidean_rhythm.incr_burst_step(subdivision_24th)
-            
+
             if did_step:
                 to_return = True
-            
+
             if euclidean_rhythm.get_current_burst_step() and did_step and euclidean_rhythm.in_burst:
                 if euclidean_rhythm.randomize_gate_length:
                     self.lx_hardware.set_gate(
@@ -1521,8 +1518,8 @@ class LxEuclidConfig:
             self.computation_index_incr_step = self.computation_index_incr_step + 1
         return to_return
 
-        
     # this function can be called by an interrupt, this is why it cannot allocate any memory
+
     def incr_steps(self):
         self.computation_index_incr_step = 0
         for euclidean_rhythm in self.euclidean_rhythms:
@@ -1539,7 +1536,7 @@ class LxEuclidConfig:
                     euclidean_rhythm.prescaler_rhythm_counter = 0
                 did_step = True
 
-            if euclidean_rhythm.get_current_step() and did_step and not(euclidean_rhythm.in_burst):
+            if euclidean_rhythm.get_current_step() and did_step and not (euclidean_rhythm.in_burst):
                 if euclidean_rhythm.randomize_gate_length:
                     self.lx_hardware.set_gate(
                         self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_ms)
