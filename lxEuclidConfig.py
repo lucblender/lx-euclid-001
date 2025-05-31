@@ -152,6 +152,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.fill_by_macro = False
 
         self.in_burst = False
+        self.burst_engaged = False
         self.burst_steps_left = 0
         self.current_burst_step = 0
 
@@ -336,8 +337,9 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         return to_return
 
     def start_continue_burst(self):
-        if not (self.in_burst):
-            self.in_burst = True
+
+        if not (self.burst_engaged):
+            self.burst_engaged = True
             self.current_burst_step = self.current_step
 
         # increment the steps_left by the current beat number
@@ -912,19 +914,22 @@ class LxEuclidConfig:
                     if rotate_action == LxEuclidConstant.CIRCLE_ACTION_RESET:
                         self.euclidean_rhythms[menu_selection_index].reset_step(
                         )
+                        self.action_display_info = "r"
                     elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_FILL:
                         self.euclidean_rhythms[menu_selection_index].invert_fill(
                             fill_by_macro=True)
+                        self.action_display_info = "f"
                     elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
                         self.euclidean_rhythms[menu_selection_index].invert_mute(
                             mute_by_macro=True)
+                        self.action_display_info = "m"
                     elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST:
                         self.euclidean_rhythms[menu_selection_index].start_continue_burst(
                         )
+                        self.action_display_info = "b"
 
                     self.action_display_index = menu_selection_index
 
-                    self.action_display_info = "~"
                     self.need_circle_action_display = True
 
             elif event in [LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR, LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR]:
@@ -1499,7 +1504,23 @@ class LxEuclidConfig:
                     flip_index = angle_to_index(angle_inner, 2)
                     self.flip = flip_index
 
+    def test_start_burst(self):
+        for euclidean_rhythm in self.euclidean_rhythms:
+            if euclidean_rhythm.burst_engaged:
+                euclidean_rhythm.burst_engaged = False
+                euclidean_rhythm.in_burst = True
+
+    def is_any_burst_running(self):
+        for euclidean_rhythm in self.euclidean_rhythms:
+            if euclidean_rhythm.in_burst or euclidean_rhythm.burst_engaged:
+                return True
+        return False
+
     def incr_burst_steps(self, subdivision_24th):
+
+        if self.clk_mode == LxEuclidConstant.TAP_MODE:
+            self.test_start_burst()
+
         to_return = False
         self.computation_index_incr_step = 0
         for euclidean_rhythm in self.euclidean_rhythms:
