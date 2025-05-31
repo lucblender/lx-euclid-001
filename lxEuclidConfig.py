@@ -40,15 +40,15 @@ def angle_to_index(angle, steps, offset_45=False):
 
 class EuclideanRhythmParameters:
 
-    def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, randomize_gate_length=False, algo_index=0):
+    def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, randomize_gate_length=False, algo_index=0, burst_div_index = 0):
         self.set_parameters(beats, pulses, offset, pulses_probability,
-                            prescaler_index, gate_length_ms, randomize_gate_length, algo_index)
+                            prescaler_index, gate_length_ms, randomize_gate_length, algo_index, burst_div_index)
 
     def set_parameters_from_rhythm(self, euclideanRhythmParameters):
         self.set_parameters(euclideanRhythmParameters.beats, euclideanRhythmParameters.pulses, euclideanRhythmParameters.offset, euclideanRhythmParameters.pulses_probability,
-                            euclideanRhythmParameters.prescaler_index, euclideanRhythmParameters.gate_length_ms, euclideanRhythmParameters.randomize_gate_length, euclideanRhythmParameters.algo_index)
+                            euclideanRhythmParameters.prescaler_index, euclideanRhythmParameters.gate_length_ms, euclideanRhythmParameters.randomize_gate_length, euclideanRhythmParameters.algo_index, euclideanRhythmParameters.burst_div_index)
 
-    def set_parameters(self, beats, pulses, offset, pulses_probability, prescaler_index, gate_length_ms, randomize_gate_length, algo_index):
+    def set_parameters(self, beats, pulses, offset, pulses_probability, prescaler_index, gate_length_ms, randomize_gate_length, algo_index, burst_div_index):
         self._prescaler_index = prescaler_index
 
         self.prescaler = PRESCALER_LIST[prescaler_index]
@@ -85,8 +85,8 @@ class EuclideanRhythmParameters:
 
         self.algo_index = algo_index
         
-        self._burst_div_index = 0
-        self.burst_div = BURST_LIST[prescaler_index]
+        self._burst_div_index = burst_div_index
+        self.burst_div = BURST_LIST[burst_div_index]
 
     @property
     def prescaler_index(self):
@@ -921,9 +921,8 @@ class LxEuclidConfig:
                     elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_MUTE:
                         self.euclidean_rhythms[menu_selection_index].invert_mute(
                             mute_by_macro=True)
-                    elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST:#todo here
+                    elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST:
                         self.euclidean_rhythms[menu_selection_index].start_continue_burst()
-                        print("start_continue_burst")
 
                     self.action_display_index = menu_selection_index
 
@@ -1593,6 +1592,8 @@ class LxEuclidConfig:
                            "g_l_m"] = euclidean_rhythm.gate_length_ms
             self.dict_data[rhythm_prefix +
                            "r_g_l"] = euclidean_rhythm.randomize_gate_length
+            self.dict_data[rhythm_prefix +
+                           "b_d_i"] = euclidean_rhythm.burst_div_index
 
         for preset_index, preset in enumerate(self.presets):
             preset_prefix = f"pr_{preset_index}_"
@@ -1616,6 +1617,8 @@ class LxEuclidConfig:
                                "g_l_m"] = preset_euclidean_rhythm.gate_length_ms
                 self.dict_data[rhythm_prefix +
                                "r_g_l"] = preset_euclidean_rhythm.randomize_gate_length
+                self.dict_data[rhythm_prefix +
+                               "b_d_i"] = preset_euclidean_rhythm.burst_div_index
 
         self.dict_data["i_r_a"] = self.inner_rotate_action
         self.dict_data["i_a_r"] = self.inner_action_rhythm
@@ -1735,6 +1738,8 @@ class LxEuclidConfig:
                         incr_addr(eeprom_addr))
                     euclidean_rhythm.randomize_gate_length = bool(
                         self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
+                    euclidean_rhythm.burst_div_index = self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr))
 
                 for preset in self.presets:
                     for preset_euclidean_rhythm in preset:
@@ -1754,6 +1759,8 @@ class LxEuclidConfig:
                             incr_addr(eeprom_addr))
                         preset_euclidean_rhythm.randomize_gate_length = bool(
                             self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
+                        preset_euclidean_rhythm.burst_div_index = self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr))
 
                 inner_rotate_action = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
