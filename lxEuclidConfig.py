@@ -338,7 +338,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
     def start_continue_burst(self):
 
-        if not (self.burst_engaged):
+        if not (self.burst_engaged) and not (self.in_burst):
             self.burst_engaged = True
             self.current_burst_step = self.current_step
 
