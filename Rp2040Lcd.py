@@ -697,7 +697,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 cv_page = self.lx_euclid_config.param_channel_config_cv_page
 
                 if cv_page == 0:  # action selection
-                    txt_colors = [txt_color]*8
+                    txt_colors = [txt_color]*9
 
                     channel_index = self.lx_euclid_config.sm_rhythm_param_counter
                     cv_actions_channel = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
@@ -709,7 +709,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     txt_colors[0] = self.white
 
                     texts = [["Clear CV"], ["Rst"], ["Lgth"], [
-                        "Pulse"], ["Rot"], ["Prob"], ["Fill"], ["Mute"]]
+                        "Pulse"], ["Rot"], ["Prob"], ["Fill"], ["Mute"], ["Burst"]]
 
                     self.display_circle_texts(texts, txt_colors)
                 else:  # channel selection
@@ -722,7 +722,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                         channel_index].cv_actions_channel
 
                     cv_txts = ["rst", "lgth", "pulse",
-                               "rot", "prob", "fill", "mute"]
+                               "rot", "prob", "fill", "mute", "burst"]
 
                     # -1 because 0 is "clear cv"
                     cv_txt = cv_txts[param_channel_config_action_index-1]

@@ -37,7 +37,8 @@ class CvAction:
     CV_ACTION_PROBABILITY = const(5)
     CV_ACTION_FILL = const(6)
     CV_ACTION_MUTE = const(7)
-    CV_ACTION_LEN = const(8)
+    CV_ACTION_BURST = const(8)
+    CV_ACTION_LEN = const(9)
 
 
 class CvChannel:
@@ -55,7 +56,7 @@ class ChannelCvData:
         self.cv_actions_channel = cv_actions_channel
 
     def set_cv_actions_channel(self, cv_action_index, cv_channel):
-        if cv_action_index <= CV_ACTION_MUTE and cv_channel <= CV_CHANNEL_THREE:
+        if cv_action_index <= CV_ACTION_BURST and cv_channel <= CV_CHANNEL_THREE:
             self.cv_actions_channel[cv_action_index] = cv_channel
 
     def clear_cv_actions_channel(self):

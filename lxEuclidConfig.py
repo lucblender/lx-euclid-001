@@ -1334,7 +1334,7 @@ class LxEuclidConfig:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 if self.param_channel_config_page == 0:  # CV
                     if self.param_channel_config_cv_page == 0:
-                        action_index = angle_to_index(angle_inner, 8)
+                        action_index = angle_to_index(angle_inner, 9)
                         if action_index == 0:
                             # clear all cv_data
                             cv_actions_channel = self.lx_hardware.cv_manager.cvs_data[
