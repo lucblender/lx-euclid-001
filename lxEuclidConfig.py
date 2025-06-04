@@ -21,12 +21,6 @@ PADS_PAGE_MAX = const(2)
 CHANNEL_PAGE_MAX = const(4)
 MENU_PAGE_MAX = const(2)
 
-PRESCALER_LIST = [1, 2, 3, 4, 6, 8, 16]
-
-# BURST_LIST is in subdivision of 24
-# so [2, 3, 4, 6, 8]
-BURST_LIST = [12, 8, 6, 4, 3]
-
 # pass from 360° (in capacitive circle referential) to 0..steps
 
 
@@ -51,7 +45,7 @@ class EuclideanRhythmParameters:
     def set_parameters(self, beats, pulses, offset, pulses_probability, prescaler_index, gate_length_ms, randomize_gate_length, algo_index, burst_div_index):
         self._prescaler_index = prescaler_index
 
-        self.prescaler = PRESCALER_LIST[prescaler_index]
+        self.prescaler = LxEuclidConstant.PRESCALER_LIST[prescaler_index]
 
         self.beats = beats
 
@@ -86,7 +80,7 @@ class EuclideanRhythmParameters:
         self.algo_index = algo_index
 
         self._burst_div_index = burst_div_index
-        self.burst_div = BURST_LIST[burst_div_index]
+        self.burst_div = LxEuclidConstant.BURST_LIST[burst_div_index]
 
     @property
     def prescaler_index(self):
@@ -112,7 +106,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self, beats, pulses, offset, pulses_probability, prescaler_index)
 
         self.current_step = 0
-        self.prescaler = PRESCALER_LIST[prescaler_index]
+        self.prescaler = LxEuclidConstant.PRESCALER_LIST[prescaler_index]
         self.prescaler_rhythm_counter = 0
 
         # var used in get_current_step function. Since it's called in interrupt we can't create memory
@@ -166,10 +160,10 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
     @prescaler_index.setter
     def prescaler_index(self, prescaler_index):
-        if prescaler_index > len(PRESCALER_LIST)-1:
-            prescaler_index = len(PRESCALER_LIST)-1
+        if prescaler_index > len(LxEuclidConstant.PRESCALER_LIST)-1:
+            prescaler_index = len(LxEuclidConstant.PRESCALER_LIST)-1
         self._prescaler_index = prescaler_index
-        self.prescaler = PRESCALER_LIST[self._prescaler_index]
+        self.prescaler = LxEuclidConstant.PRESCALER_LIST[self._prescaler_index]
 
     @property
     def burst_div_index(self):
@@ -177,10 +171,10 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
     @burst_div_index.setter
     def burst_div_index(self, burst_div_index):
-        if burst_div_index > len(BURST_LIST)-1:
-            burst_div_index = len(BURST_LIST)-1
+        if burst_div_index > len(LxEuclidConstant.BURST_LIST)-1:
+            burst_div_index = len(LxEuclidConstant.BURST_LIST)-1
         self._burst_div_index = burst_div_index
-        self.burst_div = BURST_LIST[self._burst_div_index]
+        self.burst_div = LxEuclidConstant.BURST_LIST[self._burst_div_index]
 
     def mute(self, mute_by_macro=False):
         self.is_mute = True
@@ -633,6 +627,13 @@ class LxEuclidConstant:
     PRESET_INTERNAL_RESET = const(3)
 
     MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
+
+    PRESCALER_LIST = [1, 2, 3, 4, 6, 8, 16]
+
+    # BURST_LIST is in subdivision of 24 (BURST_SUBDIVISION)
+    # so [2, 3, 4, 6, 8]
+    BURST_LIST = [12, 8, 6, 4, 3]
+    BURST_SUBDIVISION = const(24)
 
 
 class LxEuclidConfig:

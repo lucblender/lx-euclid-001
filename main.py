@@ -233,7 +233,7 @@ if __name__ == '__main__':
         if (lx_hardware.btn_tap_pin.value() or lx_hardware.btn_menu_pin.value()) == 0:
             lx_euclid_config.test_mode()
 
-        # if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+        # launch the internal clock, it is usefull for tap mode BUT also burst
         lx_hardware.relaunch_internal_clk()
 
         # some click might happend because of capacitors loading so empty fifo at boot
@@ -249,11 +249,6 @@ if __name__ == '__main__':
         while True:
             lx_euclid_config.test_if_clear_gates_led()
 
-            # if lx_euclid_config.clk_mode != clk_mode_old:
-            # if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-            # lx_hardware.relaunch_internal_clk()
-            # else:
-            # lx_hardware.stop_internal_clk()
             clk_mode_old = lx_euclid_config.clk_mode
 
             if len(lx_hardware.lxHardwareEventFifo) > 0:

@@ -497,7 +497,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
     def display_rhythms(self):
 
         self.__need_display = False
-        pre_tick = ticks_ms()
 
         self.lx_euclid_config.state_lock.acquire()
         local_state = self.lx_euclid_config.state
@@ -603,19 +602,21 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_font6.text(inner_outer_txt, 104, 130, page_color)
 
             if page == 0:
-                txt_colors = [txt_color]*9
+                texts = [["None"], ["Rst"], ["Lgth"], ["Pulse"], [
+                    "Rot"], ["Prob"], ["Fill"], ["Mute"], ["Burst"]]
+
+                txt_colors = [txt_color]*len(texts)
                 if self.lx_euclid_config.param_pads_inner_outer_page == 0:  # inner
                     txt_colors[self.lx_euclid_config.inner_rotate_action] = txt_color_highlight
                 else:  # outer
                     txt_colors[self.lx_euclid_config.outer_rotate_action] = txt_color_highlight
 
-                texts = [["None"], ["Rst"], ["Lgth"], ["Pulse"], [
-                    "Rot"], ["Prob"], ["Fill"], ["Mute"], ["Burst"]]
-
                 self.display_circle_texts(texts, txt_colors)
 
             elif page == 1:
-                txt_colors = [txt_color]*4
+                texts = [["Ch1"], ["Ch2"], ["Ch3"], ["Ch4"]]
+
+                txt_colors = [txt_color]*len(texts)
 
                 if self.lx_euclid_config.param_pads_inner_outer_page == 0:  # inner
                     action_rhythm = self.lx_euclid_config.inner_action_rhythm
@@ -638,8 +639,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                 self.font_writer_font6.text(
                     macro_txt, 120-int(macro_txt_len/2), 95, page_color)
-
-                texts = [["Ch1"], ["Ch2"], ["Ch3"], ["Ch4"]]
 
                 self.display_circle_texts(texts, txt_colors)
 
@@ -697,7 +696,10 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 cv_page = self.lx_euclid_config.param_channel_config_cv_page
 
                 if cv_page == 0:  # action selection
-                    txt_colors = [txt_color]*9
+                    texts = [["Clear CV"], ["Rst"], ["Lgth"], [
+                        "Pulse"], ["Rot"], ["Prob"], ["Fill"], ["Mute"], ["Burst"]]
+
+                    txt_colors = [txt_color]*len(texts)
 
                     channel_index = self.lx_euclid_config.sm_rhythm_param_counter
                     cv_actions_channel = self.lx_euclid_config.lx_hardware.cv_manager.cvs_data[
@@ -708,13 +710,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
                             txt_colors[index] = txt_color_highlight
                     txt_colors[0] = self.white
 
-                    texts = [["Clear CV"], ["Rst"], ["Lgth"], [
-                        "Pulse"], ["Rot"], ["Prob"], ["Fill"], ["Mute"], ["Burst"]]
-
                     self.display_circle_texts(texts, txt_colors)
                 else:  # channel selection
+                    texts = [["None"], ["CV1"], ["CV2"], ["CV3"], ["CV4"]]
 
-                    txt_colors = [txt_color]*5
+                    txt_colors = [txt_color]*len(texts)
 
                     param_channel_config_action_index = self.lx_euclid_config.param_channel_config_action_index
                     channel_index = self.lx_euclid_config.sm_rhythm_param_counter
@@ -734,23 +734,21 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     highlight_index = cv_actions_channel[param_channel_config_action_index]
                     txt_colors[highlight_index] = txt_color_highlight
 
-                    texts = [["None"], ["CV1"], ["CV2"], ["CV3"], ["CV4"]]
-
                     self.display_circle_texts(texts, txt_colors)
 
             elif page == 1:  # time division
                 current_channel_setting = "clk div"
                 self.font_writer_font6.text(
                     current_channel_setting, 101, 130, page_color)
-                txt_colors = [txt_color]*7
+
+                texts = [["1"], ["2"], ["3"], ["4"], ["6"], ["8"], ["16"]]
+                txt_colors = [txt_color]*len(texts)
 
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
                 prescaler_index = self.lx_euclid_config.euclidean_rhythms[
                     channel_index].prescaler_index
 
                 txt_colors[prescaler_index] = txt_color_highlight
-
-                texts = [["1"], ["2"], ["3"], ["4"], ["6"], ["8"], ["16"]]
 
                 self.display_circle_texts(texts, txt_colors)
 
@@ -759,15 +757,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_font6.text(
                     current_channel_setting, 108, 130, page_color)
 
-                txt_colors = [txt_color]*4
+                texts = [["Eucl."], ["Exp.", "Eucl."], [
+                    "Inv.", "Exp."], ["Sym.", "Eucl."],]
+
+                txt_colors = [txt_color]*len(texts)
 
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
                 algo_index = self.lx_euclid_config.euclidean_rhythms[channel_index].algo_index
 
                 txt_colors[algo_index] = txt_color_highlight
-
-                texts = [["Eucl."], ["Exp.", "Eucl."], [
-                    "Inv.", "Exp."], ["Sym.", "Eucl."],]
 
                 self.display_circle_texts(texts, txt_colors)
 
@@ -821,15 +819,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_font6.text(
                     current_channel_setting, 104, 130, page_color)
 
-                txt_colors = [txt_color]*5
+                texts = [["2"], ["3"], ["4"], ["6"], ["8"]]
+
+                txt_colors = [txt_color]*len(texts)
 
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
                 burst_div_index = self.lx_euclid_config.euclidean_rhythms[
                     channel_index].burst_div_index
 
                 txt_colors[burst_div_index] = txt_color_highlight
-
-                texts = [["2"], ["3"], ["4"], ["6"], ["8"]]
 
                 self.display_circle_texts(texts, txt_colors)
 
@@ -867,12 +865,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                 preset_recall_index = self.lx_euclid_config.preset_recall_mode
 
-                txt_colors = [txt_color]*4
-
-                txt_colors[preset_recall_index] = txt_color_highlight
-
                 texts = [["Direct", "w/ reset"], ["Reset", "ext"],
                          ["Direct", "w/o reset"], ["Reset", "int"]]
+
+                txt_colors = [txt_color]*len(texts)
+
+                txt_colors[preset_recall_index] = txt_color_highlight
 
                 self.display_circle_texts(texts, txt_colors)
 
@@ -942,11 +940,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     self.font_writer_freesans20.text(
                         other_txt, int(120-txt_len/2), 110, self.white)
 
-                txt_colors = [txt_color]*2
+                texts = [["Internal"], ["External"]]
+
+                txt_colors = [txt_color]*len(texts)
 
                 txt_colors[clk_index] = txt_color_highlight
-
-                texts = [["Internal"], ["External"]]
 
                 self.display_circle_texts(texts, txt_colors)
 
@@ -955,13 +953,13 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_font6.text(
                     current_channel_setting, 105, 130, page_color)
 
-                txt_colors = [txt_color]*3
+                texts = [["Low"], ["Med"], ["High"]]
+
+                txt_colors = [txt_color]*len(texts)
 
                 sensi_index = self.lx_euclid_config.lx_hardware.capacitives_circles.touch_sensitivity
 
                 txt_colors[sensi_index] = txt_color_highlight
-
-                texts = [["Low"], ["Med"], ["High"]]
 
                 self.display_circle_texts(texts, txt_colors)
             elif page == 2:  # config screen orientation
@@ -971,11 +969,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                 flip_index = self.lx_euclid_config.flip
 
-                txt_colors = [txt_color]*2
+                texts = [["Normal"], ["Inverted"]]
+
+                txt_colors = [txt_color]*len(texts)
 
                 txt_colors[flip_index] = txt_color_highlight
-
-                texts = [["Normal"], ["Inverted"]]
 
                 self.display_circle_texts(texts, txt_colors)
 
