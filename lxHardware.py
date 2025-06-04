@@ -371,7 +371,9 @@ class LxHardware:
     def set_gate(self, gate_index, time_tenth_ms):
         if gate_index < 4:
             time = time_tenth_ms * 10
-            self.sms[gate_index].put(time)
+            # test if we are ready to start a new gate with the PIO (not currently having a gate out)
+            if self.sms[gate_index].tx_fifo() == 0:
+                self.sms[gate_index].put(time)
 
     def set_tap_led(self):
         self.led_tap.value(1)
