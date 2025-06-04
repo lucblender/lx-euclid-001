@@ -152,6 +152,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.fill_by_macro = False
 
         self.in_burst = False
+        self.in_burst_cv = False
         self.burst_engaged = False
         self.burst_steps_left = 0
         self.current_burst_step = 0
@@ -328,22 +329,31 @@ class EuclideanRhythm(EuclideanRhythmParameters):
                 if self.current_burst_step > beat_limit:
                     self.current_burst_step = 0
 
-                if self.burst_steps_left == 0:
-                    if self.current_burst_step == self.current_step:
-                        self.in_burst = False
-                else:
-                    self.burst_steps_left = self.burst_steps_left - 1
+                if not (self.in_burst_cv):
+                    if self.burst_steps_left == 0:
+                        if self.current_burst_step == self.current_step:
+                            self.in_burst = False
+                    else:
+                        self.burst_steps_left = self.burst_steps_left - 1
 
         return to_return
 
-    def start_continue_burst(self):
+    def start_continue_burst(self, in_cv=False):
+
+        # only put in_bust_cv if we were not in burst cv
+        if in_cv and not (self.in_burst_cv):
+            self.in_burst_cv = in_cv
 
         if not (self.burst_engaged) and not (self.in_burst):
             self.burst_engaged = True
             self.current_burst_step = self.current_step
 
-        # increment the steps_left by the current beat number
-        self.burst_steps_left = self.burst_steps_left + self.beats
+        if not (in_cv):
+            # increment the steps_left by the current beat number only if
+            self.burst_steps_left = self.burst_steps_left + self.beats
+
+    def stop_burst_cv(self):
+        self.in_burst_cv = False
 
     def incr_gate_length(self):
         if (self.gate_length_ms+10) < 250:
@@ -1349,6 +1359,9 @@ class LxEuclidConfig:
                                     elif index == CvAction.CV_ACTION_MUTE and not self.euclidean_rhythms[self.sm_rhythm_param_counter].mute_by_macro:
                                         self.euclidean_rhythms[self.sm_rhythm_param_counter].unmute(
                                         )
+                                    elif index == CvAction.CV_ACTION_BURST:
+                                        self.euclidean_rhythms[self.sm_rhythm_param_counter].stop_burst_cv(
+                                        )
                                     elif index == CvAction.CV_ACTION_BEATS:
                                         self.euclidean_rhythms[self.sm_rhythm_param_counter].has_cv_beat = False
                                         self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
@@ -1385,6 +1398,9 @@ class LxEuclidConfig:
                                 )
                             elif self.param_channel_config_action_index == CvAction.CV_ACTION_MUTE and not self.euclidean_rhythms[self.sm_rhythm_param_counter].mute_by_macro:
                                 self.euclidean_rhythms[self.sm_rhythm_param_counter].unmute(
+                                )
+                            elif self.param_channel_config_action_index == CvAction.CV_ACTION_BURST:
+                                self.euclidean_rhythms[self.sm_rhythm_param_counter].stop_burst_cv(
                                 )
                             elif self.param_channel_config_action_index == CvAction.CV_ACTION_BEATS:
                                 self.euclidean_rhythms[self.sm_rhythm_param_counter].has_cv_beat = False
@@ -1898,6 +1914,13 @@ class LxEuclidConfig:
                             )
                         else:
                             self.euclidean_rhythms[euclidean_rhythm_index].unmute(
+                            )
+                    elif cv_action == CvAction.CV_ACTION_BURST:  # TODO BURST
+                        if percent_value > LOW_PERCENTAGE_RISING_THRESHOLD:
+                            self.euclidean_rhythms[euclidean_rhythm_index].start_continue_burst(
+                                True)
+                        else:
+                            self.euclidean_rhythms[euclidean_rhythm_index].stop_burst_cv(
                             )
         return to_return
 
