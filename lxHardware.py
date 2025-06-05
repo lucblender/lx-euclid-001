@@ -95,8 +95,9 @@ class LxHardware:
     INNER_CIRCLE_TAP = const(13)
     OUTER_CIRCLE_TAP = const(14)
 
-    BTN_SWITCHES_RISE = const(15)
-    BTN_SWITCHES_FALL = const(16)
+    BTN_SWITCHES_RISE = const(14)
+    BTN_SWITCHES_FALL = const(15)
+    BTN_ALL_SWITCHES_RISE = const(16)
 
     EEPROM_ADDR = const(0x50)
 
@@ -120,6 +121,9 @@ class LxHardware:
                 HandlerEventData(LxHardware.BTN_SWITCHES_RISE, i))
             self.btn_switches_fall_event.append(
                 HandlerEventData(LxHardware.BTN_SWITCHES_FALL, i))
+
+        self.btn_all_switches_rise_event = HandlerEventData(LxHardware.BTN_ALL_SWITCHES_RISE)
+        self.all_switches_previously_pressed = False
 
         self.lxHardwareEventFifo = deque((), 20)
 
@@ -339,6 +343,19 @@ class LxHardware:
                         self.btn_switches_rise_event[index])
                 break
             index += 1
+
+        all_pressed = True
+        for status in self.btn_menu_pins_status:
+            if status != 0:
+                all_pressed = False
+                break
+
+        if all_pressed:
+            if not self.all_switches_previously_pressed:
+                self.lxHardwareEventFifo.append(self.btn_all_switches_rise_event)
+                self.all_switches_previously_pressed = True
+        else:
+            self.all_switches_previously_pressed = False
 
     def btn_menu_pin_change(self, pin):
         if self.btn_menu_pin_status == self.btn_menu_pin.value():

@@ -144,6 +144,14 @@ def lxhardware_changed(handlerEventData):
         lx_euclid_config.on_event(
             LxEuclidConstant.EVENT_BTN_SWITCHES, handlerEventData.data)
         LCD.set_need_display()
+    elif event == lx_hardware.BTN_ALL_SWITCHES_RISE:
+        lx_euclid_config.previous_state_before_countdown = lx_euclid_config.state
+        lx_euclid_config.state = LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN
+        lx_euclid_config.calibration_countdown_start_ms = ticks_ms()
+        lx_hardware.clear_sw_leds()
+        lx_hardware.clear_tap_led()
+        lx_hardware.clear_menu_led()
+        LCD.set_need_display()
     elif event == lx_hardware.BTN_MENU_RISE:
         tmp_time = ticks_ms()
         if (tmp_time - btn_menu_press) > DEBOUNCE_MS:
@@ -172,6 +180,19 @@ def display_thread():
             if not in_lxhardware_changed:
                 gc.collect()
                 lx_euclid_config.test_save_data_in_file()
+
+                if lx_euclid_config.state == LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN:
+                    remaining_ms = lx_euclid_config.calibration_countdown_start_ms + lx_euclid_config.calibration_countdown_duration_ms - ticks_ms()
+                    if remaining_ms <= 0:
+                        # Countdown finished, trigger calibration
+                        lx_hardware.capacitives_circles.calibration_sensor()
+
+                        # Revert to the previous state
+                        lx_euclid_config.state = lx_euclid_config.previous_state_before_countdown
+
+                        # Ensure display updates to the new state
+                        LCD.set_need_display()
+
                 if LCD.get_need_flip():
                     gc.collect()
                     LCD.reset_need_flip()

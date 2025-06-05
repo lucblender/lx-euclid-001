@@ -604,7 +604,8 @@ class LxEuclidConstant:
     STATE_PARAM_PADS = const(9)
     STATE_CHANNEL_CONFIG = const(10)
     STATE_CHANNEL_CONFIG_SELECTION = const(11)
-    STATE_TEST = const(100)
+    STATE_CALIBRATION_COUNTDOWN = const(12)
+    STATE_TEST= const(100)
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
@@ -740,6 +741,10 @@ class LxEuclidConfig:
             self.LCD.show()
             self.LCD.init_display(self._flip)
 
+        self.calibration_countdown_start_ms = 0
+        self.calibration_countdown_duration_ms = 5000  # 5 seconds
+        self.previous_state_before_countdown = LxEuclidConstant.STATE_LIVE
+            
     @property
     def flip(self):
         to_return = 0
