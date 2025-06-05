@@ -503,25 +503,27 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.lx_euclid_config.state_lock.release()
 
         if local_state == LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN:
-            self.fill(self.black) # Clear screen
-            remaining_ms = self.lx_euclid_config.calibration_countdown_start_ms + self.lx_euclid_config.calibration_countdown_duration_ms - ticks_ms()
-            if remaining_ms < 0:
-                remaining_ms = 0
 
-            seconds_to_display = (remaining_ms + 999) // 1000 # Ceil division
+            countdown_text = str(self.lx_euclid_config.seconds_to_display)
+            char_height = self.font_writer_freesans20.char_height
 
-            countdown_text = str(seconds_to_display)
+            text_width = self.font_writer_freesans20.stringlen(
+                countdown_text)
+            text_x = (self.width - text_width) // 2
+            text_y = (self.height - char_height) // 2 + char_height*2
+            self.font_writer_freesans20.text(
+                countdown_text, text_x, text_y, self.white)
+            texts = ["Do not touch the rings!", "Recalibration Process"]
 
-            if self.font_writer_freesans20:
-                text_width = self.font_writer_freesans20.stringlen(countdown_text)
+            for index, text in enumerate(texts):
+                text_width = self.font_writer_freesans20.stringlen(
+                    text)
                 text_x = (self.width - text_width) // 2
-                text_y = (self.height - self.font_writer_freesans20.char_height) // 2
-                self.font_writer_freesans20.text(countdown_text, text_x, text_y, self.white)
+                text_y = (self.height - char_height) // 2 - index*char_height*2
+                self.font_writer_freesans20.text(
+                    text, text_x, text_y, self.white)
 
-            self.show()
-            return # Exit after handling countdown display
-        
-        if local_state == LxEuclidConstant.STATE_TEST:            
+        elif local_state == LxEuclidConstant.STATE_TEST:
             angle_outer = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.outer_circle_angle
             self.draw_approx_pie_slice(
                 [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.white)

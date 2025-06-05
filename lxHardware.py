@@ -122,7 +122,8 @@ class LxHardware:
             self.btn_switches_fall_event.append(
                 HandlerEventData(LxHardware.BTN_SWITCHES_FALL, i))
 
-        self.btn_all_switches_rise_event = HandlerEventData(LxHardware.BTN_ALL_SWITCHES_RISE)
+        self.btn_all_switches_rise_event = HandlerEventData(
+            LxHardware.BTN_ALL_SWITCHES_RISE)
         self.all_switches_previously_pressed = False
 
         self.lxHardwareEventFifo = deque((), 20)
@@ -352,7 +353,8 @@ class LxHardware:
 
         if all_pressed:
             if not self.all_switches_previously_pressed:
-                self.lxHardwareEventFifo.append(self.btn_all_switches_rise_event)
+                self.lxHardwareEventFifo.append(
+                    self.btn_all_switches_rise_event)
                 self.all_switches_previously_pressed = True
         else:
             self.all_switches_previously_pressed = False
@@ -403,6 +405,14 @@ class LxHardware:
 
     def clear_menu_led(self):
         self.led_menu.value(0)
+
+    def re_calibrate_touch_circles(self):
+        self.i2c_lock.acquire()
+        # reset the calibration array before re-doing calibration
+        self.capacitives_circles.calibration_array = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.capacitives_circles.calibration_sensor()
+        self.i2c_lock.release()
 
     def get_touch_circles_updates(self):
         circles_data = self.capacitives_circles.get_touch_circles_updates()

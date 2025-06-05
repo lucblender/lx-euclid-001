@@ -605,7 +605,7 @@ class LxEuclidConstant:
     STATE_CHANNEL_CONFIG = const(10)
     STATE_CHANNEL_CONFIG_SELECTION = const(11)
     STATE_CALIBRATION_COUNTDOWN = const(12)
-    STATE_TEST= const(100)
+    STATE_TEST = const(100)
 
     EVENT_INIT = const(0)
     EVENT_MENU_BTN = const(1)
@@ -621,6 +621,8 @@ class LxEuclidConstant:
     EVENT_INNER_CIRCLE_TAP = const(11)
     EVENT_OUTER_CIRCLE_TAP = const(12)
     EVENT_BTN_SWITCHES = const(13)
+    EVENT_TAP_MENU_BTN_LONG = const(14)
+    EVENT_CALIBRATION_COUNTDOWN_END = const(15)
 
     PRESET_RECALL_DIRECT_W_RESET = const(0)
     PRESET_EXTERNAL_RESET = const(1)
@@ -630,6 +632,8 @@ class LxEuclidConstant:
     MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
 
     PRESCALER_LIST = [1, 2, 3, 4, 6, 8, 16]
+
+    CALIBRATION_COUNTDOWN_DURATION_MS = const(5000)  # 5 seconds
 
     # BURST_LIST is in subdivision of 24 (BURST_SUBDIVISION)
     # so [2, 3, 4, 6, 8]
@@ -719,6 +723,9 @@ class LxEuclidConfig:
 
         self.param_menu_page = 0
 
+        # used for displaying countdown during re-calibration
+        self.seconds_to_display = 0
+
         # used in interrupt function that can't create memory
         self.computation_index_incr_step = 0
 
@@ -742,9 +749,8 @@ class LxEuclidConfig:
             self.LCD.init_display(self._flip)
 
         self.calibration_countdown_start_ms = 0
-        self.calibration_countdown_duration_ms = 5000  # 5 seconds
         self.previous_state_before_countdown = LxEuclidConstant.STATE_LIVE
-            
+
     @property
     def flip(self):
         to_return = 0
@@ -873,7 +879,23 @@ class LxEuclidConfig:
         local_state = self.state
         self.state_lock.release()
 
-        if local_state == LxEuclidConstant.STATE_INIT:
+        if event == LxEuclidConstant.EVENT_TAP_MENU_BTN_LONG:
+            # this is the only action that should work in any case
+            self.state_lock.acquire()
+            self.state = LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN
+            self.state_lock.release()
+
+            self.calibration_countdown_start_ms = ticks_ms()
+            self.lx_hardware.clear_sw_leds()
+            self.lx_hardware.clear_tap_led()
+            self.lx_hardware.clear_menu_led()
+        elif local_state == LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN:
+            if event == LxEuclidConstant.EVENT_CALIBRATION_COUNTDOWN_END:
+                self.lx_hardware.re_calibrate_touch_circles()
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_LIVE
+                self.state_lock.release()
+        elif local_state == LxEuclidConstant.STATE_INIT:
             if event == LxEuclidConstant.EVENT_INIT:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
@@ -1612,6 +1634,25 @@ class LxEuclidConfig:
             if local_state == LxEuclidConstant.STATE_LIVE:
                 self.lx_hardware.clear_tap_led()
             self.clear_led_needed = False
+
+    def test_if_calibration_countdown(self):
+        if self.state == LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN:
+            remaining_ms = self.calibration_countdown_start_ms + \
+                LxEuclidConstant.CALIBRATION_COUNTDOWN_DURATION_MS - ticks_ms()
+
+            if remaining_ms < 0:
+                remaining_ms = 0
+
+            remaining_sec = (
+                remaining_ms + 999) // 1000  # Ceil division
+
+            if remaining_sec != self.seconds_to_display:
+                self.LCD.set_need_display()
+                if remaining_sec == 0:
+                    self.on_event(
+                        LxEuclidConstant.EVENT_CALIBRATION_COUNTDOWN_END)
+
+            self.seconds_to_display = remaining_sec
 
     def create_memory_dict(self):
         self.dict_data["v_ma"] = self.v_major

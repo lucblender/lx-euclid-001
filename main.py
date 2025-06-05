@@ -4,7 +4,7 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 15
+MINOR = 16
 FIX = 0
 ADD = "_dev"
 
@@ -28,6 +28,7 @@ from _thread import start_new_thread
 def print_ram(code=""):
     print(code, "free ram: ", gc.mem_free(), ", alloc ram: ", gc.mem_alloc())
 
+LONG_LONG_PRESS_MS = 2000
 LONG_PRESS_MS = 500
 DEBOUNCE_MS = 20
 
@@ -36,8 +37,8 @@ CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
 last_timer_launch_ms = ticks_ms()
 last_capacitive_circles_read_ms = ticks_ms()
 
-btn_menu_press = ticks_ms()
-tap_btn_press = ticks_ms()
+btn_menu_press = -1
+tap_btn_press = -1
 sw_btns_press = [ticks_ms(), ticks_ms(), ticks_ms(), ticks_ms()]
 stop_thread = False
 wait_display_thread = True
@@ -78,30 +79,41 @@ def lxhardware_changed(handlerEventData):
         tap_btn_press = ticks_ms()
     elif event == lx_hardware.BTN_TAP_FALL:
         global last_tap_ms
-        if lx_euclid_config.state != LxEuclidConstant.STATE_LIVE:
-            lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN)
-            LCD.set_need_display()
-        else:
-
-            temp_last_tap_ms = ticks_ms()
-
-            # when in live mode, detect long press on tap btn to do a reset of rhyhtm
-            if temp_last_tap_ms-tap_btn_press >= LONG_PRESS_MS:
-                lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN_LONG)
+        if tap_btn_press != -1:
+            if lx_euclid_config.state != LxEuclidConstant.STATE_LIVE:
+                lx_euclid_config.on_event(LxEuclidConstant.EVENT_TAP_BTN)
+                LCD.set_need_display()
+                tap_btn_press = -1
             else:
-                temp_tap_delay = temp_last_tap_ms - last_tap_ms
-                if temp_tap_delay > DEBOUNCE_MS and temp_tap_delay < LxEuclidConstant.MAX_TAP_DELAY_MS:
-                    temp_tap_delay = max(
-                        LxEuclidConstant.MIN_TAP_DELAY_MS, temp_tap_delay)
-                    # here the tap tempo time is divided by 4, for a 4/4 rhythm
-                    lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
-                    # tap tempo is saved in eeprom
-                    lx_euclid_config.save_data()
-                    if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                        lx_hardware.relaunch_internal_clk()
-                        if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
-                            LCD.set_need_display()
-                last_tap_ms = temp_last_tap_ms
+                temp_last_tap_ms = ticks_ms()
+
+                if btn_menu_press != -1 and temp_last_tap_ms-tap_btn_press >= LONG_LONG_PRESS_MS and temp_last_tap_ms-btn_menu_press >= LONG_LONG_PRESS_MS:
+                    lx_euclid_config.on_event(
+                        LxEuclidConstant.EVENT_TAP_MENU_BTN_LONG)
+                    print("ici 90")
+                    tap_btn_press = -1
+                    btn_menu_press = -1
+                # when in live mode, detect long press on tap btn to do a reset of rhyhtm
+                elif temp_last_tap_ms-tap_btn_press >= LONG_PRESS_MS:
+                    print("ici 93")
+                    lx_euclid_config.on_event(
+                        LxEuclidConstant.EVENT_TAP_BTN_LONG)
+                    tap_btn_press = -1
+                else:
+                    tap_btn_press = -1
+                    temp_tap_delay = temp_last_tap_ms - last_tap_ms
+                    if temp_tap_delay > DEBOUNCE_MS and temp_tap_delay < LxEuclidConstant.MAX_TAP_DELAY_MS:
+                        temp_tap_delay = max(
+                            LxEuclidConstant.MIN_TAP_DELAY_MS, temp_tap_delay)
+                        # here the tap tempo time is divided by 4, for a 4/4 rhythm
+                        lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
+                        # tap tempo is saved in eeprom
+                        lx_euclid_config.save_data()
+                        if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+                            lx_hardware.relaunch_internal_clk()
+                            if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
+                                LCD.set_need_display()
+                    last_tap_ms = temp_last_tap_ms
 
         LCD.set_need_display()
     elif event == lx_hardware.INNER_CIRCLE_INCR:
@@ -144,31 +156,35 @@ def lxhardware_changed(handlerEventData):
         lx_euclid_config.on_event(
             LxEuclidConstant.EVENT_BTN_SWITCHES, handlerEventData.data)
         LCD.set_need_display()
-    elif event == lx_hardware.BTN_ALL_SWITCHES_RISE:
-        lx_euclid_config.previous_state_before_countdown = lx_euclid_config.state
-        lx_euclid_config.state = LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN
-        lx_euclid_config.calibration_countdown_start_ms = ticks_ms()
-        lx_hardware.clear_sw_leds()
-        lx_hardware.clear_tap_led()
-        lx_hardware.clear_menu_led()
-        LCD.set_need_display()
     elif event == lx_hardware.BTN_MENU_RISE:
         tmp_time = ticks_ms()
         if (tmp_time - btn_menu_press) > DEBOUNCE_MS:
             btn_menu_press = tmp_time
     elif event == lx_hardware.BTN_MENU_FALL:
         global last_config_ms
-
-        if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
+        if btn_menu_press != -1:
             temp_last_config_ms = ticks_ms()
-            if temp_last_config_ms-btn_menu_press >= LONG_PRESS_MS:
-                lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN_LONG)
+
+            if tap_btn_press != -1 and temp_last_config_ms-btn_menu_press >= LONG_LONG_PRESS_MS and temp_last_config_ms-tap_btn_press >= LONG_LONG_PRESS_MS:
+                lx_euclid_config.on_event(
+                    LxEuclidConstant.EVENT_TAP_MENU_BTN_LONG)
+                print("ici 170")
+                tap_btn_press = -1
+                btn_menu_press = -1
+            elif lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
+
+                if temp_last_config_ms-btn_menu_press >= LONG_PRESS_MS:
+                    lx_euclid_config.on_event(
+                        LxEuclidConstant.EVENT_MENU_BTN_LONG)
+                    btn_menu_press = -1
+                    print("ici 173")
+                else:
+                    last_config_ms = temp_last_config_ms
+                    lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
+                    btn_menu_press = -1
             else:
-                last_config_ms = temp_last_config_ms
                 lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
-        else:
-            lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
-        LCD.set_need_display()
+            LCD.set_need_display()
 
 
 def display_thread():
@@ -180,18 +196,6 @@ def display_thread():
             if not in_lxhardware_changed:
                 gc.collect()
                 lx_euclid_config.test_save_data_in_file()
-
-                if lx_euclid_config.state == LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN:
-                    remaining_ms = lx_euclid_config.calibration_countdown_start_ms + lx_euclid_config.calibration_countdown_duration_ms - ticks_ms()
-                    if remaining_ms <= 0:
-                        # Countdown finished, trigger calibration
-                        lx_hardware.capacitives_circles.calibration_sensor()
-
-                        # Revert to the previous state
-                        lx_euclid_config.state = lx_euclid_config.previous_state_before_countdown
-
-                        # Ensure display updates to the new state
-                        LCD.set_need_display()
 
                 if LCD.get_need_flip():
                     gc.collect()
@@ -269,6 +273,8 @@ if __name__ == '__main__':
 
         while True:
             lx_euclid_config.test_if_clear_gates_led()
+
+            lx_euclid_config.test_if_calibration_countdown()
 
             clk_mode_old = lx_euclid_config.clk_mode
 
