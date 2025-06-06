@@ -725,6 +725,8 @@ class LxEuclidConfig:
 
         # used for displaying countdown during re-calibration
         self.seconds_to_display = 0
+        # countdown for the message before the calibration
+        self.calibration_countdown_start_ms = 0
 
         # used in interrupt function that can't create memory
         self.computation_index_incr_step = 0
@@ -747,9 +749,6 @@ class LxEuclidConfig:
             self.LCD.fill(self.LCD.black)
             self.LCD.show()
             self.LCD.init_display(self._flip)
-
-        self.calibration_countdown_start_ms = 0
-        self.previous_state_before_countdown = LxEuclidConstant.STATE_LIVE
 
     @property
     def flip(self):
@@ -895,6 +894,7 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
                 self.state_lock.release()
+                self.LCD.set_need_display()
         elif local_state == LxEuclidConstant.STATE_INIT:
             if event == LxEuclidConstant.EVENT_INIT:
                 self.state_lock.acquire()
@@ -1495,7 +1495,7 @@ class LxEuclidConfig:
                 self.state = LxEuclidConstant.STATE_MENU_SELECT
                 self.state_lock.release()
 
-        elif local_state == LxEuclidConstant.STATE_PARAM_MENU:  # todo
+        elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             if event == LxEuclidConstant.EVENT_TAP_BTN:
                 # save data, clear everything, go back to live
                 self.save_data()
@@ -1962,7 +1962,7 @@ class LxEuclidConfig:
                         else:
                             self.euclidean_rhythms[euclidean_rhythm_index].unmute(
                             )
-                    elif cv_action == CvAction.CV_ACTION_BURST:  # TODO BURST
+                    elif cv_action == CvAction.CV_ACTION_BURST:
                         if percent_value > LOW_PERCENTAGE_RISING_THRESHOLD:
                             self.euclidean_rhythms[euclidean_rhythm_index].start_continue_burst(
                                 True)

@@ -90,12 +90,10 @@ def lxhardware_changed(handlerEventData):
                 if btn_menu_press != -1 and temp_last_tap_ms-tap_btn_press >= LONG_LONG_PRESS_MS and temp_last_tap_ms-btn_menu_press >= LONG_LONG_PRESS_MS:
                     lx_euclid_config.on_event(
                         LxEuclidConstant.EVENT_TAP_MENU_BTN_LONG)
-                    print("ici 90")
                     tap_btn_press = -1
                     btn_menu_press = -1
                 # when in live mode, detect long press on tap btn to do a reset of rhyhtm
                 elif temp_last_tap_ms-tap_btn_press >= LONG_PRESS_MS:
-                    print("ici 93")
                     lx_euclid_config.on_event(
                         LxEuclidConstant.EVENT_TAP_BTN_LONG)
                     tap_btn_press = -1
@@ -168,7 +166,6 @@ def lxhardware_changed(handlerEventData):
             if tap_btn_press != -1 and temp_last_config_ms-btn_menu_press >= LONG_LONG_PRESS_MS and temp_last_config_ms-tap_btn_press >= LONG_LONG_PRESS_MS:
                 lx_euclid_config.on_event(
                     LxEuclidConstant.EVENT_TAP_MENU_BTN_LONG)
-                print("ici 170")
                 tap_btn_press = -1
                 btn_menu_press = -1
             elif lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
@@ -177,7 +174,6 @@ def lxhardware_changed(handlerEventData):
                     lx_euclid_config.on_event(
                         LxEuclidConstant.EVENT_MENU_BTN_LONG)
                     btn_menu_press = -1
-                    print("ici 173")
                 else:
                     last_config_ms = temp_last_config_ms
                     lx_euclid_config.on_event(LxEuclidConstant.EVENT_MENU_BTN)
