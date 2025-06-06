@@ -100,9 +100,10 @@ def lxhardware_changed(handlerEventData):
                 else:
                     tap_btn_press = -1
                     temp_tap_delay = temp_last_tap_ms - last_tap_ms
-                    if temp_tap_delay > DEBOUNCE_MS and temp_tap_delay < LxEuclidConstant.MAX_TAP_DELAY_MS:
+                    # MIN_TAP_DELAY_MS*4 and MAX_TAP_DELAY_MS*4 cause we are
+                    if temp_tap_delay > DEBOUNCE_MS and temp_tap_delay < (LxEuclidConstant.MAX_TAP_DELAY_MS*4):
                         temp_tap_delay = max(
-                            LxEuclidConstant.MIN_TAP_DELAY_MS, temp_tap_delay)
+                            LxEuclidConstant.MIN_TAP_DELAY_MS*4, temp_tap_delay)
                         # here the tap tempo time is divided by 4, for a 4/4 rhythm
                         lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
                         # tap tempo is saved in eeprom
