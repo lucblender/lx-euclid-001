@@ -731,8 +731,7 @@ class LxEuclidConfig:
         # used in interrupt function that can't create memory
         self.computation_index_incr_step = 0
 
-        self._tap_delay_ms = 125  # default tap tempo 120bmp 125ms for 16th note
-        self.tap_delay_ms_lock = allocate_lock()
+        self.tap_delay_ms = 125  # default tap tempo 120bmp 125ms for 16th note
 
         # list used to test if data changed and needs to be stocked in memory
         self.previous_dict_data_list = []
@@ -827,20 +826,6 @@ class LxEuclidConfig:
         # if current recall mode is direct wo reset or, we called previously a preset_recall_ext_reset
         if self.preset_recall_mode is not LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET and self.preset_recall_ext_reset is False:
             self.reset_steps()
-
-    @property
-    def tap_delay_ms(self):
-        to_return = 0
-        self.tap_delay_ms_lock.acquire()
-        to_return = self._tap_delay_ms
-        self.tap_delay_ms_lock.release()
-        return to_return
-
-    @tap_delay_ms.setter
-    def tap_delay_ms(self, tap_delay_ms):
-        self.tap_delay_ms_lock.acquire()
-        self._tap_delay_ms = tap_delay_ms
-        self.tap_delay_ms_lock.release()
 
     def get_int_bpm(self):
         return round((60/(self.tap_delay_ms/1000))/4)
