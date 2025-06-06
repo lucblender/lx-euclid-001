@@ -572,9 +572,9 @@ class LxEuclidConstant:
     MIN_BPM = const(8)
 
     # tap is in 4/4 so time is 4x delay time
-    MIN_TAP_DELAY_MS = int(((60/MAX_BPM)*1000))
+    MIN_TAP_DELAY_MS = int(((60/(MAX_BPM*4))*1000))
     # equivalent to ~2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
-    MAX_TAP_DELAY_MS = int(((60/MIN_BPM)*1000))
+    MAX_TAP_DELAY_MS = int(((60/(MIN_BPM*4))*1000))
 
     CIRCLE_ACTION_NONE = const(0)
     CIRCLE_ACTION_RESET = const(1)
@@ -604,6 +604,7 @@ class LxEuclidConstant:
     STATE_PARAM_PADS = const(9)
     STATE_CHANNEL_CONFIG = const(10)
     STATE_CHANNEL_CONFIG_SELECTION = const(11)
+    STATE_CALIBRATION_COUNTDOWN = const(12)
     STATE_TEST = const(100)
 
     EVENT_INIT = const(0)
@@ -620,6 +621,8 @@ class LxEuclidConstant:
     EVENT_INNER_CIRCLE_TAP = const(11)
     EVENT_OUTER_CIRCLE_TAP = const(12)
     EVENT_BTN_SWITCHES = const(13)
+    EVENT_TAP_MENU_BTN_LONG = const(14)
+    EVENT_CALIBRATION_COUNTDOWN_END = const(15)
 
     PRESET_RECALL_DIRECT_W_RESET = const(0)
     PRESET_EXTERNAL_RESET = const(1)
@@ -629,6 +632,8 @@ class LxEuclidConstant:
     MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
 
     PRESCALER_LIST = [1, 2, 3, 4, 6, 8, 16]
+
+    CALIBRATION_COUNTDOWN_DURATION_MS = const(5000)  # 5 seconds
 
     # BURST_LIST is in subdivision of 24 (BURST_SUBDIVISION)
     # so [2, 3, 4, 6, 8]
@@ -718,11 +723,15 @@ class LxEuclidConfig:
 
         self.param_menu_page = 0
 
+        # used for displaying countdown during re-calibration
+        self.seconds_to_display = 0
+        # countdown for the message before the calibration
+        self.calibration_countdown_start_ms = 0
+
         # used in interrupt function that can't create memory
         self.computation_index_incr_step = 0
 
-        self._tap_delay_ms = 125  # default tap tempo 120bmp 125ms for 16th note
-        self.tap_delay_ms_lock = allocate_lock()
+        self.tap_delay_ms = 125  # default tap tempo 120bmp 125ms for 16th note
 
         # list used to test if data changed and needs to be stocked in memory
         self.previous_dict_data_list = []
@@ -818,20 +827,6 @@ class LxEuclidConfig:
         if self.preset_recall_mode is not LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET and self.preset_recall_ext_reset is False:
             self.reset_steps()
 
-    @property
-    def tap_delay_ms(self):
-        to_return = 0
-        self.tap_delay_ms_lock.acquire()
-        to_return = self._tap_delay_ms
-        self.tap_delay_ms_lock.release()
-        return to_return
-
-    @tap_delay_ms.setter
-    def tap_delay_ms(self, tap_delay_ms):
-        self.tap_delay_ms_lock.acquire()
-        self._tap_delay_ms = tap_delay_ms
-        self.tap_delay_ms_lock.release()
-
     def get_int_bpm(self):
         return round((60/(self.tap_delay_ms/1000))/4)
 
@@ -868,7 +863,24 @@ class LxEuclidConfig:
         local_state = self.state
         self.state_lock.release()
 
-        if local_state == LxEuclidConstant.STATE_INIT:
+        if event == LxEuclidConstant.EVENT_TAP_MENU_BTN_LONG:
+            # this is the only action that should work in any case
+            self.state_lock.acquire()
+            self.state = LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN
+            self.state_lock.release()
+
+            self.calibration_countdown_start_ms = ticks_ms()
+            self.lx_hardware.clear_sw_leds()
+            self.lx_hardware.clear_tap_led()
+            self.lx_hardware.clear_menu_led()
+        elif local_state == LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN:
+            if event == LxEuclidConstant.EVENT_CALIBRATION_COUNTDOWN_END:
+                self.lx_hardware.re_calibrate_touch_circles()
+                self.state_lock.acquire()
+                self.state = LxEuclidConstant.STATE_LIVE
+                self.state_lock.release()
+                self.LCD.set_need_display()
+        elif local_state == LxEuclidConstant.STATE_INIT:
             if event == LxEuclidConstant.EVENT_INIT:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
@@ -1468,7 +1480,7 @@ class LxEuclidConfig:
                 self.state = LxEuclidConstant.STATE_MENU_SELECT
                 self.state_lock.release()
 
-        elif local_state == LxEuclidConstant.STATE_PARAM_MENU:  # todo
+        elif local_state == LxEuclidConstant.STATE_PARAM_MENU:
             if event == LxEuclidConstant.EVENT_TAP_BTN:
                 # save data, clear everything, go back to live
                 self.save_data()
@@ -1607,6 +1619,25 @@ class LxEuclidConfig:
             if local_state == LxEuclidConstant.STATE_LIVE:
                 self.lx_hardware.clear_tap_led()
             self.clear_led_needed = False
+
+    def test_if_calibration_countdown(self):
+        if self.state == LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN:
+            remaining_ms = self.calibration_countdown_start_ms + \
+                LxEuclidConstant.CALIBRATION_COUNTDOWN_DURATION_MS - ticks_ms()
+
+            if remaining_ms < 0:
+                remaining_ms = 0
+
+            remaining_sec = (
+                remaining_ms + 999) // 1000  # Ceil division
+
+            if remaining_sec != self.seconds_to_display:
+                self.LCD.set_need_display()
+                if remaining_sec == 0:
+                    self.on_event(
+                        LxEuclidConstant.EVENT_CALIBRATION_COUNTDOWN_END)
+
+            self.seconds_to_display = remaining_sec
 
     def create_memory_dict(self):
         self.dict_data["v_ma"] = self.v_major
@@ -1916,7 +1947,7 @@ class LxEuclidConfig:
                         else:
                             self.euclidean_rhythms[euclidean_rhythm_index].unmute(
                             )
-                    elif cv_action == CvAction.CV_ACTION_BURST:  # TODO BURST
+                    elif cv_action == CvAction.CV_ACTION_BURST:
                         if percent_value > LOW_PERCENTAGE_RISING_THRESHOLD:
                             self.euclidean_rhythms[euclidean_rhythm_index].start_continue_burst(
                                 True)

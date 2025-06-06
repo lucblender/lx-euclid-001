@@ -59,11 +59,11 @@ def get_tangent_rectangle_position(angle_deg, width, height, radius):
     elif angle_deg >= 270 and angle_deg < 360:
         B = int(width * cos_angle - height * sin_angle)
 
-    C = int((width**2 + height**2)/4 - radius**2)
+    C = (width**2 + height**2)//4 - radius**2
 
     discriminant = B**2 - 4*C
 
-    d = int((-B + sqrt(discriminant)) / 2)
+    d = (-B + sqrt(discriminant)) // 2
 
     x = d * cos_angle
     y = d * sin_angle
@@ -364,12 +364,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
             heigth = 74
             lxb_fbuf = pict_to_fbuff(LX_LOGO, heigth, width)
 
-            self.blit(lxb_fbuf, 120-int(heigth/2), 120-int(width/2))
+            self.blit(lxb_fbuf, 120-(heigth//2), 120-(width//2))
         self.show()
         sleep(1.5)
         if version is not None:
             txt_len = 54  # can't use stinglen since we use default font to not use memory cause we loaded lxb logo
-            self.text(version, 120-int(txt_len/2), 200, self.grey)
+            self.text(version, 120-(txt_len//2), 200, self.grey)
             self.show()
             sleep(0.5)
 
@@ -413,7 +413,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
         len_texts = len(texts)
 
         angle = int(angle_start)
-        angle_step = int(total_angle/len_texts)
+        angle_step = (total_angle//len_texts)
         radius = 120
         for index, text in enumerate(texts):
             angle = angle % 360
@@ -427,8 +427,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 x_c += 120
                 y_c += 120
 
-                x = int(x_c - txt_width/2)
-                y = int(y_c - txt_height/2)
+                x = x_c - txt_width//2
+                y = y_c - txt_height//2
 
                 # uncomment to show bouding box
                 # self.rect(x,y,txt_width,txt_height,self.blue)
@@ -449,39 +449,39 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 x_c += 120
                 y_c += 120
                 if angle == 270 or angle == 90:
-                    x_0 = int(x_c - txt_width_0/2)
-                    y_0 = int(y_c - txt_height)
+                    x_0 = x_c - txt_width_0//2
+                    y_0 = y_c - txt_height
 
-                    x_1 = int(x_c - txt_width_1/2)
-                    y_1 = int(y_c)
+                    x_1 = x_c - txt_width_1//2
+                    y_1 = y_c
                 elif angle > 270 or angle < 90:
                     if index_bigger == 0:
-                        x_0 = int(x_c - txt_width_0/2)
-                        y_0 = int(y_c - txt_height)
+                        x_0 = x_c - txt_width_0//2
+                        y_0 = y_c - txt_height
 
-                        x_1 = int(x_c - txt_width_0/2) + \
+                        x_1 = (x_c - txt_width_0//2) + \
                             (txt_width_0-txt_width_1)
-                        y_1 = int(y_c)
+                        y_1 = y_c
                     else:
-                        x_0 = int(x_c - txt_width_1/2) + \
+                        x_0 = (x_c - txt_width_1//2) + \
                             (txt_width_1-txt_width_0)
-                        y_0 = int(y_c - txt_height)
+                        y_0 = y_c - txt_height
 
-                        x_1 = int(x_c - txt_width_1/2)
-                        y_1 = int(y_c)
+                        x_1 = x_c - txt_width_1//2
+                        y_1 = y_c
                 else:
                     if index_bigger == 0:
-                        x_0 = int(x_c - txt_width_0/2)
-                        y_0 = int(y_c - txt_height)
+                        x_0 = x_c - txt_width_0//2
+                        y_0 = y_c - txt_height
 
-                        x_1 = int(x_c - txt_width_0/2)
-                        y_1 = int(y_c)
+                        x_1 = x_c - txt_width_0//2
+                        y_1 = y_c
                     else:
-                        x_0 = int(x_c - txt_width_1/2)
-                        y_0 = int(y_c - txt_height)
+                        x_0 = x_c - txt_width_1//2
+                        y_0 = y_c - txt_height
 
-                        x_1 = int(x_c - txt_width_1/2)
-                        y_1 = int(y_c)
+                        x_1 = x_c - txt_width_1//2
+                        y_1 = y_c
 
                 # uncomment to show bouding box
                 # self.rect(x_0,y_0,txt_width_0,txt_height,self.blue)
@@ -502,7 +502,28 @@ class LCD_1inch28(framebuf.FrameBuffer):
         local_state = self.lx_euclid_config.state
         self.lx_euclid_config.state_lock.release()
 
-        if local_state == LxEuclidConstant.STATE_TEST:
+        if local_state == LxEuclidConstant.STATE_CALIBRATION_COUNTDOWN:
+
+            countdown_text = str(self.lx_euclid_config.seconds_to_display)
+            char_height = self.font_writer_freesans20.char_height
+
+            text_width = self.font_writer_freesans20.stringlen(
+                countdown_text)
+            text_x = (self.width - text_width) // 2
+            text_y = (self.height - char_height) // 2 + char_height*2
+            self.font_writer_freesans20.text(
+                countdown_text, text_x, text_y, self.white)
+            texts = ["Do not touch the rings!", "Recalibration Process"]
+
+            for index, text in enumerate(texts):
+                text_width = self.font_writer_freesans20.stringlen(
+                    text)
+                text_x = (self.width - text_width) // 2
+                text_y = (self.height - char_height) // 2 - index*char_height*2
+                self.font_writer_freesans20.text(
+                    text, text_x, text_y, self.white)
+
+        elif local_state == LxEuclidConstant.STATE_TEST:
             angle_outer = 90-self.lx_euclid_config.lx_hardware.capacitives_circles.outer_circle_angle
             self.draw_approx_pie_slice(
                 [120, 120], 110, 120, angle_outer-10, angle_outer+10, self.white)
@@ -513,7 +534,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             txt = "debug"
             txt_len = self.font_writer_freesans20.stringlen(txt)
             self.font_writer_freesans20.text(
-                txt, 120-int(txt_len/2), 20, self.white)
+                txt, 120-(txt_len//2), 20, self.white)
 
             clk_value = self.lx_euclid_config.lx_hardware.clk_pin.value()
             rst_value = self.lx_euclid_config.lx_hardware.rst_pin.value()
@@ -544,7 +565,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 txt_len = self.font_writer_freesans20.stringlen(txt)
                 color = self.rhythm_colors[self.lx_euclid_config.action_display_index]
                 self.font_writer_freesans20.text(
-                    txt, 120-int(txt_len/2), 110, color)
+                    txt, 120-(txt_len//2), 110, color)
 
         elif local_state == LxEuclidConstant.STATE_MENU_SELECT:
 
@@ -638,7 +659,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 macro_txt_len = self.font_writer_font6.stringlen(macro_txt)
 
                 self.font_writer_font6.text(
-                    macro_txt, 120-int(macro_txt_len/2), 95, page_color)
+                    macro_txt, 120-(macro_txt_len//2), 95, page_color)
 
                 self.display_circle_texts(texts, txt_colors)
 
@@ -729,7 +750,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     cv_txt_len = self.font_writer_font6.stringlen(cv_txt)
 
                     self.font_writer_font6.text(
-                        cv_txt, 120-int(cv_txt_len/2), 95, page_color)
+                        cv_txt, 120-(cv_txt_len//2), 95, page_color)
 
                     highlight_index = cv_actions_channel[param_channel_config_action_index]
                     txt_colors[highlight_index] = txt_color_highlight
@@ -806,7 +827,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 time_txt_len = self.font_writer_font6.stringlen(time_txt)
 
                 self.font_writer_freesans20.text(
-                    time_txt, 115-int(time_txt_len/2), 200, self.white)
+                    time_txt, 115-(time_txt_len//2), 200, self.white)
 
                 self.font_writer_freesans20.text(
                     "+", 43, 179, self.light_grey)
@@ -814,7 +835,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     "-", 188, 179, self.light_grey)
 
-            elif page == 4:  # burst TODO BURST
+            elif page == 4:
                 current_channel_setting = "burst"
                 self.font_writer_font6.text(
                     current_channel_setting, 104, 130, page_color)
@@ -938,7 +959,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     txt_len = self.font_writer_freesans20.stringlen(other_txt)
 
                     self.font_writer_freesans20.text(
-                        other_txt, int(120-txt_len/2), 110, self.white)
+                        other_txt, (120-txt_len//2), 110, self.white)
 
                 texts = [["Internal"], ["External"]]
 
@@ -1002,9 +1023,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 p = str(current_euclidean_rhythm.pulses)
                 p_len = self.font_writer_freesans20.stringlen(p)
                 self.font_writer_freesans20.text(
-                    str(b), 120-int(b_len/2), 71, highlight_color)
+                    str(b), 120-(b_len//2), 71, highlight_color)
                 self.font_writer_freesans20.text(
-                    str(p), 120-int(p_len/2), 90, highlight_color)
+                    str(p), 120-(p_len//2), 90, highlight_color)
             elif local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY:
                 self.poly(0, 0, array(
                     "h", [120, 120, 120-45, 65, 120+45, 65]), self.black, True)
@@ -1016,9 +1037,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 prob_len = self.font_writer_freesans20.stringlen(prob)
 
                 self.font_writer_freesans20.text(
-                    str(prob), 120-int(prob_len/2), 71, highlight_color)
+                    str(prob), 120-(prob_len//2), 71, highlight_color)
                 self.font_writer_freesans20.text(
-                    str(o), 120-int(o_len/2), 90, highlight_color)
+                    str(o), 120-(o_len//2), 90, highlight_color)
             self.display_rhythm_circles()
         self.show()
         self.fill(self.black)

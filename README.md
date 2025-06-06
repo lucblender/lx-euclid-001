@@ -1,4 +1,3 @@
-
 # lx-euclid
 
 lx-euclid by AtoVproject & Lucas Bonvin
@@ -10,15 +9,16 @@ The AtoVproject lx-euclid is a 4-channel trigger sequencer with a standout featu
 More info about the module can be found on its [product page](https://atovproject.de/products/atovproject-lx-euclid) and if you want to get yours, go to [AtoVproject store](https://atovproject.de/store).
 
 - [lx-euclid](#lx-euclid)
-- [Installation of last firmware](#installation-of-last-firmware)
-- [Build an UF2 image from source](#build-an-uf2-image-from-source)
-  - [Requirement](#requirement)
-    - [Main repository : lx-euclid](#main-repository--lx-euclid)
-    - [Micropython](#micropython)
-    - [dir2uf2](#dir2uf2)
-  - [Build the image with provided shell script](#build-the-image-with-provided-shell-script)
+  - [Installation of last firmware](#installation-of-last-firmware)
+  - [Build an UF2 image from source](#build-an-uf2-image-from-source)
+    - [Requirement](#requirement)
+      - [Main repository : lx-euclid](#main-repository--lx-euclid)
+      - [Micropython](#micropython)
+      - [dir2uf2](#dir2uf2)
+    - [Build the image with provided shell script](#build-the-image-with-provided-shell-script)
+  - [License](#license)
 
-# Installation of last firmware
+## Installation of last firmware
 
 Download the last UF2 image in the [releases](https://github.com/lucblender/lx-euclid-001/releases/)
 
@@ -30,13 +30,13 @@ Download the last UF2 image in the [releases](https://github.com/lucblender/lx-e
   - After this action, the module will reboot with the new software
 - Remove USB-C cable, rewire your module into your eurorack system and power up your rack
 
-# Build an UF2 image from source
+## Build an UF2 image from source
 
 **This chapter is for advanced programmer only that want to play with the current *develop* code or want to create custom micropython firmware.**
 
 The following instruction are for Linux users. For Windows user, Ubuntu WSL is highly recommended.
 
-## Requirement
+### Requirement
 
 To build and UF2 image, you will need:
 
@@ -48,11 +48,11 @@ To build and UF2 image, you will need:
 - [dir2uf2](#dir2uf2)
   - Python based tool to pack a directory of files into a LFSV2 filesystem and save as .uf2
 
-### Main repository : lx-euclid
+#### Main repository : lx-euclid
 
 ```git clone https://github.com/lucblender/lx-euclid-001.git```
 
-### Micropython
+#### Micropython
 
 More detailed information can be found in the [Raspberry Pi Pico Python SDK PDF book](https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf).
 
@@ -65,7 +65,7 @@ make -C ports/rp2 submodules
 
 ```
 
-### dir2uf2
+#### dir2uf2
 
 dir2uf2 require python to work.
 
@@ -82,7 +82,7 @@ cd dir2uf2
 pip3 install -r requirements-micropython-1.23.0.txt
 ```
 
-## Build the image with provided shell script
+### Build the image with provided shell script
 
 The shell script [build-uf2.sh](/shell%20scripts/build-uf2.sh) will create a complete UF2 image ready for upload to the lx-euclid module. This script will:
 
@@ -106,3 +106,7 @@ When the [lx-euclid.env](/shell%20scripts/lx-euclid.env) file is correctly edite
 ```
 
 With your newly created UF2 image, you can upload it to the lx-euclid module following the instruction in the [Installation of last firmware](#installation-of-last-firmware) chapter.
+
+## License
+
+This project is licensed under the [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) License. You may use, modify, and share it for non-commercial purposes.

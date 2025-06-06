@@ -3,7 +3,7 @@ from machine import Pin, I2C
 from ucollections import deque
 from micropython import const
 import rp2
-from utime import ticks_ms
+from utime import ticks_us
 
 from capacitivesCircles import CapacitivesCircles
 from cvManager import CvManager
@@ -22,7 +22,7 @@ LED_MENU = const(21)
 
 # 30bpm is the lowest supported
 # equal 0.5hz equal 2sec period equal 2000ms
-LOWEST_CLK_IN_MS = const(2000)
+LOWEST_CLK_IN_TENTH_MS = const(2000*10)
 
 # this is external I2C SDA. We use it as internal clock until micropython fix mutlithreading issue with
 # pio, timer and schedule
@@ -229,12 +229,12 @@ class LxHardware:
 
         self.lx_euclid_config = None
 
-        self.last_clock_ticks_ms = 0
+        self.last_clock_ticks_tenth_ms = 0
         self.clock_period_accumulator = 0
-        self.clock_period_avg_ms = LOWEST_CLK_IN_MS
+        self.clock_period_avg_tenth_ms = LOWEST_CLK_IN_TENTH_MS
         self.last_clock_periods = deque((), 8)
         for i in range(0, 8):
-            self.last_clock_periods.append(LOWEST_CLK_IN_MS)
+            self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
 
     def set_lx_euclid_config(self, lx_euclid_config):
         self.lx_euclid_config = lx_euclid_config
@@ -262,7 +262,7 @@ class LxHardware:
         if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
             self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
         else:
-            self.sm_internal_clock.put(self.clock_period_avg_ms*10)
+            self.sm_internal_clock.put(self.clock_period_avg_tenth_ms)
 
         # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
         # *
@@ -278,19 +278,19 @@ class LxHardware:
             self.clk_pin_status = self.clk_pin.value()
             if not self.clk_pin.value():
                 if self.lx_euclid_config is not None:
-
-                    if ticks_ms()-self.last_clock_ticks_ms > LOWEST_CLK_IN_MS:
-                        self.last_clock_periods.append(LOWEST_CLK_IN_MS)
+                    temp_ticks_tenth_ms = ticks_us()//100
+                    if temp_ticks_tenth_ms-self.last_clock_ticks_tenth_ms > (LOWEST_CLK_IN_TENTH_MS):
+                        self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
                     else:
                         self.last_clock_periods.append(
-                            ticks_ms()-self.last_clock_ticks_ms)
-                    self.last_clock_ticks_ms = ticks_ms()
+                            temp_ticks_tenth_ms-self.last_clock_ticks_tenth_ms)
+                    self.last_clock_ticks_tenth_ms = temp_ticks_tenth_ms
 
                     self.clock_period_accumulator = 0
                     for i in range(0, 8):
                         self.clock_period_accumulator += self.last_clock_periods[i]
-                    # >> 3 = (int)/8 since we have 8 element in the last_clock_periods deque
-                    self.clock_period_avg_ms = self.clock_period_accumulator >> 3
+                    # ceil div by 8 since we have 8 element in the last_clock_periods deque
+                    self.clock_period_avg_tenth_ms = self.clock_period_accumulator // 8
 
                     if self.lx_euclid_config.clk_mode == LxEuclidConstant.CLK_IN:
                         self.lx_euclid_config.incr_steps()
@@ -386,6 +386,14 @@ class LxHardware:
 
     def clear_menu_led(self):
         self.led_menu.value(0)
+
+    def re_calibrate_touch_circles(self):
+        self.i2c_lock.acquire()
+        # reset the calibration array before re-doing calibration
+        self.capacitives_circles.calibration_array = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.capacitives_circles.calibration_sensor()
+        self.i2c_lock.release()
 
     def get_touch_circles_updates(self):
         circles_data = self.capacitives_circles.get_touch_circles_updates()
