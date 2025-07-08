@@ -3,6 +3,7 @@ from machine import Pin, I2C
 from ucollections import deque
 from micropython import const
 import rp2
+from utime import ticks_us
 
 from capacitivesCircles import CapacitivesCircles
 from cvManager import CvManager
@@ -18,6 +19,10 @@ LED_TAP = const(20)
 
 BTN_MENU = const(22)
 LED_MENU = const(21)
+
+# 30bpm is the lowest supported
+# equal 0.5hz equal 2sec period equal 2000ms
+LOWEST_CLK_IN_TENTH_MS = const(2000*10)
 
 # this is external I2C SDA. We use it as internal clock until micropython fix mutlithreading issue with
 # pio, timer and schedule
@@ -77,20 +82,21 @@ class LxHardware:
     BTN_TAP_RISE = const(1)
     BTN_TAP_FALL = const(2)
     CLK_RISE = const(3)
-    BTN_MENU_RISE = const(4)
-    BTN_MENU_FALL = const(5)
+    BURST_CLK_RISE = const(4)
+    BTN_MENU_RISE = const(5)
+    BTN_MENU_FALL = const(6)
 
-    INNER_CIRCLE_INCR = const(6)
-    INNER_CIRCLE_DECR = const(7)
-    OUTER_CIRCLE_INCR = const(8)
-    OUTER_CIRCLE_DECR = const(9)
-    INNER_CIRCLE_TOUCH = const(10)
-    OUTER_CIRCLE_TOUCH = const(11)
-    INNER_CIRCLE_TAP = const(12)
-    OUTER_CIRCLE_TAP = const(13)
+    INNER_CIRCLE_INCR = const(7)
+    INNER_CIRCLE_DECR = const(8)
+    OUTER_CIRCLE_INCR = const(9)
+    OUTER_CIRCLE_DECR = const(10)
+    INNER_CIRCLE_TOUCH = const(11)
+    OUTER_CIRCLE_TOUCH = const(12)
+    INNER_CIRCLE_TAP = const(13)
+    OUTER_CIRCLE_TAP = const(14)
 
-    BTN_SWITCHES_RISE = const(14)
-    BTN_SWITCHES_FALL = const(15)
+    BTN_SWITCHES_RISE = const(15)
+    BTN_SWITCHES_FALL = const(16)
 
     EEPROM_ADDR = const(0x50)
 
@@ -99,6 +105,7 @@ class LxHardware:
         self.btn_fall_event = HandlerEventData(LxHardware.BTN_TAP_FALL)
         self.btn_rise_event = HandlerEventData(LxHardware.BTN_TAP_RISE)
         self.clk_rise_event = HandlerEventData(LxHardware.CLK_RISE)
+        self.clk_burst_rise_event = HandlerEventData(LxHardware.BURST_CLK_RISE)
 
         self.btn_menu_fall_event = HandlerEventData(LxHardware.BTN_MENU_FALL)
         self.btn_menu_rise_event = HandlerEventData(LxHardware.BTN_MENU_RISE)
@@ -133,6 +140,9 @@ class LxHardware:
 
         self.internal_clk_pin.irq(handler=self.internal_clk_pin_change,
                                   trigger=Pin.IRQ_RISING, hard=True)
+        # this sm_internal_clock goes 24 time faster than the clock to handle burst
+        # clk_subdivision_counter handle this 24 time division
+        self.clk_subdivision_counter = 0
 
         self.clk_pin.irq(handler=self.clk_pin_change,
                          trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
@@ -196,11 +206,13 @@ class LxHardware:
         self.sm2.active(1)
         self.sm3.active(1)
 
+        # for a 10th ms pulse clk should be 20_000
+        # but we do a 24subdivider pulse for burst so we up the freq to 480_000
         self.sm_internal_clock = rp2.StateMachine(
-            4, timed_10th_ms_pulse_internal_clock, freq=20_000, set_base=Pin(INTERNAL_CLOCK))
+            4, timed_10th_ms_pulse_internal_clock, freq=480_000, set_base=Pin(INTERNAL_CLOCK))
         self.sm_internal_clock.active(1)
 
-        self.i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq = 800_000)
+        self.i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=800_000)
         # a lock on the i2c so both thread can use i2c devices
         self.i2c_lock = allocate_lock()
 
@@ -217,6 +229,13 @@ class LxHardware:
 
         self.lx_euclid_config = None
 
+        self.last_clock_ticks_tenth_ms = 0
+        self.clock_period_accumulator = 0
+        self.clock_period_avg_tenth_ms = LOWEST_CLK_IN_TENTH_MS
+        self.last_clock_periods = deque((), 8)
+        for i in range(0, 8):
+            self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
+
     def set_lx_euclid_config(self, lx_euclid_config):
         self.lx_euclid_config = lx_euclid_config
 
@@ -228,23 +247,59 @@ class LxHardware:
         self.sm_internal_clock.restart()
 
     def internal_clk_pin_change(self, pin):
-        self.lx_euclid_config.incr_steps()
-        self.lxHardwareEventFifo.append(self.clk_rise_event)
-        # relauch only when using tap mode
+
+        if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
+            self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
+
         if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-            # we are using 16 bit on the SM
-            # --> 2**16/10/1000 = 6.5536 s
+            if self.clk_subdivision_counter % LxEuclidConstant.BURST_SUBDIVISION == 0:
+                self.lx_euclid_config.incr_steps()
+                self.lxHardwareEventFifo.append(self.clk_rise_event)
+            # relauch only when using tap mode
+        #
+        # we are using 16 bit on the SM
+        # --> 2**16/10/1000 = 6.5536 s
+        if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
             self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
+        else:
+            self.sm_internal_clock.put(self.clock_period_avg_tenth_ms)
+
+        # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
+        # *
+        # 16 --> biggest clock divider (LxEuclidConstant.PRESCALER_LIST[-1])
+        self.clk_subdivision_counter = (
+            self.clk_subdivision_counter + 1) % (LxEuclidConstant.BURST_SUBDIVISION*LxEuclidConstant.PRESCALER_LIST[-1])
 
     def clk_pin_change(self, pin):
         try:
+
             if self.clk_pin_status == self.clk_pin.value():
                 return
             self.clk_pin_status = self.clk_pin.value()
             if not self.clk_pin.value():
                 if self.lx_euclid_config is not None:
+                    temp_ticks_tenth_ms = ticks_us()//100
+                    if temp_ticks_tenth_ms-self.last_clock_ticks_tenth_ms > (LOWEST_CLK_IN_TENTH_MS):
+                        self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
+                    else:
+                        self.last_clock_periods.append(
+                            temp_ticks_tenth_ms-self.last_clock_ticks_tenth_ms)
+                    self.last_clock_ticks_tenth_ms = temp_ticks_tenth_ms
+
+                    self.clock_period_accumulator = 0
+                    for i in range(0, 8):
+                        self.clock_period_accumulator += self.last_clock_periods[i]
+                    # ceil div by 8 since we have 8 element in the last_clock_periods deque
+                    self.clock_period_avg_tenth_ms = self.clock_period_accumulator // 8
+
                     if self.lx_euclid_config.clk_mode == LxEuclidConstant.CLK_IN:
                         self.lx_euclid_config.incr_steps()
+                        # resync the burst to the input clock
+                        self.lx_euclid_config.test_start_burst()
+                        if not self.lx_euclid_config.is_any_burst_running():
+                            self.stop_internal_clk()
+                            self.clk_subdivision_counter = 0
+                            self.relaunch_internal_clk()
             self.lxHardwareEventFifo.append(self.clk_rise_event)
         except Exception as e:
             print(e)
@@ -253,10 +308,10 @@ class LxHardware:
         if self.rst_pin_status == self.rst_pin.value():
             return
         self.rst_pin_status = self.rst_pin.value()
-        if not self.rst_pin.value():            
+        if not self.rst_pin.value():
             if self.lx_euclid_config is not None:
                 # in the case of a preset load, can't do it here because of memory creation in interrupt
-                # will be delegated by the fifo                
+                # will be delegated by the fifo
                 self.lx_euclid_config.reset_steps()
             self.lxHardwareEventFifo.append(self.rst_rise_event)
 
@@ -316,7 +371,9 @@ class LxHardware:
     def set_gate(self, gate_index, time_tenth_ms):
         if gate_index < 4:
             time = time_tenth_ms * 10
-            self.sms[gate_index].put(time)
+            # test if we are ready to start a new gate with the PIO (not currently having a gate out)
+            if self.sms[gate_index].tx_fifo() == 0:
+                self.sms[gate_index].put(time)
 
     def set_tap_led(self):
         self.led_tap.value(1)
@@ -329,6 +386,14 @@ class LxHardware:
 
     def clear_menu_led(self):
         self.led_menu.value(0)
+
+    def re_calibrate_touch_circles(self):
+        self.i2c_lock.acquire()
+        # reset the calibration array before re-doing calibration
+        self.capacitives_circles.calibration_array = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.capacitives_circles.calibration_sensor()
+        self.i2c_lock.release()
 
     def get_touch_circles_updates(self):
         circles_data = self.capacitives_circles.get_touch_circles_updates()
