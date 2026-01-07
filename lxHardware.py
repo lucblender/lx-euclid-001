@@ -1,7 +1,7 @@
 from _thread import allocate_lock
-from machine import Pin, I2C
+from machine import Pin, I2C, Timer
 from ucollections import deque
-from micropython import const
+from micropython import const, schedule
 import rp2
 from utime import ticks_us
 
@@ -138,8 +138,8 @@ class LxHardware:
         # By doing so, we are sure our interrupt will be executed on core 0
         self.internal_clk_pin = Pin(INTERNAL_CLOCK, Pin.IN)
 
-        self.internal_clk_pin.irq(handler=self.internal_clk_pin_change,
-                                  trigger=Pin.IRQ_RISING, hard=True)
+        # self.internal_clk_pin.irq(handler=self.internal_clk_pin_change,
+        #                          trigger=Pin.IRQ_RISING, hard=True)
         # this sm_internal_clock goes 24 time faster than the clock to handle burst
         # clk_subdivision_counter handle this 24 time division
         self.clk_subdivision_counter = 0
@@ -210,6 +210,9 @@ class LxHardware:
         # but we do a 24subdivider pulse for burst so we up the freq to 480_000
         self.sm_internal_clock = rp2.StateMachine(
             4, timed_10th_ms_pulse_internal_clock, freq=480_000, set_base=Pin(INTERNAL_CLOCK))
+
+        self.internal_clock_timer = Timer(-1)
+
         self.sm_internal_clock.active(1)
 
         self.i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=800_000)
@@ -236,6 +239,40 @@ class LxHardware:
         for i in range(0, 8):
             self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
 
+        self.period = 0
+        self.freq = 0
+        self.last_freq = 0
+        self._scheduled_init_timer = self.init_timer
+
+    def update_timer_frequency(self, period_tenth_ms):
+        # TODODEBUGPRINT print("1", period_tenth_ms)
+        # self.period =
+        # we do a 24subdivider pulse for burst so we multiply it by 24
+        # period = period_tenth_ms / 10 / 1000
+        # freq = 1 / period * 24
+        # we can simplify to freq = (240000/period_tenth_ms)
+        self.freq = (240000//period_tenth_ms)
+        # TODODEBUGPRINT print("2")
+        if self.last_freq != self.freq:
+            try:
+                schedule(self._scheduled_init_timer, None)
+            except RuntimeError:
+                pass  # this mean the schedule queue is full, skip this update
+        self.last_freq = self.freq
+        # TODODEBUGPRINT print("4")
+
+    def init_timer(self, _):
+        # print("Updating internal clock timer freq to:", self.freq)
+        self.internal_clock_timer.init(
+            freq=self.freq, mode=Timer.PERIODIC, callback=self.internal_clock_timer_callback, hard=True)
+
+    def internal_clock_timer_callback(self, timer):
+        # try:
+        self.internal_clk_pin_change(None)
+        # except Exception as e:
+        #    print(e)
+        #    print("Error in internal clock timer callback")
+
     def set_lx_euclid_config(self, lx_euclid_config):
         self.lx_euclid_config = lx_euclid_config
 
@@ -245,30 +282,40 @@ class LxHardware:
 
     def stop_internal_clk(self):
         self.sm_internal_clock.restart()
+        self.internal_clock_timer.deinit()
+        self.last_freq = 0
 
     def internal_clk_pin_change(self, pin):
-
+        # TODODEBUGPRINT print("internal clock tick")
         if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
             self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
-
+        # TODODEBUGPRINT print("a")
         if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
             if self.clk_subdivision_counter % LxEuclidConstant.BURST_SUBDIVISION == 0:
                 self.lx_euclid_config.incr_steps()
                 self.lxHardwareEventFifo.append(self.clk_rise_event)
             # relauch only when using tap mode
+        # TODODEBUGPRINT print("b")
         #
         # we are using 16 bit on the SM
         # --> 2**16/10/1000 = 6.5536 s
         if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-            self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
+            # self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
+            # TODODEBUGPRINT print("b1")
+            self.update_timer_frequency(self.lx_euclid_config.tap_delay_ms*10)
+            # TODODEBUGPRINT print("b2")
         else:
-            self.sm_internal_clock.put(self.clock_period_avg_tenth_ms)
+            # self.sm_internal_clock.put(self.clock_period_avg_tenth_ms)
+            self.update_timer_frequency(self.clock_period_avg_tenth_ms)
 
+        # TODODEBUGPRINT print("c")
         # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
         # *
         # 16 --> biggest clock divider (LxEuclidConstant.PRESCALER_LIST[-1])
         self.clk_subdivision_counter = (
             self.clk_subdivision_counter + 1) % (LxEuclidConstant.BURST_SUBDIVISION*LxEuclidConstant.PRESCALER_LIST[-1])
+
+        # TODODEBUGPRINT print("d")
 
     def clk_pin_change(self, pin):
         try:
