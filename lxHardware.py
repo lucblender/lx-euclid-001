@@ -239,6 +239,7 @@ class LxHardware:
 
         self.freq = 0
         self.last_freq = 0
+        self.timer_bypass = False
         self._scheduled_init_timer = self.init_timer
 
     def update_timer_frequency(self, period_tenth_ms):
@@ -255,6 +256,10 @@ class LxHardware:
         self.last_freq = self.freq
 
     def init_timer(self, _):
+        if self.timer_bypass:
+            self.internal_clock_timer.deinit()
+            self.timer_bypass = False
+
         self.internal_clock_timer.init(
             freq=self.freq, mode=Timer.PERIODIC, callback=self.internal_clock_timer_callback, hard=True)
 
@@ -267,38 +272,40 @@ class LxHardware:
 
     def stop_internal_clk(self):
         # self.sm_internal_clock.restart()
-        self.internal_clock_timer.deinit()
+        self.timer_bypass = True
         self.last_freq = 0
 
     def internal_clock_timer_callback(self, timer):
-        # TODODEBUGPRINT print("internal clock tick")
-        if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
-            self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
-        # TODODEBUGPRINT print("a")
-        if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-            if self.clk_subdivision_counter % LxEuclidConstant.BURST_SUBDIVISION == 0:
-                self.lx_euclid_config.incr_steps()
-                self.lxHardwareEventFifo.append(self.clk_rise_event)
-            # relauch only when using tap mode
-        # TODODEBUGPRINT print("b")
-        #
-        # we are using 16 bit on the SM
-        # --> 2**16/10/1000 = 6.5536 s
-        if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-            # # self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
-            # TODODEBUGPRINT print("b1")
-            self.update_timer_frequency(self.lx_euclid_config.tap_delay_ms*10)
-            # TODODEBUGPRINT print("b2")
-        else:
-            # # self.sm_internal_clock.put(self.clock_period_avg_tenth_ms)
-            self.update_timer_frequency(self.clock_period_avg_tenth_ms)
+        if not self.timer_bypass:
+            # TODODEBUGPRINT print("internal clock tick")
+            if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
+                self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
+            # TODODEBUGPRINT print("a")
+            if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+                if self.clk_subdivision_counter % LxEuclidConstant.BURST_SUBDIVISION == 0:
+                    self.lx_euclid_config.incr_steps()
+                    self.lxHardwareEventFifo.append(self.clk_rise_event)
+                # relauch only when using tap mode
+            # TODODEBUGPRINT print("b")
+            #
+            # we are using 16 bit on the SM
+            # --> 2**16/10/1000 = 6.5536 s
+            if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+                # # self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
+                # TODODEBUGPRINT print("b1")
+                self.update_timer_frequency(
+                    self.lx_euclid_config.tap_delay_ms*10)
+                # TODODEBUGPRINT print("b2")
+            else:
+                # # self.sm_internal_clock.put(self.clock_period_avg_tenth_ms)
+                self.update_timer_frequency(self.clock_period_avg_tenth_ms)
 
-        # TODODEBUGPRINT print("c")
-        # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
-        # *
-        # 16 --> biggest clock divider (LxEuclidConstant.PRESCALER_LIST[-1])
-        self.clk_subdivision_counter = (
-            self.clk_subdivision_counter + 1) % (LxEuclidConstant.BURST_SUBDIVISION*LxEuclidConstant.PRESCALER_LIST[-1])
+            # TODODEBUGPRINT print("c")
+            # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
+            # *
+            # 16 --> biggest clock divider (LxEuclidConstant.PRESCALER_LIST[-1])
+            self.clk_subdivision_counter = (
+                self.clk_subdivision_counter + 1) % (LxEuclidConstant.BURST_SUBDIVISION*LxEuclidConstant.PRESCALER_LIST[-1])
 
         # TODODEBUGPRINT print("d")
 
