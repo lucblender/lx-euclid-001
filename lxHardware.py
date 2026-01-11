@@ -188,7 +188,7 @@ class LxHardware:
         # frequency and last frequency value of the timer
         self.freq = 0
         self.last_freq = 0
-        # timer bypass to stop the internal clock when we finished a 24 subdivison cycle
+        # timer bypass to stop the internal clock when we finished a 24 subdivision cycle
         # with external clock, to avoid retriggering the timer from the external clock and timer
         self.timer_bypass = False
         # pointer to the refresh function to use with micropython.schedule
@@ -243,11 +243,18 @@ class LxHardware:
         self.lx_euclid_config = lx_euclid_config
 
     def relaunch_internal_clk(self):
-        self.internal_clock_timer_callback(None)
+        self.compute_update_timer_frequency()
 
     def stop_internal_clk(self):
         self.timer_bypass = True
         self.last_freq = 0
+
+    def compute_update_timer_frequency(self):
+        if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+            self.update_timer_frequency(
+                self.lx_euclid_config.tap_delay_ms*10)
+        else:
+            self.update_timer_frequency(self.clock_period_avg_tenth_ms)
 
     def internal_clock_timer_callback(self, timer):
         if not self.timer_bypass:
@@ -257,15 +264,10 @@ class LxHardware:
                 if self.clk_subdivision_counter % LxEuclidConstant.BURST_SUBDIVISION == 0:
                     self.lx_euclid_config.incr_steps()
                     self.lxHardwareEventFifo.append(self.clk_rise_event)
-                # relauch only when using tap mode
+                # relaunch only when using tap mode
 
-            # we are using 16 bit on the SM
-            # --> 2**16/10/1000 = 6.5536 s
-            if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                self.update_timer_frequency(
-                    self.lx_euclid_config.tap_delay_ms*10)
-            else:
-                self.update_timer_frequency(self.clock_period_avg_tenth_ms)
+            # recompute the timer frequency and refresh it depending of the mode
+            self.compute_update_timer_frequency()
 
             # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
             # *
