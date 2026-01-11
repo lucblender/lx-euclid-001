@@ -24,10 +24,6 @@ LED_MENU = const(21)
 # equal 0.5hz equal 2sec period equal 2000ms
 LOWEST_CLK_IN_TENTH_MS = const(2000*10)
 
-# this is external I2C SDA. We use it as internal clock until micropython fix mutlithreading issue with
-# pio, timer and schedule
-INTERNAL_CLOCK = const(26)
-
 SW0 = const(19)
 SW1 = const(7)
 SW2 = const(23)
@@ -56,18 +52,6 @@ def timed_10th_ms_pulse():
     nop()
     jmp(x_dec, "delay_high")
     set(pins, 0)
-
-
-@rp2.asm_pio(set_init=rp2.PIO.OUT_LOW, out_init=rp2.PIO.OUT_LOW, out_shiftdir=rp2.PIO.SHIFT_LEFT, autopull=True, pull_thresh=24)
-def timed_10th_ms_pulse_internal_clock():
-    label("wait")
-    out(x, 16)
-    jmp(not_x, "wait")
-    set(pins, 0)
-    label("delay_high")
-    nop()
-    jmp(x_dec, "delay_high")
-    set(pins, 1)
 
 
 class HandlerEventData:
@@ -133,15 +117,6 @@ class LxHardware:
         self.btn_tap_pin_status = self.btn_tap_pin.value()
         self.btn_menu_pin_status = self.btn_menu_pin.value()
 
-        # To create tap tempo, we are doing a pulse on a input pin with
-        # a pio (sm_internal_clock) and getting this pulse with an interrupt.
-        # By doing so, we are sure our interrupt will be executed on core 0
-        self.internal_clk_pin = Pin(INTERNAL_CLOCK, Pin.IN)
-
-        # this internal clock timer  goes 24 time faster than the clock to handle burst
-        # clk_subdivision_counter handle this 24 time division
-        self.clk_subdivision_counter = 0
-
         self.clk_pin.irq(handler=self.clk_pin_change,
                          trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
         self.rst_pin.irq(handler=self.rst_pin_change,
@@ -204,14 +179,20 @@ class LxHardware:
         self.sm2.active(1)
         self.sm3.active(1)
 
-        # for a 10th ms pulse clk should be 20_000
-        # but we do a 24subdivider pulse for burst so we up the freq to 480_000
-        self.sm_internal_clock = rp2.StateMachine(
-            4, timed_10th_ms_pulse_internal_clock, freq=480_000, set_base=Pin(INTERNAL_CLOCK))
-
+        # clock timer -> goes 24 time faster than the clock to handle burst
         self.internal_clock_timer = Timer(-1)
 
-        # self.sm_internal_clock.active(1)
+        # clk_subdivision_counter handle this 24 time division
+        self.clk_subdivision_counter = 0
+
+        # frequency and last frequency value of the timer
+        self.freq = 0
+        self.last_freq = 0
+        # timer bypass to stop the internal clock when we finished a 24 subdivison cycle
+        # with external clock, to avoid retriggering the timer from the external clock and timer
+        self.timer_bypass = False
+        # pointer to the refresh function to use with micropython.schedule
+        self._scheduled_refresh_timer_frequency = self.refresh_timer_frequency
 
         self.i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=800_000)
         # a lock on the i2c so both thread can use i2c devices
@@ -237,11 +218,6 @@ class LxHardware:
         for i in range(0, 8):
             self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
 
-        self.freq = 0
-        self.last_freq = 0
-        self.timer_bypass = False
-        self._scheduled_init_timer = self.init_timer
-
     def update_timer_frequency(self, period_tenth_ms):
         # we do a 24subdivider pulse for burst so we multiply it by 24
         # period = period_tenth_ms / 10 / 1000
@@ -250,12 +226,12 @@ class LxHardware:
         self.freq = (240000//period_tenth_ms)
         if self.last_freq != self.freq:
             try:
-                schedule(self._scheduled_init_timer, None)
+                schedule(self._scheduled_refresh_timer_frequency, None)
             except RuntimeError:
                 pass  # this mean the schedule queue is full, skip this update
         self.last_freq = self.freq
 
-    def init_timer(self, _):
+    def refresh_timer_frequency(self, _):
         if self.timer_bypass:
             self.internal_clock_timer.deinit()
             self.timer_bypass = False
@@ -267,51 +243,38 @@ class LxHardware:
         self.lx_euclid_config = lx_euclid_config
 
     def relaunch_internal_clk(self):
-        # self.sm_internal_clock.restart()
         self.internal_clock_timer_callback(None)
 
     def stop_internal_clk(self):
-        # self.sm_internal_clock.restart()
         self.timer_bypass = True
         self.last_freq = 0
 
     def internal_clock_timer_callback(self, timer):
         if not self.timer_bypass:
-            # TODODEBUGPRINT print("internal clock tick")
             if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
                 self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
-            # TODODEBUGPRINT print("a")
             if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
                 if self.clk_subdivision_counter % LxEuclidConstant.BURST_SUBDIVISION == 0:
                     self.lx_euclid_config.incr_steps()
                     self.lxHardwareEventFifo.append(self.clk_rise_event)
                 # relauch only when using tap mode
-            # TODODEBUGPRINT print("b")
-            #
+
             # we are using 16 bit on the SM
             # --> 2**16/10/1000 = 6.5536 s
             if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                # # self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
-                # TODODEBUGPRINT print("b1")
                 self.update_timer_frequency(
                     self.lx_euclid_config.tap_delay_ms*10)
-                # TODODEBUGPRINT print("b2")
             else:
-                # # self.sm_internal_clock.put(self.clock_period_avg_tenth_ms)
                 self.update_timer_frequency(self.clock_period_avg_tenth_ms)
 
-            # TODODEBUGPRINT print("c")
             # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
             # *
             # 16 --> biggest clock divider (LxEuclidConstant.PRESCALER_LIST[-1])
             self.clk_subdivision_counter = (
                 self.clk_subdivision_counter + 1) % (LxEuclidConstant.BURST_SUBDIVISION*LxEuclidConstant.PRESCALER_LIST[-1])
 
-        # TODODEBUGPRINT print("d")
-
     def clk_pin_change(self, pin):
         try:
-
             if self.clk_pin_status == self.clk_pin.value():
                 return
             self.clk_pin_status = self.clk_pin.value()
