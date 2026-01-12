@@ -3,7 +3,7 @@ from machine import Pin, I2C, Timer
 from ucollections import deque
 from micropython import const, schedule
 import rp2
-from utime import ticks_us
+from utime import ticks_us, sleep_us
 
 from capacitivesCircles import CapacitivesCircles
 from cvManager import CvManager
@@ -24,6 +24,7 @@ LED_MENU = const(21)
 # 30bpm is the lowest supported
 # equal 0.5hz equal 2sec period equal 2000ms
 LOWEST_CLK_IN_TENTH_MS = const(2000*10)
+LOWEST_CLK_FREQ_HZ = const(240000//LOWEST_CLK_IN_TENTH_MS)
 
 SW0 = const(19)
 SW1 = const(7)
@@ -89,6 +90,8 @@ class LxHardware:
     BTN_SWITCHES_RISE = const(15)
     BTN_SWITCHES_FALL = const(16)
 
+    INTERNAL_CLOCK_TIMER_REFRESH = const(17)
+
     EEPROM_ADDR = const(0x50)
 
     def __init__(self):
@@ -100,6 +103,9 @@ class LxHardware:
 
         self.btn_menu_fall_event = HandlerEventData(LxHardware.BTN_MENU_FALL)
         self.btn_menu_rise_event = HandlerEventData(LxHardware.BTN_MENU_RISE)
+
+        self.internal_clock_timer_refresh_event = HandlerEventData(
+            LxHardware.INTERNAL_CLOCK_TIMER_REFRESH)
 
         self.rst_rise_event = HandlerEventData(LxHardware.RST_RISE)
 
@@ -198,8 +204,6 @@ class LxHardware:
         # timer bypass to stop the internal clock when we finished a 24 subdivision cycle
         # with external clock, to avoid retriggering the timer from the external clock and timer
         self.timer_bypass = False
-        # pointer to the refresh function to use with micropython.schedule
-        self._scheduled_refresh_timer_frequency = self.refresh_timer_frequency
 
         self.i2c_internal = I2C(0, sda=Pin(INTERNAL_I2C_SDA_PIN),
                                 scl=Pin(INTERNAL_I2C_SCL_PIN), freq=800_000)
@@ -255,13 +259,11 @@ class LxHardware:
         # we can simplify to freq = (240000/period_tenth_ms)
         self.freq = (240000//period_tenth_ms)
         if self.last_freq != self.freq:
-            try:
-                schedule(self._scheduled_refresh_timer_frequency, None)
-            except RuntimeError:
-                pass  # this mean the schedule queue is full, skip this update
+            self.lxHardwareEventFifo.append(
+                self.internal_clock_timer_refresh_event)
         self.last_freq = self.freq
 
-    def refresh_timer_frequency(self, _):
+    def refresh_timer_frequency(self):
         if self.timer_bypass:
             self.internal_clock_timer.deinit()
             self.timer_bypass = False
@@ -277,7 +279,6 @@ class LxHardware:
 
     def stop_internal_clk(self):
         self.timer_bypass = True
-        self.last_freq = 0
 
     def compute_update_timer_frequency(self):
         if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
@@ -287,23 +288,25 @@ class LxHardware:
             self.update_timer_frequency(self.clock_period_avg_tenth_ms)
 
     def internal_clock_timer_callback(self, timer):
-        if not self.timer_bypass:
-            if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
-                self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
-            if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                if self.clk_subdivision_counter % LxEuclidConstant.BURST_SUBDIVISION == 0:
-                    self.lx_euclid_config.incr_steps()
-                    self.lxHardwareEventFifo.append(self.clk_rise_event)
-                # relaunch only when using tap mode
+        try:
+            if not self.timer_bypass:
+                if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
+                    self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
+                if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+                    if self.clk_subdivision_counter % LxEuclidConstant.BURST_SUBDIVISION == 0:
+                        self.lx_euclid_config.incr_steps()
+                        self.lxHardwareEventFifo.append(self.clk_rise_event)
+                    # relaunch only when using tap mode
 
-            # recompute the timer frequency and refresh it depending of the mode
-            self.compute_update_timer_frequency()
-
-            # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
-            # *
-            # 16 --> biggest clock divider (LxEuclidConstant.PRESCALER_LIST[-1])
-            self.clk_subdivision_counter = (
-                self.clk_subdivision_counter + 1) % (LxEuclidConstant.BURST_SUBDIVISION*LxEuclidConstant.PRESCALER_LIST[-1])
+                # recompute the timer frequency and refresh it depending of the mode
+                self.compute_update_timer_frequency()
+                # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
+                # *
+                # 16 --> biggest clock divider (LxEuclidConstant.PRESCALER_LIST[-1])
+                self.clk_subdivision_counter = (
+                    self.clk_subdivision_counter + 1) % (LxEuclidConstant.BURST_SUBDIVISION*LxEuclidConstant.PRESCALER_LIST[-1])
+        except Exception as e:
+            print("exception in internal_clock_timer_callback:", e)
 
     def clk_pin_change(self, pin):
         try:
@@ -333,7 +336,8 @@ class LxHardware:
                         if not self.lx_euclid_config.is_any_burst_running():
                             self.stop_internal_clk()
                             self.clk_subdivision_counter = 0
-                            self.relaunch_internal_clk()
+                            self.lxHardwareEventFifo.append(
+                                self.internal_clock_timer_refresh_event)
             self.lxHardwareEventFifo.append(self.clk_rise_event)
         except Exception as e:
             print(e)

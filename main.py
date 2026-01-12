@@ -20,7 +20,7 @@ gc.collect()
 
 from lxEuclidConfig import LxEuclidConfig, LxEuclidConstant
 from lxHardware import LxHardware
-from utime import sleep, ticks_ms
+from utime import sleep, ticks_ms, ticks_us
 from sys import print_exception
 from io import StringIO
 from _thread import start_new_thread
@@ -77,6 +77,8 @@ def lxhardware_changed(handlerEventData):
         if lx_euclid_config.state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_LIVE]:
             LCD.set_need_display()
         lx_euclid_config.random_gate_length_update()
+    elif event == lx_hardware.INTERNAL_CLOCK_TIMER_REFRESH:
+        lx_hardware.refresh_timer_frequency()
     elif event == lx_hardware.RST_RISE:
         if lx_euclid_config.preset_recall_ext_reset:
             lx_euclid_config.delegate_load_preset()
@@ -116,6 +118,7 @@ def lxhardware_changed(handlerEventData):
                         # tap tempo is saved in eeprom
                         lx_euclid_config.save_data()
                         if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+                            lx_hardware.timer_bypass = False
                             lx_hardware.relaunch_internal_clk()
                             if lx_euclid_config.state == LxEuclidConstant.STATE_LIVE:
                                 LCD.set_need_display()
@@ -262,13 +265,12 @@ if __name__ == '__main__':
         if (lx_hardware.btn_tap_pin.value() or lx_hardware.btn_menu_pin.value()) == 0:
             lx_euclid_config.test_mode()
 
-        # launch the internal clock, it is usefull for tap mode BUT also burst
-        lx_hardware.relaunch_internal_clk()
-
         # some click might happend because of capacitors loading so empty fifo at boot
         while len(lx_hardware.lxHardwareEventFifo) > 0:
             lx_hardware.lxHardwareEventFifo.popleft()
 
+        # launch the internal clock, it is usefull for tap mode BUT also burst
+        lx_hardware.relaunch_internal_clk()
         LCD.set_need_display()
 
         lx_euclid_config.init_cvs_parameters()

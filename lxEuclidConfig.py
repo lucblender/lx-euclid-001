@@ -1522,9 +1522,10 @@ class LxEuclidConfig:
                     # so divide circle in 8 and only react to 0 and 4 (top and bottom)
                     param_index = angle_to_index(angle_inner, 8)
                     if param_index == 0:
-                        self.clk_mode = 0
+                        self.clk_mode = LxEuclidConstant.TAP_MODE
+                        self.lx_hardware.timer_bypass = False
                     elif param_index == 4:
-                        self.clk_mode = 1
+                        self.clk_mode = LxEuclidConstant.CLK_IN
                 elif self.param_menu_page == 1:  # sensitivity
                     sensi_index = angle_to_index(angle_inner, 3)
                     self.lx_hardware.capacitives_circles.touch_sensitivity = sensi_index
