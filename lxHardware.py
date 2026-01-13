@@ -1,5 +1,5 @@
 from _thread import allocate_lock
-from machine import Pin, I2C, Timer
+from machine import Pin, I2C, Timer, mem32
 from ucollections import deque
 from micropython import const, schedule
 import rp2
@@ -48,6 +48,10 @@ EXTERNAL_I2C_SDA_PIN = const(26)
 EXTERNAL_I2C_SCL_PIN = const(27)
 
 ENDIANESS_EEPROM = const(1)
+
+
+def core_id():
+    return (mem32[0xd0000000])
 
 
 @rp2.asm_pio(set_init=rp2.PIO.OUT_LOW, out_init=rp2.PIO.OUT_LOW, out_shiftdir=rp2.PIO.SHIFT_LEFT, autopull=True, pull_thresh=24)
@@ -220,7 +224,7 @@ class LxHardware:
             print("LxPanderSeq not connected, i2c lines pulled low")
         else:
             self.i2c_external = I2C(1, sda=Pin(EXTERNAL_I2C_SDA_PIN), scl=Pin(
-                EXTERNAL_I2C_SCL_PIN), freq=800_000)
+                EXTERNAL_I2C_SCL_PIN), freq=1_000_000)
 
             self.lx_pander_seq = LxPanderSeq(self.i2c_external)
 
@@ -264,8 +268,8 @@ class LxHardware:
         self.last_freq = self.freq
 
     def refresh_timer_frequency(self):
+        self.internal_clock_timer.deinit()
         if self.timer_bypass:
-            self.internal_clock_timer.deinit()
             self.timer_bypass = False
 
         self.internal_clock_timer.init(
@@ -288,27 +292,33 @@ class LxHardware:
             self.update_timer_frequency(self.clock_period_avg_tenth_ms)
 
     def internal_clock_timer_callback(self, timer):
+        if (core_id() == 1):
+            print("error, internal_clock_timer_callback running on core 1")
         try:
-            if not self.timer_bypass:
-                if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
-                    self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
-                if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-                    if self.clk_subdivision_counter % LxEuclidConstant.BURST_SUBDIVISION == 0:
-                        self.lx_euclid_config.incr_steps()
-                        self.lxHardwareEventFifo.append(self.clk_rise_event)
-                    # relaunch only when using tap mode
+            if self.timer_bypass:
+                return
 
-                # recompute the timer frequency and refresh it depending of the mode
-                self.compute_update_timer_frequency()
-                # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
-                # *
-                # 16 --> biggest clock divider (LxEuclidConstant.PRESCALER_LIST[-1])
-                self.clk_subdivision_counter = (
-                    self.clk_subdivision_counter + 1) % (LxEuclidConstant.BURST_SUBDIVISION*LxEuclidConstant.PRESCALER_LIST[-1])
+            if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
+                self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
+            if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+                if self.clk_subdivision_counter % LxEuclidConstant.BURST_SUBDIVISION == 0:
+                    self.lx_euclid_config.incr_steps()
+                    self.lxHardwareEventFifo.append(self.clk_rise_event)
+                # relaunch only when using tap mode
+
+            # recompute the timer frequency and refresh it depending of the mode
+            self.compute_update_timer_frequency()
+            # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
+            # *
+            # 16 --> biggest clock divider (LxEuclidConstant.PRESCALER_LIST[-1])
+            self.clk_subdivision_counter = (
+                self.clk_subdivision_counter + 1) % (LxEuclidConstant.BURST_SUBDIVISION*LxEuclidConstant.PRESCALER_LIST[-1])
         except Exception as e:
             print("exception in internal_clock_timer_callback:", e)
 
     def clk_pin_change(self, pin):
+        if (core_id() == 1):
+            print("error, clk_pin_change running on core 1")
         try:
             if self.clk_pin_status == self.clk_pin.value():
                 return
@@ -340,7 +350,7 @@ class LxHardware:
                                 self.internal_clock_timer_refresh_event)
             self.lxHardwareEventFifo.append(self.clk_rise_event)
         except Exception as e:
-            print(e)
+            print("exception in clk_pin_change:", e)
 
     def rst_pin_change(self, pin):
         if self.rst_pin_status == self.rst_pin.value():
