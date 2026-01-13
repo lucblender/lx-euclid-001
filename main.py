@@ -275,6 +275,9 @@ if __name__ == '__main__':
 
         lx_euclid_config.init_cvs_parameters()
 
+        # everything has been initialized, we can now let the clk pin change handler to work
+        lx_hardware.initialized = True
+
         clk_mode_old = lx_euclid_config.clk_mode
 
         while True:

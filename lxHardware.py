@@ -99,6 +99,9 @@ class LxHardware:
     EEPROM_ADDR = const(0x50)
 
     def __init__(self):
+        # var to indicate if the hardware is initialized, to be set by the main
+        self.initialized = False
+
         # when using interrupt we can't create memory in the handler so creating event before
         self.btn_fall_event = HandlerEventData(LxHardware.BTN_TAP_FALL)
         self.btn_rise_event = HandlerEventData(LxHardware.BTN_TAP_RISE)
@@ -271,7 +274,6 @@ class LxHardware:
         self.internal_clock_timer.deinit()
         if self.timer_bypass:
             self.timer_bypass = False
-
         self.internal_clock_timer.init(
             freq=self.freq, mode=Timer.PERIODIC, callback=self.internal_clock_timer_callback, hard=True)
 
@@ -320,6 +322,8 @@ class LxHardware:
         if (core_id() == 1):
             print("error, clk_pin_change running on core 1")
         try:
+            if self.initialized is False:
+                return
             if self.clk_pin_status == self.clk_pin.value():
                 return
             self.clk_pin_status = self.clk_pin.value()
