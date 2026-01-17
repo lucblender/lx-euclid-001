@@ -44,6 +44,13 @@ stop_thread = False
 wait_display_thread = True
 
 lx_hardware = LxHardware()
+
+# if lxPanderSeq is connected, pass its version string to LCD
+if lx_hardware.lx_pander_seq != None:
+    LCD.finish_init_sequence(lx_hardware.lx_pander_seq.get_version_string())
+else:
+    LCD.finish_init_sequence()
+
 gc.collect()
 lx_euclid_config = LxEuclidConfig(
     lx_hardware, LCD, [MEMORY_MAJOR, MEMORY_MINOR, MEMORY_FIX])

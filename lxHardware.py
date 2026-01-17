@@ -7,6 +7,7 @@ from utime import ticks_us
 
 from capacitivesCircles import CapacitivesCircles
 from cvManager import CvManager
+from lxPanderSeq import LxPanderSeq
 
 from lxEuclidConfig import LxEuclidConstant
 
@@ -38,6 +39,12 @@ GATE_OUT_0 = const(2)
 GATE_OUT_1 = const(3)
 GATE_OUT_2 = const(4)
 GATE_OUT_3 = const(5)
+
+INTERNAL_I2C_SDA_PIN = const(0)
+INTERNAL_I2C_SCL_PIN = const(1)
+
+EXTERNAL_I2C_SDA_PIN = const(26)
+EXTERNAL_I2C_SCL_PIN = const(27)
 
 ENDIANESS_EEPROM = const(1)
 
@@ -205,20 +212,40 @@ class LxHardware:
         self.temp_ticks_tenth_ms = ticks_us()//100
         self.delta_tenth_ms = 0
 
-        self.i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=800_000)
+        self.i2c_internal = I2C(0, sda=Pin(INTERNAL_I2C_SDA_PIN), scl=Pin(
+            INTERNAL_I2C_SCL_PIN), freq=800_000)
         # a lock on the i2c so both thread can use i2c devices
-        self.i2c_lock = allocate_lock()
+        self.i2c_internal_lock = allocate_lock()
+
+        external_i2c_sda = Pin(EXTERNAL_I2C_SDA_PIN, Pin.IN)
+        external_i2c_scl = Pin(EXTERNAL_I2C_SCL_PIN, Pin.IN)
+        if (external_i2c_sda.value() == 0 or external_i2c_scl.value() == 0):
+            # if either line is low, expander is not connected
+            self.i2c_external = None
+            self.lx_pander_seq = None
+            print("LxPanderSeq not connected, i2c lines pulled low")
+        else:
+            self.i2c_external = I2C(1, sda=Pin(EXTERNAL_I2C_SDA_PIN), scl=Pin(
+                EXTERNAL_I2C_SCL_PIN), freq=800_000)
+            self.lx_pander_seq = LxPanderSeq(self.i2c_external)
+            if self.lx_pander_seq.connected:
+                print("LxPanderSeq connected:",
+                      self.lx_pander_seq.get_version_string())
+            else:
+                print("LxPanderSeq not connected, i2c scan failed")
+                self.lx_pander_seq = None
 
         self.eeprom_memory = EEPROM(
-            self.i2c, chip_size=T24C64, addr=self.EEPROM_ADDR)
+            self.i2c_internal, chip_size=T24C64, addr=self.EEPROM_ADDR)
 
-        self.capacitives_circles = CapacitivesCircles(self.i2c, self.i2c_lock)
+        self.capacitives_circles = CapacitivesCircles(
+            self.i2c_internal, self.i2c_internal_lock)
 
         # used to detect a press on circles
         self.inner_previous_state = False
         self.outer_previous_sate = False
 
-        self.cv_manager = CvManager(self.i2c)
+        self.cv_manager = CvManager(self.i2c_internal)
 
         self.lx_euclid_config = None
 
@@ -382,12 +409,12 @@ class LxHardware:
         self.led_menu.value(0)
 
     def re_calibrate_touch_circles(self):
-        self.i2c_lock.acquire()
+        self.i2c_internal_lock.acquire()
         # reset the calibration array before re-doing calibration
         self.capacitives_circles.calibration_array = [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.capacitives_circles.calibration_sensor()
-        self.i2c_lock.release()
+        self.i2c_internal_lock.release()
 
     def get_touch_circles_updates(self):
         circles_data = self.capacitives_circles.get_touch_circles_updates()
@@ -420,19 +447,19 @@ class LxHardware:
         self.outer_previous_sate = circles_data[1]
 
     def update_cv_values(self):
-        self.i2c_lock.acquire()
+        self.i2c_internal_lock.acquire()
         to_return = self.cv_manager.update_cvs_read_non_blocking()
-        self.i2c_lock.release()
+        self.i2c_internal_lock.release()
         return to_return
 
     def get_eeprom_data_int(self, address):
-        self.i2c_lock.acquire()
+        self.i2c_internal_lock.acquire()
         raw_data = self.eeprom_memory[address:address+1]
-        self.i2c_lock.release()
+        self.i2c_internal_lock.release()
         return int.from_bytes(raw_data, ENDIANESS_EEPROM)
 
     def set_eeprom_data_int(self, address, data):
-        self.i2c_lock.acquire()
+        self.i2c_internal_lock.acquire()
         self.eeprom_memory[address:address +
                            1] = data.to_bytes(1, ENDIANESS_EEPROM)
-        self.i2c_lock.release()
+        self.i2c_internal_lock.release()
