@@ -2,9 +2,9 @@ from machine import freq
 freq(250_000_000,250_000_000)
 from Rp2040Lcd import LCD_1inch28
 
-# major.minor.fix + add
+# minor.major.fix + add
 MAJOR = 1
-MINOR = 17
+MINOR = 16
 FIX = 0
 ADD = "_dev"
 
