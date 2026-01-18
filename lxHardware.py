@@ -25,6 +25,9 @@ LED_MENU = const(21)
 # equal 0.5hz equal 2sec period equal 2000ms
 LOWEST_CLK_IN_TENTH_MS = const(2000*10)
 
+# 300/10ms -> 33.33Hz --> 2000 bpm 1/1 --> 500 bpm 1/4
+HIGHEST_CLK_IN_TENTH_MS = const(300)
+
 SW0 = const(19)
 SW1 = const(7)
 SW2 = const(23)
@@ -297,10 +300,9 @@ class LxHardware:
                     self.temp_ticks_tenth_ms = ticks_us()//100
                     self.delta_tenth_ms = self.temp_ticks_tenth_ms-self.last_clock_ticks_tenth_ms
 
-                    # if self.delta_tenth_ms < 600: # this cause crash, to investigate if I keep or not
-                    # debounce filter, ignore any clk faster than 30ms period
-                    # 33.33Hz --> 2000 bpm 1/1 --> 500 bpm 1/4
-                    #    return
+                    if self.delta_tenth_ms < HIGHEST_CLK_IN_TENTH_MS:  # this cause crash, to investigate if I keep or not
+                        # debounce filter, ignore any clock too fast
+                        return
                     if self.delta_tenth_ms > (LOWEST_CLK_IN_TENTH_MS):
                         self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
                     else:
