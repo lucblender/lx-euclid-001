@@ -10,6 +10,16 @@ T_CLK_LED_ON_MS = const(10)
 T_GATE_ON_MS = const(10)
 
 MAX_BEATS = const(32)
+MAX_PROBABILITY = const(100)
+MAX_ALGO_INDEX = const(3)
+MAX_PRESCALER_INDEX = const(6)
+MIN_GATE_LENGTH_MS = const(10)
+MAX_GATE_LENGTH_MS = const(250)
+MAX_BURST_DIV_INDEX = const(4)
+# 4 bits to store the rhythm index for action, max 0b1111 = 15
+MAX_ACTION_RHYTHM = const(15)
+MAX_TOUCH_SENSITIVITY = const(2)
+MAX_FLIP_SCREEN = const(1)
 
 MAJOR_E_ADDR = const(0)
 MINOR_E_ADDR = const(1)
@@ -350,16 +360,16 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.in_burst_cv = False
 
     def incr_gate_length(self):
-        if (self.gate_length_ms+10) < 250:
+        if (self.gate_length_ms+10) < MAX_GATE_LENGTH_MS:
             self.gate_length_ms = self.gate_length_ms + 10
         else:
-            self.gate_length_ms = 250
+            self.gate_length_ms = MAX_GATE_LENGTH_MS
 
     def decr_gate_length(self):
-        if (self.gate_length_ms-10) > 10:
+        if (self.gate_length_ms-10) > MIN_GATE_LENGTH_MS:
             self.gate_length_ms = self.gate_length_ms - 10
         else:
-            self.gate_length_ms = 10
+            self.gate_length_ms = MIN_GATE_LENGTH_MS
 
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def reset_step(self):
@@ -1786,81 +1796,76 @@ class LxEuclidConfig:
                     a[0] += 1
                     return a[0]-1
 
+                def data_set_in_range(data, min_val, max_val, default_val, eeprom_address=None):
+                    # note: eeprom_address can be 1 too big if incr_addr has been called before
+                    if (data < min_val or data > max_val):
+                        print("Data out of range, set to default:",
+                              data, "->", default_val, f"at eeprom addr {eeprom_address}")
+                        return default_val
+                    else:
+                        return data
+
                 for euclidean_rhythm in self.euclidean_rhythms:
 
-                    euclidean_rhythm.beats = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
-                    euclidean_rhythm.pulses = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
-                    euclidean_rhythm.offset = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
-                    euclidean_rhythm.pulses_probability = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
-                    euclidean_rhythm.algo_index = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
-                    euclidean_rhythm.prescaler_index = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
-                    euclidean_rhythm.gate_length_ms = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
+                    euclidean_rhythm.beats = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr)), 0, MAX_BEATS, euclidean_rhythm.beats, eeprom_addr)
+                    euclidean_rhythm.pulses = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr)), 0, euclidean_rhythm.beats, euclidean_rhythm.pulses, eeprom_addr)
+                    euclidean_rhythm.offset = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr)), 0, euclidean_rhythm.beats-1, euclidean_rhythm.offset, eeprom_addr)
+                    euclidean_rhythm.pulses_probability = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr)), 0, MAX_PROBABILITY, euclidean_rhythm.pulses_probability, eeprom_addr)
+                    euclidean_rhythm.algo_index = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr)), 0, MAX_ALGO_INDEX, euclidean_rhythm.algo_index, eeprom_addr)
+                    euclidean_rhythm.prescaler_index = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr)), 0, MAX_PRESCALER_INDEX, euclidean_rhythm.prescaler_index, eeprom_addr)
+                    euclidean_rhythm.gate_length_ms = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr)), MIN_GATE_LENGTH_MS, MAX_GATE_LENGTH_MS, euclidean_rhythm.gate_length_ms, eeprom_addr)
                     euclidean_rhythm.randomize_gate_length = bool(
                         self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
-                    euclidean_rhythm.burst_div_index = self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr))
+                    euclidean_rhythm.burst_div_index = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr)), 0, MAX_BURST_DIV_INDEX, euclidean_rhythm.burst_div_index, eeprom_addr)
 
                 for preset in self.presets:
                     for preset_euclidean_rhythm in preset:
-                        preset_euclidean_rhythm.beats = self.lx_hardware.get_eeprom_data_int(
-                            incr_addr(eeprom_addr))
-                        preset_euclidean_rhythm.pulses = self.lx_hardware.get_eeprom_data_int(
-                            incr_addr(eeprom_addr))
-                        preset_euclidean_rhythm.offset = self.lx_hardware.get_eeprom_data_int(
-                            incr_addr(eeprom_addr))
-                        preset_euclidean_rhythm.pulses_probability = self.lx_hardware.get_eeprom_data_int(
-                            incr_addr(eeprom_addr))
-                        preset_euclidean_rhythm.algo_index = self.lx_hardware.get_eeprom_data_int(
-                            incr_addr(eeprom_addr))
-                        preset_euclidean_rhythm.prescaler_index = self.lx_hardware.get_eeprom_data_int(
-                            incr_addr(eeprom_addr))
-                        preset_euclidean_rhythm.gate_length_ms = self.lx_hardware.get_eeprom_data_int(
-                            incr_addr(eeprom_addr))
+                        preset_euclidean_rhythm.beats = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr)), 0, MAX_BEATS, preset_euclidean_rhythm.beats, eeprom_addr)
+                        preset_euclidean_rhythm.pulses = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr)), 0, preset_euclidean_rhythm.beats, preset_euclidean_rhythm.pulses, eeprom_addr)
+                        preset_euclidean_rhythm.offset = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr)), 0, preset_euclidean_rhythm.beats-1, preset_euclidean_rhythm.offset, eeprom_addr)
+                        preset_euclidean_rhythm.pulses_probability = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr)), 0, MAX_PROBABILITY, preset_euclidean_rhythm.pulses_probability, eeprom_addr)
+                        preset_euclidean_rhythm.algo_index = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr)), 0, MAX_ALGO_INDEX, preset_euclidean_rhythm.algo_index, eeprom_addr)
+                        preset_euclidean_rhythm.prescaler_index = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr)), 0, MAX_PRESCALER_INDEX, preset_euclidean_rhythm.prescaler_index, eeprom_addr)
+                        preset_euclidean_rhythm.gate_length_ms = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr)), MIN_GATE_LENGTH_MS, MAX_GATE_LENGTH_MS, preset_euclidean_rhythm.gate_length_ms, eeprom_addr)
                         preset_euclidean_rhythm.randomize_gate_length = bool(
                             self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
-                        preset_euclidean_rhythm.burst_div_index = self.lx_hardware.get_eeprom_data_int(
-                            incr_addr(eeprom_addr))
+                        preset_euclidean_rhythm.burst_div_index = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr)), 0, MAX_BURST_DIV_INDEX, preset_euclidean_rhythm.burst_div_index, eeprom_addr)
 
-                inner_rotate_action = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
-                if inner_rotate_action >= LxEuclidConstant.CIRCLE_ACTION_NONE and inner_rotate_action <= LxEuclidConstant.CIRCLE_ACTION_BURST:
-                    self.inner_rotate_action = inner_rotate_action
+                self.inner_rotate_action = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr)), LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_BURST, self.inner_rotate_action, eeprom_addr)
 
-                inner_action_rhythm = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
-                if inner_action_rhythm >= 0 and inner_action_rhythm <= 15:
-                    self.inner_action_rhythm = inner_action_rhythm
+                self.inner_action_rhythm = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr)), 0, MAX_ACTION_RHYTHM, self.inner_action_rhythm, eeprom_addr)
 
-                outer_rotate_action = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
-                if outer_rotate_action >= LxEuclidConstant.CIRCLE_ACTION_NONE and outer_rotate_action <= LxEuclidConstant.CIRCLE_ACTION_BURST:
-                    self.outer_rotate_action = outer_rotate_action
+                self.outer_rotate_action = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr)), LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_BURST, self.outer_rotate_action, eeprom_addr)
 
-                outer_action_rhythm = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
-                if outer_action_rhythm >= 0 and outer_action_rhythm <= 15:
-                    self.outer_action_rhythm = outer_action_rhythm
+                self.outer_action_rhythm = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr)), 0, MAX_ACTION_RHYTHM, self.outer_action_rhythm, eeprom_addr)
 
-                touch_sensitivity = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
-                if touch_sensitivity >= 0 and touch_sensitivity <= 2:
-                    self.lx_hardware.capacitives_circles.touch_sensitivity = touch_sensitivity
+                self.lx_hardware.capacitives_circles.touch_sensitivity = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr)), 0, MAX_TOUCH_SENSITIVITY, self.lx_hardware.capacitives_circles.touch_sensitivity, eeprom_addr)
 
-                clk_mode = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
-                if clk_mode >= LxEuclidConstant.TAP_MODE and clk_mode <= LxEuclidConstant.CLK_IN:
-                    self.clk_mode = clk_mode
-
+                self.clk_mode = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr)), LxEuclidConstant.TAP_MODE, LxEuclidConstant.CLK_IN, self.clk_mode, eeprom_addr)
                 for cv_data in self.lx_hardware.cv_manager.cvs_data:
                     for i in range(0, CvAction.CV_ACTION_LEN):
-
                         cv_channel = self.lx_hardware.get_eeprom_data_int(
                             incr_addr(eeprom_addr))
                         if cv_channel >= CvChannel.CV_CHANNEL_NONE and cv_channel <= CvChannel.CV_CHANNEL_THREE:
@@ -1874,19 +1879,14 @@ class LxEuclidConfig:
 
                 tap_delay_ms = tap_tempo_lsb + (tap_tempo_msb << 8)
 
-                if tap_delay_ms <= LxEuclidConstant.MAX_TAP_DELAY_MS and tap_delay_ms >= LxEuclidConstant.MIN_TAP_DELAY_MS:
-                    self.tap_delay_ms = tap_delay_ms
+                self.tap_delay_ms = data_set_in_range(
+                    tap_delay_ms, LxEuclidConstant.MIN_TAP_DELAY_MS, LxEuclidConstant.MAX_TAP_DELAY_MS, self.tap_delay_ms, eeprom_addr)
 
-                flip = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
+                self.flip = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr)), 0, MAX_FLIP_SCREEN, self.flip)
 
-                if flip >= 0 and flip <= 1:
-                    self.flip = flip
-                preset_recall_mode = self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr))
-
-                if preset_recall_mode >= LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET and preset_recall_mode <= LxEuclidConstant.PRESET_INTERNAL_RESET:
-                    self.preset_recall_mode = preset_recall_mode
+                self.preset_recall_mode = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                    incr_addr(eeprom_addr)), LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET, LxEuclidConstant.PRESET_INTERNAL_RESET, self.preset_recall_mode, eeprom_addr)
 
                 self.create_memory_dict()
                 self.previous_dict_data_list = list(self.dict_data.values())
