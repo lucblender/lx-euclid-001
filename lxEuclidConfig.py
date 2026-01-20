@@ -1808,7 +1808,7 @@ class LxEuclidConfig:
                 for euclidean_rhythm in self.euclidean_rhythms:
 
                     euclidean_rhythm.beats = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
-                        incr_addr(eeprom_addr)), 0, MAX_BEATS, euclidean_rhythm.beats, eeprom_addr)
+                        incr_addr(eeprom_addr)), 1, MAX_BEATS, euclidean_rhythm.beats, eeprom_addr)
                     euclidean_rhythm.pulses = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr)), 0, euclidean_rhythm.beats, euclidean_rhythm.pulses, eeprom_addr)
                     euclidean_rhythm.offset = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
@@ -1829,7 +1829,7 @@ class LxEuclidConfig:
                 for preset in self.presets:
                     for preset_euclidean_rhythm in preset:
                         preset_euclidean_rhythm.beats = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
-                            incr_addr(eeprom_addr)), 0, MAX_BEATS, preset_euclidean_rhythm.beats, eeprom_addr)
+                            incr_addr(eeprom_addr)), 1, MAX_BEATS, preset_euclidean_rhythm.beats, eeprom_addr)
                         preset_euclidean_rhythm.pulses = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                             incr_addr(eeprom_addr)), 0, preset_euclidean_rhythm.beats, preset_euclidean_rhythm.pulses, eeprom_addr)
                         preset_euclidean_rhythm.offset = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
@@ -1883,7 +1883,7 @@ class LxEuclidConfig:
                     tap_delay_ms, LxEuclidConstant.MIN_TAP_DELAY_MS, LxEuclidConstant.MAX_TAP_DELAY_MS, self.tap_delay_ms, eeprom_addr)
 
                 self.flip = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr)), 0, MAX_FLIP_SCREEN, self.flip)
+                    incr_addr(eeprom_addr)), 0, MAX_FLIP_SCREEN, self.flip, eeprom_addr)
 
                 self.preset_recall_mode = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET, LxEuclidConstant.PRESET_INTERNAL_RESET, self.preset_recall_mode, eeprom_addr)

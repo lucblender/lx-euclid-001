@@ -246,7 +246,7 @@ class LxHardware:
 
         # used to detect a press on circles
         self.inner_previous_state = False
-        self.outer_previous_sate = False
+        self.outer_previous_state = False
 
         self.cv_manager = CvManager(self.i2c_internal)
 
@@ -264,10 +264,11 @@ class LxHardware:
 
     def relaunch_internal_clk(self):
         self.sm_internal_clock.restart()
+        self.sm_internal_clock.active(1)
         self.internal_clk_pin_change(None)
 
     def stop_internal_clk(self):
-        self.sm_internal_clock.restart()
+        self.sm_internal_clock.active(0)
 
     def internal_clk_pin_change(self, pin):
 
@@ -300,9 +301,9 @@ class LxHardware:
                     self.temp_ticks_tenth_ms = ticks_us()//100
                     self.delta_tenth_ms = self.temp_ticks_tenth_ms-self.last_clock_ticks_tenth_ms
 
-                    if self.delta_tenth_ms < HIGHEST_CLK_IN_TENTH_MS:  # this cause crash, to investigate if I keep or not
-                        # debounce filter, ignore any clock too fast
-                        return
+                    # if self.delta_tenth_ms < HIGHEST_CLK_IN_TENTH_MS:  # this cause crash, to investigate if I keep or not
+                    # debounce filter, ignore any clock too fast
+                    #    return
                     if self.delta_tenth_ms > (LOWEST_CLK_IN_TENTH_MS):
                         self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
                     else:
@@ -441,12 +442,12 @@ class LxHardware:
         elif not circles_data[0] and self.inner_previous_state:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_TAP, circles_data))
-        elif not circles_data[1] and self.outer_previous_sate:
+        elif not circles_data[1] and self.outer_previous_state:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_TAP, circles_data))
 
         self.inner_previous_state = circles_data[0]
-        self.outer_previous_sate = circles_data[1]
+        self.outer_previous_state = circles_data[1]
 
     def update_cv_values(self):
         self.i2c_internal_lock.acquire()
