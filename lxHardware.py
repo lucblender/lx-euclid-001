@@ -455,8 +455,8 @@ class LxHardware:
         if self.lx_pander_seq is not None:
             has_change = self.lx_pander_seq.get_has_change()
             if has_change != self.lx_pander_seq.LX_PANDER_NO_RHYTHM:
-                print("Custom rhythm updated from expander")
-                new_custom_rhythm = self.lx_pander_seq.get_rhythm(0)
+                print("Custom rhythm updated from expander", has_change)
+                new_custom_rhythm = self.lx_pander_seq.get_rhythm(has_change)
                 self.lx_euclid_config.euclidean_rhythms[has_change].custom_rhythm = new_custom_rhythm
                 if (self.lx_euclid_config.euclidean_rhythms[has_change].algo_index == 4):
                     self.lx_euclid_config.euclidean_rhythms[has_change].set_rhythm(
@@ -464,8 +464,8 @@ class LxHardware:
 
     def poll_expander_for_rhythm(self, rhythm_index):
         if self.lx_pander_seq is not None:
-            print("Custom rhythm loaded from expander")
-            new_custom_rhythm = self.lx_pander_seq.get_rhythm(0)
+            print("Custom rhythm loaded from expander", rhythm_index)
+            new_custom_rhythm = self.lx_pander_seq.get_rhythm(rhythm_index)
             self.lx_euclid_config.euclidean_rhythms[rhythm_index].custom_rhythm = new_custom_rhythm
             if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == 4:
                 self.lx_euclid_config.euclidean_rhythms[rhythm_index].set_rhythm(

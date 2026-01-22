@@ -495,8 +495,6 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.rhythm = [1]*local_beats
         elif local_pulse == 0:
             self.rhythm = [0]*local_beats
-        elif local_pulse == 1:
-            self.rhythm = [1]*1+[0]*(local_beats-1)
         elif local_beats == local_pulse:
             self.rhythm = [1]*local_beats
         else:
@@ -1031,8 +1029,9 @@ class LxEuclidConfig:
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
 
-                self.lx_hardware.set_expander_focus(data)
                 self.lx_hardware.set_sw_leds(data)
+                self.lx_hardware.set_expander_focus(data)
+
                 self.lx_hardware.set_tap_led()
                 self.lx_hardware.set_menu_led()
 
@@ -1315,6 +1314,7 @@ class LxEuclidConfig:
 
                 self.lx_hardware.clear_sw_leds()
                 self.lx_hardware.set_sw_leds(data)
+                self.lx_hardware.set_expander_focus(data)
 
                 self.menu_lock.acquire()
                 self.sm_rhythm_param_counter = data
@@ -1363,6 +1363,7 @@ class LxEuclidConfig:
 
                 self.lx_hardware.clear_sw_leds()
                 self.lx_hardware.set_sw_leds(data)
+                self.lx_hardware.set_expander_focus(data)
 
                 self.menu_lock.acquire()
                 self.sm_rhythm_param_counter = data
@@ -1399,6 +1400,7 @@ class LxEuclidConfig:
                 else:
                     self.lx_hardware.clear_sw_leds()
                     self.lx_hardware.set_sw_leds(data)
+                    self.lx_hardware.set_expander_focus(data)
 
                     self.menu_lock.acquire()
                     self.sm_rhythm_param_counter = data
@@ -1451,6 +1453,7 @@ class LxEuclidConfig:
 
                 self.lx_hardware.clear_sw_leds()
                 self.lx_hardware.set_sw_leds(data)
+                self.lx_hardware.set_expander_focus(data)
 
                 self.menu_lock.acquire()
                 self.sm_rhythm_param_counter = data
