@@ -371,7 +371,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
             txt_len = 54  # can't use stinglen since we use default font to not use memory cause we loaded lxb logo
             self.text(version, 120-(txt_len//2), 200, self.grey)
             self.show()
-            sleep(0.5)
+        gc.collect()
+
+    # additional information during init sequence
+    def finish_init_sequence(self, lx_pander_version=None):
+        if lx_pander_version is not None:
+            txt_len = 54  # can't use stinglen since we use default font to not use memory cause we loaded lxb logo
+            self.text(lx_pander_version, 120-(txt_len//2), 220, self.grey)
+            self.show()
+        sleep(0.5)
 
         self.fill(self.black)
         gc.collect()

@@ -43,8 +43,8 @@ To build and UF2 image, you will need:
 - [This repository](#main-repository--lx-euclid)
   - micropython sources
   - build scripts
-- [Micropython sources](#micropython)
-  - Will allow you to create a custom micropython UF2
+- [Micropython sources](#micropython), **lx-euclid currently run under micropython 1.27.0**
+  - Will allow you to create a custom micropython UF2
 - [dir2uf2](#dir2uf2)
   - Python based tool to pack a directory of files into a LFSV2 filesystem and save as .uf2
 

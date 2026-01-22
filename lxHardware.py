@@ -7,6 +7,7 @@ from utime import ticks_us
 
 from capacitivesCircles import CapacitivesCircles
 from cvManager import CvManager
+from lxPanderSeq import LxPanderSeq
 
 from lxEuclidConfig import LxEuclidConstant
 
@@ -24,9 +25,8 @@ LED_MENU = const(21)
 # equal 0.5hz equal 2sec period equal 2000ms
 LOWEST_CLK_IN_TENTH_MS = const(2000*10)
 
-# this is external I2C SDA. We use it as internal clock until micropython fix mutlithreading issue with
-# pio, timer and schedule
-INTERNAL_CLOCK = const(26)
+# 300/10ms -> 33.33Hz --> 2000 bpm 1/1 --> 500 bpm 1/4
+HIGHEST_CLK_IN_TENTH_MS = const(300)
 
 SW0 = const(19)
 SW1 = const(7)
@@ -43,6 +43,12 @@ GATE_OUT_1 = const(3)
 GATE_OUT_2 = const(4)
 GATE_OUT_3 = const(5)
 
+INTERNAL_I2C_SDA_PIN = const(0)
+INTERNAL_I2C_SCL_PIN = const(1)
+
+EXTERNAL_I2C_SDA_PIN = const(26)
+EXTERNAL_I2C_SCL_PIN = const(27)
+
 ENDIANESS_EEPROM = const(1)
 
 
@@ -58,16 +64,15 @@ def timed_10th_ms_pulse():
     set(pins, 0)
 
 
-@rp2.asm_pio(set_init=rp2.PIO.OUT_LOW, out_init=rp2.PIO.OUT_LOW, out_shiftdir=rp2.PIO.SHIFT_LEFT, autopull=True, pull_thresh=24)
+@rp2.asm_pio(out_shiftdir=rp2.PIO.SHIFT_LEFT, autopull=True, pull_thresh=24)
 def timed_10th_ms_pulse_internal_clock():
     label("wait")
     out(x, 16)
     jmp(not_x, "wait")
-    set(pins, 0)
     label("delay_high")
     nop()
     jmp(x_dec, "delay_high")
-    set(pins, 1)
+    irq(0)
 
 
 class HandlerEventData:
@@ -128,24 +133,16 @@ class LxHardware:
         self.btn_tap_pin = Pin(BTN_TAP, Pin.IN, Pin.PULL_UP)
         self.btn_menu_pin = Pin(BTN_MENU, Pin.IN, Pin.PULL_UP)
 
-        self.clk_pin_status = self.clk_pin.value()
         self.rst_pin_status = self.rst_pin.value()
         self.btn_tap_pin_status = self.btn_tap_pin.value()
         self.btn_menu_pin_status = self.btn_menu_pin.value()
 
-        # To create tap tempo, we are doing a pulse on a input pin with
-        # a pio (sm_internal_clock) and getting this pulse with an interrupt.
-        # By doing so, we are sure our interrupt will be executed on core 0
-        self.internal_clk_pin = Pin(INTERNAL_CLOCK, Pin.IN)
-
-        self.internal_clk_pin.irq(handler=self.internal_clk_pin_change,
-                                  trigger=Pin.IRQ_RISING, hard=True)
         # this sm_internal_clock goes 24 time faster than the clock to handle burst
         # clk_subdivision_counter handle this 24 time division
         self.clk_subdivision_counter = 0
 
         self.clk_pin.irq(handler=self.clk_pin_change,
-                         trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+                         trigger=Pin.IRQ_FALLING, hard=True)
         self.rst_pin.irq(handler=self.rst_pin_change,
                          trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
         self.btn_tap_pin.irq(handler=self.btn_tap_pin_change,
@@ -209,23 +206,49 @@ class LxHardware:
         # for a 10th ms pulse clk should be 20_000
         # but we do a 24subdivider pulse for burst so we up the freq to 480_000
         self.sm_internal_clock = rp2.StateMachine(
-            4, timed_10th_ms_pulse_internal_clock, freq=480_000, set_base=Pin(INTERNAL_CLOCK))
+            4, timed_10th_ms_pulse_internal_clock, freq=480_000)
         self.sm_internal_clock.active(1)
+        self.sm_internal_clock.irq(
+            handler=self.internal_clk_pin_change, hard=True)
 
-        self.i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=800_000)
+        # initialize time tracking for clk period calculation
+        self.temp_ticks_tenth_ms = ticks_us()//100
+        self.delta_tenth_ms = 0
+
+        self.i2c_internal = I2C(0, sda=Pin(INTERNAL_I2C_SDA_PIN), scl=Pin(
+            INTERNAL_I2C_SCL_PIN), freq=800_000)
         # a lock on the i2c so both thread can use i2c devices
-        self.i2c_lock = allocate_lock()
+        self.i2c_internal_lock = allocate_lock()
+
+        external_i2c_sda = Pin(EXTERNAL_I2C_SDA_PIN, Pin.IN)
+        external_i2c_scl = Pin(EXTERNAL_I2C_SCL_PIN, Pin.IN)
+        if (external_i2c_sda.value() == 0 or external_i2c_scl.value() == 0):
+            # if either line is low, expander is not connected
+            self.i2c_external = None
+            self.lx_pander_seq = None
+            print("LxPanderSeq not connected, i2c lines pulled low")
+        else:
+            self.i2c_external = I2C(1, sda=Pin(EXTERNAL_I2C_SDA_PIN), scl=Pin(
+                EXTERNAL_I2C_SCL_PIN), freq=800_000)
+            self.lx_pander_seq = LxPanderSeq(self.i2c_external)
+            if self.lx_pander_seq.connected:
+                print("LxPanderSeq connected:",
+                      self.lx_pander_seq.get_version_string())
+            else:
+                print("LxPanderSeq not connected, i2c scan failed")
+                self.lx_pander_seq = None
 
         self.eeprom_memory = EEPROM(
-            self.i2c, chip_size=T24C64, addr=self.EEPROM_ADDR)
+            self.i2c_internal, chip_size=T24C64, addr=self.EEPROM_ADDR)
 
-        self.capacitives_circles = CapacitivesCircles(self.i2c, self.i2c_lock)
+        self.capacitives_circles = CapacitivesCircles(
+            self.i2c_internal, self.i2c_internal_lock)
 
         # used to detect a press on circles
         self.inner_previous_state = False
-        self.outer_previous_sate = False
+        self.outer_previous_state = False
 
-        self.cv_manager = CvManager(self.i2c)
+        self.cv_manager = CvManager(self.i2c_internal)
 
         self.lx_euclid_config = None
 
@@ -241,10 +264,11 @@ class LxHardware:
 
     def relaunch_internal_clk(self):
         self.sm_internal_clock.restart()
+        self.sm_internal_clock.active(1)
         self.internal_clk_pin_change(None)
 
     def stop_internal_clk(self):
-        self.sm_internal_clock.restart()
+        self.sm_internal_clock.active(0)
 
     def internal_clk_pin_change(self, pin):
 
@@ -272,19 +296,19 @@ class LxHardware:
 
     def clk_pin_change(self, pin):
         try:
-
-            if self.clk_pin_status == self.clk_pin.value():
-                return
-            self.clk_pin_status = self.clk_pin.value()
             if not self.clk_pin.value():
                 if self.lx_euclid_config is not None:
-                    temp_ticks_tenth_ms = ticks_us()//100
-                    if temp_ticks_tenth_ms-self.last_clock_ticks_tenth_ms > (LOWEST_CLK_IN_TENTH_MS):
+                    self.temp_ticks_tenth_ms = ticks_us()//100
+                    self.delta_tenth_ms = self.temp_ticks_tenth_ms-self.last_clock_ticks_tenth_ms
+
+                    # if self.delta_tenth_ms < HIGHEST_CLK_IN_TENTH_MS:  # this cause crash, to investigate if I keep or not
+                    # debounce filter, ignore any clock too fast
+                    #    return
+                    if self.delta_tenth_ms > (LOWEST_CLK_IN_TENTH_MS):
                         self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
                     else:
-                        self.last_clock_periods.append(
-                            temp_ticks_tenth_ms-self.last_clock_ticks_tenth_ms)
-                    self.last_clock_ticks_tenth_ms = temp_ticks_tenth_ms
+                        self.last_clock_periods.append(self.delta_tenth_ms)
+                    self.last_clock_ticks_tenth_ms = self.temp_ticks_tenth_ms
 
                     self.clock_period_accumulator = 0
                     for i in range(0, 8):
@@ -300,7 +324,7 @@ class LxHardware:
                             self.stop_internal_clk()
                             self.clk_subdivision_counter = 0
                             self.relaunch_internal_clk()
-            self.lxHardwareEventFifo.append(self.clk_rise_event)
+                        self.lxHardwareEventFifo.append(self.clk_rise_event)
         except Exception as e:
             print(e)
 
@@ -388,12 +412,12 @@ class LxHardware:
         self.led_menu.value(0)
 
     def re_calibrate_touch_circles(self):
-        self.i2c_lock.acquire()
+        self.i2c_internal_lock.acquire()
         # reset the calibration array before re-doing calibration
         self.capacitives_circles.calibration_array = [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.capacitives_circles.calibration_sensor()
-        self.i2c_lock.release()
+        self.i2c_internal_lock.release()
 
     def get_touch_circles_updates(self):
         circles_data = self.capacitives_circles.get_touch_circles_updates()
@@ -418,27 +442,27 @@ class LxHardware:
         elif not circles_data[0] and self.inner_previous_state:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_TAP, circles_data))
-        elif not circles_data[1] and self.outer_previous_sate:
+        elif not circles_data[1] and self.outer_previous_state:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_TAP, circles_data))
 
         self.inner_previous_state = circles_data[0]
-        self.outer_previous_sate = circles_data[1]
+        self.outer_previous_state = circles_data[1]
 
     def update_cv_values(self):
-        self.i2c_lock.acquire()
+        self.i2c_internal_lock.acquire()
         to_return = self.cv_manager.update_cvs_read_non_blocking()
-        self.i2c_lock.release()
+        self.i2c_internal_lock.release()
         return to_return
 
     def get_eeprom_data_int(self, address):
-        self.i2c_lock.acquire()
+        self.i2c_internal_lock.acquire()
         raw_data = self.eeprom_memory[address:address+1]
-        self.i2c_lock.release()
+        self.i2c_internal_lock.release()
         return int.from_bytes(raw_data, ENDIANESS_EEPROM)
 
     def set_eeprom_data_int(self, address, data):
-        self.i2c_lock.acquire()
+        self.i2c_internal_lock.acquire()
         self.eeprom_memory[address:address +
                            1] = data.to_bytes(1, ENDIANESS_EEPROM)
-        self.i2c_lock.release()
+        self.i2c_internal_lock.release()

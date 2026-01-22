@@ -4,7 +4,7 @@ from Rp2040Lcd import LCD_1inch28
 
 # minor.major.fix + add
 MAJOR = 1
-MINOR = 16
+MINOR = 17
 FIX = 0
 ADD = "_dev"
 
@@ -44,6 +44,13 @@ stop_thread = False
 wait_display_thread = True
 
 lx_hardware = LxHardware()
+
+# if lxPanderSeq is connected, pass its version string to LCD
+if lx_hardware.lx_pander_seq != None:
+    LCD.finish_init_sequence(lx_hardware.lx_pander_seq.get_version_string())
+else:
+    LCD.finish_init_sequence()
+
 gc.collect()
 lx_euclid_config = LxEuclidConfig(
     lx_hardware, LCD, [MEMORY_MAJOR, MEMORY_MINOR, MEMORY_FIX])
