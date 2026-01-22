@@ -103,6 +103,8 @@ class LxHardware:
     BTN_SWITCHES_RISE = const(15)
     BTN_SWITCHES_FALL = const(16)
 
+    CUSTOM_RHYTHM_UPDATE = const(17)
+
     EEPROM_ADDR = const(0x50)
 
     def __init__(self):
@@ -448,6 +450,38 @@ class LxHardware:
 
         self.inner_previous_state = circles_data[0]
         self.outer_previous_state = circles_data[1]
+
+    def poll_expander_for_updates(self):
+        if self.lx_pander_seq is not None:
+            has_change = self.lx_pander_seq.get_has_change()
+            if has_change != self.lx_pander_seq.LX_PANDER_NO_RHYTHM:
+                print("Custom rhythm updated from expander")
+                new_custom_rhythm = self.lx_pander_seq.get_rhythm(0)
+                self.lx_euclid_config.euclidean_rhythms[has_change].custom_rhythm = new_custom_rhythm
+                if (self.lx_euclid_config.euclidean_rhythms[has_change].algo_index == 4):
+                    self.lx_euclid_config.euclidean_rhythms[has_change].set_rhythm(
+                    )
+
+    def poll_expander_for_rhythm(self, rhythm_index):
+        if self.lx_pander_seq is not None:
+            print("Custom rhythm loaded from expander")
+            new_custom_rhythm = self.lx_pander_seq.get_rhythm(0)
+            self.lx_euclid_config.euclidean_rhythms[rhythm_index].custom_rhythm = new_custom_rhythm
+            if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == 4:
+                self.lx_euclid_config.euclidean_rhythms[rhythm_index].set_rhythm(
+                )
+
+    def set_expander_rhythm_and_focus(self, rhythm, rhythm_index):
+        print("set_expander_rhythm_and_focus")
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_focus_rhythm(rhythm_index)
+            self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
+            self.poll_expander_for_rhythm(rhythm_index)
+
+    def set_expander_focus(self, rhythm_index):
+        if self.lx_pander_seq is not None:
+            if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == 4:
+                self.lx_pander_seq.set_focus_rhythm(rhythm_index)
 
     def update_cv_values(self):
         self.i2c_internal_lock.acquire()

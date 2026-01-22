@@ -10,6 +10,7 @@ T_CLK_LED_ON_MS = const(10)
 T_GATE_ON_MS = const(10)
 
 MAX_BEATS = const(32)
+MAX_BEATS_CUSTOM = const(16)
 MAX_PROBABILITY = const(100)
 MAX_ALGO_INDEX = const(3)
 MAX_PRESCALER_INDEX = const(6)
@@ -91,6 +92,8 @@ class EuclideanRhythmParameters:
 
         self._burst_div_index = burst_div_index
         self.burst_div = LxEuclidConstant.BURST_LIST[burst_div_index]
+
+        self.custom_rhythm = [0]*16
 
     @property
     def prescaler_index(self):
@@ -238,7 +241,11 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.global_cv_probability = min(100, (max(0, probability)))
 
     def incr_beats(self):
-        if self.beats != MAX_BEATS:
+        if self.algo_index == 4:
+            max_beat = MAX_BEATS_CUSTOM
+        else:
+            max_beat = MAX_BEATS
+        if self.beats != max_beat:
             self.beats = self.beats + 1
             if not self.pulses_set_0_1:
                 self.set_pulses_per_ratio()
@@ -437,24 +444,42 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
     def set_rhythm(self):
         local_beats = self.beats
-        local_pulse = self.pulses
+
+        # todo adjust logic here for custom rhythm
+        if self.algo_index == 4:
+            local_pulse = sum(self.custom_rhythm[:local_beats])
+        else:
+            local_pulse = self.pulses
 
         if self.has_cv_beat:
-            local_beats = local_beats+int(MAX_BEATS*self.cv_percent_beat/100)
 
-            if local_beats > MAX_BEATS:
-                local_beats = MAX_BEATS
+            if self.algo_index == 4:
+                max_beat = MAX_BEATS_CUSTOM
+            else:
+                max_beat = MAX_BEATS
+
+            local_beats = local_beats + \
+                int(max_beat*self.cv_percent_beat/100)
+
+            if local_beats > max_beat:
+                local_beats = max_beat
             elif local_beats <= 0:
                 local_beats = 1
 
-            if not self.pulses_set_0_1:
+            if not self.pulses_set_0_1 and self.algo_index != 4:
                 local_pulse = self.__compute_pulses_per_ratio(local_beats)
         if self.has_cv_pulse:
             local_pulse = local_pulse + \
                 int(local_beats*self.cv_percent_pulse/100)
+
+        if self.algo_index == 4:
+            max_beat = MAX_BEATS_CUSTOM
+        else:
+            max_beat = MAX_BEATS
+
         # range back beats from 1 to MAX_BEATS
-        if local_beats > MAX_BEATS:
-            local_beats = MAX_BEATS
+        if local_beats > max_beat:
+            local_beats = max_beat
         elif local_beats <= 0:
             local_beats = 1
 
@@ -484,9 +509,12 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             elif self.algo_index == 2:
                 self.rhythm = self.__exponential_rhythm(
                     local_beats, local_pulse, True)
-            else:
+            elif self.algo_index == 3:
                 self.rhythm = self.__symmetric_exponential(
                     local_beats, local_pulse)
+            else:  # todo add custom rhythm here
+                self.rhythm = self.__custom_rhythm_euclidean_fill(self.custom_rhythm,
+                                                                  local_beats, local_pulse)
 
     # from https://github.com/brianhouse/bjorklund/tree/master
     def __set_rhythm_bjorklund(self, beats, pulses):
@@ -572,6 +600,86 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         r_0 = self.__exponential_rhythm(rhythm0_n, rhythm0_k)
         r_1 = self.__exponential_rhythm(rhythm1_n, rhythm1_k, True)
         return r_1+r_0
+
+    def __custom_rhythm_euclidean_fill(self, rhythm, beats, pulses):
+        rhythm_cpy = rhythm[:beats]
+        length = len(rhythm_cpy)
+        beat_number = sum(rhythm_cpy)  # More direct than function call
+
+        if pulses == beat_number:
+            return rhythm_cpy
+        if pulses == 0:
+            result = [0] * length
+            return result
+        if pulses == length:
+            result = [1] * length
+            return result
+
+        # Pre-allocate result
+        result = [0] * length
+
+        # Calculate euclidean positions directly
+        true_positions = []
+        for i in range(length):
+            if (i * pulses) % length < pulses:
+                true_positions.append(i)
+
+        # Get current beat positions
+        current_positions = []
+        for i in range(length):
+            if rhythm_cpy[i] == 1:
+                current_positions.append(i)
+
+        if pulses > beat_number:
+            # Adding beats - keep all current and add closest euclidean
+            used_euclidean = [False] * len(true_positions)
+
+            # Mark euclidean positions closest to existing beats as used
+            for curr_pos in current_positions:
+                best_idx = -1
+                best_dist = length  # Max possible distance
+
+                for i, true_pos in enumerate(true_positions):
+                    if used_euclidean[i]:
+                        continue
+                    dist = abs(curr_pos - true_pos)
+                    if dist < best_dist:
+                        best_dist = dist
+                        best_idx = i
+
+                if best_idx >= 0:
+                    used_euclidean[best_idx] = True
+
+            # Set all current positions
+            for pos in current_positions:
+                result[pos] = 1
+
+            # Add unused euclidean positions
+            for i, true_pos in enumerate(true_positions):
+                if not used_euclidean[i]:
+                    result[true_pos] = 1
+
+        else:
+            # Removing beats - keep only closest to euclidean positions
+            used_current = [False] * len(current_positions)
+
+            for true_pos in true_positions:
+                best_idx = -1
+                best_dist = length
+
+                for i, curr_pos in enumerate(current_positions):
+                    if used_current[i]:
+                        continue
+                    dist = abs(true_pos - curr_pos)
+                    if dist < best_dist:
+                        best_dist = dist
+                        best_idx = i
+
+                if best_idx >= 0:
+                    used_current[best_idx] = True
+                    result[current_positions[best_idx]] = 1
+
+        return result
 
 
 class LxEuclidConstant:
@@ -923,6 +1031,7 @@ class LxEuclidConfig:
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
 
+                self.lx_hardware.set_expander_focus(data)
                 self.lx_hardware.set_sw_leds(data)
                 self.lx_hardware.set_tap_led()
                 self.lx_hardware.set_menu_led()
@@ -1450,8 +1559,20 @@ class LxEuclidConfig:
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
                     )
                 elif self.param_channel_config_page == 2:  # algo
-                    algo_index = angle_to_index(angle_inner, 4)
+                    # if expander is connected, we have one more algo : custom
+                    if self.lx_hardware.lx_pander_seq is not None:
+                        algo_index_number = 5
+                    else:
+                        algo_index_number = 4
+                    algo_index = angle_to_index(angle_inner, algo_index_number)
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index = algo_index
+                    if algo_index == 4:
+                        if self.euclidean_rhythms[self.sm_rhythm_param_counter].beats > MAX_BEATS_CUSTOM:
+                            self.euclidean_rhythms[self.sm_rhythm_param_counter].beats = MAX_BEATS_CUSTOM
+                        rhythm_copy = self.euclidean_rhythms[self.sm_rhythm_param_counter].rhythm.copy(
+                        )
+                        self.lx_hardware.set_expander_rhythm_and_focus(
+                            rhythm_copy, self.sm_rhythm_param_counter)
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
                     )
 

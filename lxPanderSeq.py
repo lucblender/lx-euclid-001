@@ -40,6 +40,8 @@ class LxPanderSeq:
             self.minor = 0
             self.fix = 0
 
+        self.LX_PANDER_NO_RHYTHM = const(255)
+
     def get_has_change(self):
         return self._register8(MemoryAddress.HAS_CHANGE)
 
@@ -51,7 +53,9 @@ class LxPanderSeq:
 
     def set_rhythm(self, index, rhythm_array):
         rhythm = 0
-        for i in range(16):
+        rhythm_len_to_write = min(len(rhythm_array), 16)
+
+        for i in range(rhythm_len_to_write):
             rhythm |= rhythm_array[i] << i
 
         self._register16(MemoryAddress.RHYTHM0_LSB + index * 2, rhythm)

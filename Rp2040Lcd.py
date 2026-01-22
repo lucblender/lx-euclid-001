@@ -786,8 +786,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_font6.text(
                     current_channel_setting, 108, 130, page_color)
 
-                texts = [["Eucl."], ["Exp.", "Eucl."], [
-                    "Inv.", "Exp."], ["Sym.", "Eucl."],]
+                if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
+                    texts = [["Eucl."], ["Exp.", "Eucl."], [
+                        "Inv.", "Exp."], ["Sym.", "Eucl."], ["Seq."]]
+                else:
+                    texts = [["Eucl."], ["Exp.", "Eucl."], [
+                        "Inv.", "Exp."], ["Sym.", "Eucl."]]
 
                 txt_colors = [txt_color]*len(texts)
 
