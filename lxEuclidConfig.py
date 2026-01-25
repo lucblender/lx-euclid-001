@@ -1568,6 +1568,7 @@ class LxEuclidConfig:
                     else:
                         algo_index_number = 4
                     algo_index = angle_to_index(angle_inner, algo_index_number)
+                    previous_algo_index = self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index = algo_index
                     if algo_index == 4:
                         if self.euclidean_rhythms[self.sm_rhythm_param_counter].beats > MAX_BEATS_CUSTOM:
@@ -1576,6 +1577,19 @@ class LxEuclidConfig:
                         )
                         self.lx_hardware.set_expander_rhythm_and_focus(
                             rhythm_copy, self.sm_rhythm_param_counter)
+                    elif previous_algo_index == 4:
+                        rhythm_found = False
+                        for rhythm_index in range(0, 4):
+                            if self.euclidean_rhythms[rhythm_index].algo_index == 4:
+                                rhythm_copy = self.euclidean_rhythms[rhythm_index].rhythm.copy(
+                                )
+                                self.lx_hardware.set_expander_rhythm_and_focus(
+                                    rhythm_copy, rhythm_index)
+                                rhythm_found = True
+                                break
+                        if not rhythm_found:
+                            self.lx_hardware.clear_expander_focus()
+
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
                     )
 

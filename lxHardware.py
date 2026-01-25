@@ -483,6 +483,10 @@ class LxHardware:
             if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == 4:
                 self.lx_pander_seq.set_focus_rhythm(rhythm_index)
 
+    def clear_expander_focus(self):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.clear_focus_rhythm()
+
     def update_cv_values(self):
         self.i2c_internal_lock.acquire()
         to_return = self.cv_manager.update_cvs_read_non_blocking()

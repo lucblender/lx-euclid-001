@@ -51,6 +51,9 @@ class LxPanderSeq:
     def set_focus_rhythm(self, value):
         self._register8(MemoryAddress.FOCUS_RHYTHM, value)
 
+    def clear_focus_rhythm(self):
+        self._register8(MemoryAddress.FOCUS_RHYTHM, self.LX_PANDER_NO_RHYTHM)
+
     def set_rhythm(self, index, rhythm_array):
         rhythm = 0
         rhythm_len_to_write = min(len(rhythm_array), 16)
