@@ -21,6 +21,10 @@ class MemoryAddress():
 
 
 class LxPanderSeq:
+
+    LX_PANDER_NO_RHYTHM = const(255)
+    LX_PANDER_ERROR_MESSAGE = const(-1)
+
     def __init__(self, i2c, address=LX_PANDER_SEQ_I2C_ADDRESS):
         self.i2c = i2c
         self.address = address
@@ -39,8 +43,6 @@ class LxPanderSeq:
             self.major = 0
             self.minor = 0
             self.fix = 0
-
-        self.LX_PANDER_NO_RHYTHM = const(255)
 
     def get_has_change(self):
         return self._register8(MemoryAddress.HAS_CHANGE)
@@ -65,21 +67,31 @@ class LxPanderSeq:
 
     def get_rhythm(self, index):
         rhythm = self._register16(MemoryAddress.RHYTHM0_LSB + index * 2)
-        result = []
-        for i in range(16):
-            result.append((rhythm >> i) & 0x01)
-        return result
+        if rhythm == self.LX_PANDER_ERROR_MESSAGE:
+            return self.LX_PANDER_ERROR_MESSAGE
+        else:
+            result = []
+            for i in range(16):
+                result.append((rhythm >> i) & 0x01)
+            return result
 
     def _register8(self, register, value=None):
-        if value is None:
-            return self.i2c.readfrom_mem(self.address, register, 1)[0]
-        self.i2c.writeto_mem(self.address, register, bytearray([value]))
+        try:
+            if value is None:
+                return self.i2c.readfrom_mem(self.address, register, 1)[0]
+            self.i2c.writeto_mem(self.address, register, bytearray([value]))
+        except:
+            return self.LX_PANDER_ERROR_MESSAGE
 
     def _register16(self, register, value=None):
-        if value is None:
-            data = self.i2c.readfrom_mem(self.address, register, 2)
-            return ustruct.unpack("<H", data)[0]
-        self.i2c.writeto_mem(self.address, register, ustruct.pack("<H", value))
+        try:
+            if value is None:
+                data = self.i2c.readfrom_mem(self.address, register, 2)
+                return ustruct.unpack("<H", data)[0]
+            self.i2c.writeto_mem(self.address, register,
+                                 ustruct.pack("<H", value))
+        except:
+            return self.LX_PANDER_ERROR_MESSAGE
 
     def get_version_string(self):
         return f"v{self.major}.{self.minor}.{self.fix}"
