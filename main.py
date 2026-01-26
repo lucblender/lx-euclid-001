@@ -33,9 +33,11 @@ LONG_PRESS_MS = 500
 DEBOUNCE_MS = 20
 
 CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
+EXPANDER_DELAY_READ_MS = 50
 
 last_timer_launch_ms = ticks_ms()
 last_capacitive_circles_read_ms = ticks_ms()
+last_lx_pander_read_ms = ticks_ms()
 
 btn_menu_press = -1
 tap_btn_press = -1
@@ -294,6 +296,10 @@ if __name__ == '__main__':
                         has_cvs_changed)
                     if need_lcd_update:
                         LCD.set_need_display()
+
+                if ticks_ms() - last_lx_pander_read_ms > EXPANDER_DELAY_READ_MS and lx_hardware.lx_pander_seq is not None:
+                    lx_hardware.poll_expander_for_updates()
+                    last_lx_pander_read_ms = ticks_ms()
 
         print("quit")
     except Exception as e:

@@ -410,7 +410,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
                     else:
                         return 0
         except Exception as e:
-            print(e, "x")
+            print(e)
 
     def get_current_step(self):
         try:
@@ -440,7 +440,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
                     else:
                         return 0
         except Exception as e:
-            print(e, "x")
+            print(e)
 
     def set_rhythm(self):
         local_beats = self.beats
