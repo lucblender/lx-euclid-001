@@ -1022,8 +1022,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             self.circle(120, 120, 51, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 51-15, self.black, True)
-
-            self.circle(120, 120, 31, self.touch_circle_color_highlight, True)
+            if current_euclidean_rhythm.algo_index == 4 and local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
+                pulse_color = self.grey
+            else:
+                pulse_color = self.touch_circle_color_highlight
+            self.circle(120, 120, 31, pulse_color, True)
             self.circle(120, 120, 31-15, self.black, True)
 
             if local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
@@ -1032,12 +1035,23 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 b = str(current_euclidean_rhythm.beats)
                 b_len = self.font_writer_freesans20.stringlen(b)
 
-                p = str(current_euclidean_rhythm.pulses)
+                # for seq algo, display the custom rhythm pulses instead of pulses number
+                if current_euclidean_rhythm.algo_index == 4:
+                    p = str(sum(
+                        current_euclidean_rhythm.custom_rhythm[:current_euclidean_rhythm.beats]))
+                else:
+                    p = str(current_euclidean_rhythm.pulses)
                 p_len = self.font_writer_freesans20.stringlen(p)
                 self.font_writer_freesans20.text(
                     str(b), 120-(b_len//2), 71, highlight_color)
+
+                if current_euclidean_rhythm.algo_index == 4:
+                    pulse_color = self.grey
+                else:
+                    pulse_color = highlight_color
                 self.font_writer_freesans20.text(
-                    str(p), 120-(p_len//2), 90, highlight_color)
+                    str(p), 120-(p_len//2), 90, pulse_color)
+
             elif local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY:
                 self.poly(0, 0, array(
                     "h", [120, 120, 120-45, 65, 120+45, 65]), self.black, True)

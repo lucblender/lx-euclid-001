@@ -1099,8 +1099,9 @@ class LxEuclidConfig:
                                     self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
                                     )
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_PULSES:
-                                    self.euclidean_rhythms[euclidean_rhythm_index].incr_pulses(
-                                    )
+                                    if self.euclidean_rhythms[euclidean_rhythm_index].algo_index != 4:
+                                        self.euclidean_rhythms[euclidean_rhythm_index].incr_pulses(
+                                        )
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_ROTATE:
                                     self.euclidean_rhythms[euclidean_rhythm_index].incr_offset(
                                     )
@@ -1119,8 +1120,9 @@ class LxEuclidConfig:
                                     self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
                                     )
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_PULSES:
-                                    self.euclidean_rhythms[euclidean_rhythm_index].decr_pulses(
-                                    )
+                                    if self.euclidean_rhythms[euclidean_rhythm_index].algo_index != 4:
+                                        self.euclidean_rhythms[euclidean_rhythm_index].decr_pulses(
+                                        )
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_ROTATE:
                                     self.euclidean_rhythms[euclidean_rhythm_index].decr_offset(
                                     )
@@ -1334,11 +1336,13 @@ class LxEuclidConfig:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_beats(
                 )
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
-                self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_pulses(
-                )
+                if self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index != 4:
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_pulses(
+                    )
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
-                self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_pulses(
-                )
+                if self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index != 4:
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_pulses(
+                    )
 
         elif local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY:
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
