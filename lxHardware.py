@@ -458,7 +458,7 @@ class LxHardware:
                 new_custom_rhythm = self.lx_pander_seq.get_rhythm(has_change)
                 if new_custom_rhythm is not LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
                     self.lx_euclid_config.euclidean_rhythms[has_change].custom_rhythm = new_custom_rhythm
-                    if (self.lx_euclid_config.euclidean_rhythms[has_change].algo_index == 4):
+                    if self.lx_euclid_config.euclidean_rhythms[has_change].algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                         self.lx_euclid_config.euclidean_rhythms[has_change].set_rhythm(
                         )
 
@@ -467,7 +467,7 @@ class LxHardware:
             new_custom_rhythm = self.lx_pander_seq.get_rhythm(rhythm_index)
             if new_custom_rhythm is not LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
                 self.lx_euclid_config.euclidean_rhythms[rhythm_index].custom_rhythm = new_custom_rhythm
-                if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == 4:
+                if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                     self.lx_euclid_config.euclidean_rhythms[rhythm_index].set_rhythm(
                     )
 
@@ -476,6 +476,10 @@ class LxHardware:
             self.lx_pander_seq.set_focus_rhythm(rhythm_index)
             self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
             self.poll_expander_for_rhythm(rhythm_index)
+
+    def set_expander_rhythm(self, rhythm, rhythm_index):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
 
     def set_expander_focus(self, rhythm_index):
         if self.lx_pander_seq is not None:

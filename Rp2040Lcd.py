@@ -1022,7 +1022,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             self.circle(120, 120, 51, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 51-15, self.black, True)
-            if current_euclidean_rhythm.algo_index == 4 and local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
+            if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM and local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
                 pulse_color = self.grey
             else:
                 pulse_color = self.touch_circle_color_highlight
@@ -1036,7 +1036,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 b_len = self.font_writer_freesans20.stringlen(b)
 
                 # for seq algo, display the custom rhythm pulses instead of pulses number
-                if current_euclidean_rhythm.algo_index == 4:
+                if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                     p = str(sum(
                         current_euclidean_rhythm.custom_rhythm[:current_euclidean_rhythm.beats]))
                 else:
@@ -1045,7 +1045,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     str(b), 120-(b_len//2), 71, highlight_color)
 
-                if current_euclidean_rhythm.algo_index == 4:
+                if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                     pulse_color = self.grey
                 else:
                     pulse_color = highlight_color

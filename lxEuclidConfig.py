@@ -12,7 +12,7 @@ T_GATE_ON_MS = const(10)
 MAX_BEATS = const(32)
 MAX_BEATS_CUSTOM = const(16)
 MAX_PROBABILITY = const(100)
-MAX_ALGO_INDEX = const(3)
+MAX_ALGO_INDEX = const(4)
 MAX_PRESCALER_INDEX = const(6)
 MIN_GATE_LENGTH_MS = const(10)
 MAX_GATE_LENGTH_MS = const(250)
@@ -110,6 +110,20 @@ class EuclideanRhythmParameters:
     @burst_div_index.setter
     def burst_div_index(self, burst_div_index):
         self._burst_div_index = burst_div_index
+
+    def get_custom_rhythm_16bits(self):
+        result = 0
+        for i in range(16):
+            if self.custom_rhythm[i] == 1:
+                result = result | (1 << i)
+        return result
+
+    def set_custom_rhythm_16bits(self, rhythm_16bits):
+        result = [0]*16
+        for i in range(16):
+            if (rhythm_16bits & (1 << i)) != 0:
+                result[i] = 1
+        self.custom_rhythm = result
 
 
 class EuclideanRhythm(EuclideanRhythmParameters):
@@ -241,7 +255,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.global_cv_probability = min(100, (max(0, probability)))
 
     def incr_beats(self):
-        if self.algo_index == 4:
+        if self.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
             max_beat = MAX_BEATS_CUSTOM
         else:
             max_beat = MAX_BEATS
@@ -446,14 +460,14 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         local_beats = self.beats
 
         # todo adjust logic here for custom rhythm
-        if self.algo_index == 4:
+        if self.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
             local_pulse = sum(self.custom_rhythm[:local_beats])
         else:
             local_pulse = self.pulses
 
         if self.has_cv_beat:
 
-            if self.algo_index == 4:
+            if self.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                 max_beat = MAX_BEATS_CUSTOM
             else:
                 max_beat = MAX_BEATS
@@ -466,13 +480,13 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             elif local_beats <= 0:
                 local_beats = 1
 
-            if not self.pulses_set_0_1 and self.algo_index != 4:
+            if not self.pulses_set_0_1 and self.algo_index != LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                 local_pulse = self.__compute_pulses_per_ratio(local_beats)
         if self.has_cv_pulse:
             local_pulse = local_pulse + \
                 int(local_beats*self.cv_percent_pulse/100)
 
-        if self.algo_index == 4:
+        if self.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
             max_beat = MAX_BEATS_CUSTOM
         else:
             max_beat = MAX_BEATS
@@ -708,6 +722,12 @@ class LxEuclidConstant:
     CIRCLE_RHYTHM_4 = const(3)
     CIRCLE_RHYTHM_ALL = const(4)
 
+    ALGO_EUCLIDEAN = const(0)
+    ALGO_EXP_EUCLIDEAN = const(1)
+    ALGO_INV_EXP_EUCLIDEAN = const(2)
+    ALGO_SYM_EXP_EUCLIDEAN = const(3)
+    ALGO_CUSTOM_RHYTHM = const(4)
+
     STATE_INIT = const(0)
     STATE_LIVE = const(1)
     STATE_MENU_SELECT = const(2)
@@ -765,6 +785,9 @@ class LxEuclidConfig:
         self.v_fix = software_version[2]
 
         self.lx_hardware = lx_hardware
+
+        self.lx_hardware.set_lx_euclid_config(self)
+
         self.LCD = LCD
         self._flip = False
         self.flip_lock = allocate_lock()
@@ -1099,7 +1122,7 @@ class LxEuclidConfig:
                                     self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
                                     )
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_PULSES:
-                                    if self.euclidean_rhythms[euclidean_rhythm_index].algo_index != 4:
+                                    if self.euclidean_rhythms[euclidean_rhythm_index].algo_index != LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                                         self.euclidean_rhythms[euclidean_rhythm_index].incr_pulses(
                                         )
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_ROTATE:
@@ -1120,7 +1143,7 @@ class LxEuclidConfig:
                                     self.euclidean_rhythms[euclidean_rhythm_index].set_rhythm(
                                     )
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_PULSES:
-                                    if self.euclidean_rhythms[euclidean_rhythm_index].algo_index != 4:
+                                    if self.euclidean_rhythms[euclidean_rhythm_index].algo_index != LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                                         self.euclidean_rhythms[euclidean_rhythm_index].decr_pulses(
                                         )
                                 elif rotate_action == LxEuclidConstant.CIRCLE_ACTION_ROTATE:
@@ -1336,11 +1359,11 @@ class LxEuclidConfig:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_beats(
                 )
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
-                if self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index != 4:
+                if self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index != LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_pulses(
                     )
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
-                if self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index != 4:
+                if self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index != LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_pulses(
                     )
 
@@ -1574,17 +1597,17 @@ class LxEuclidConfig:
                     algo_index = angle_to_index(angle_inner, algo_index_number)
                     previous_algo_index = self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index = algo_index
-                    if algo_index == 4:
+                    if algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                         if self.euclidean_rhythms[self.sm_rhythm_param_counter].beats > MAX_BEATS_CUSTOM:
                             self.euclidean_rhythms[self.sm_rhythm_param_counter].beats = MAX_BEATS_CUSTOM
                         rhythm_copy = self.euclidean_rhythms[self.sm_rhythm_param_counter].rhythm.copy(
                         )
                         self.lx_hardware.set_expander_rhythm_and_focus(
                             rhythm_copy, self.sm_rhythm_param_counter)
-                    elif previous_algo_index == 4:
+                    elif previous_algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                         rhythm_found = False
                         for rhythm_index in range(0, 4):
-                            if self.euclidean_rhythms[rhythm_index].algo_index == 4:
+                            if self.euclidean_rhythms[rhythm_index].algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                                 rhythm_copy = self.euclidean_rhythms[rhythm_index].rhythm.copy(
                                 )
                                 self.lx_hardware.set_expander_rhythm_and_focus(
@@ -1862,6 +1885,13 @@ class LxEuclidConfig:
 
         self.dict_data["p_r_m"] = self.preset_recall_mode
 
+        for rhythm_index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
+            rhythm_prefix = f"e_r_c_{rhythm_index}_"
+            custom_rhythm_16bits = euclidean_rhythm.get_custom_rhythm_16bits()
+            self.dict_data[rhythm_prefix+"l"] = custom_rhythm_16bits & 0xff
+            self.dict_data[rhythm_prefix+"h"] = (
+                (custom_rhythm_16bits >> 8) & 0xff)
+
     def save_data(self):
 
         self.save_data_lock.acquire()
@@ -1957,8 +1987,15 @@ class LxEuclidConfig:
                         incr_addr(eeprom_addr)), 0, euclidean_rhythm.beats-1, euclidean_rhythm.offset, eeprom_addr)
                     euclidean_rhythm.pulses_probability = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr)), 0, MAX_PROBABILITY, euclidean_rhythm.pulses_probability, eeprom_addr)
-                    euclidean_rhythm.algo_index = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+
+                    tmp_algo_index = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr)), 0, MAX_ALGO_INDEX, euclidean_rhythm.algo_index, eeprom_addr)
+
+                    if self.lx_hardware.lx_pander_seq is not None:
+                        euclidean_rhythm.algo_index = tmp_algo_index
+                    else:
+                        euclidean_rhythm.algo_index = 0
+
                     euclidean_rhythm.prescaler_index = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr)), 0, MAX_PRESCALER_INDEX, euclidean_rhythm.prescaler_index, eeprom_addr)
                     euclidean_rhythm.gate_length_ms = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
@@ -2030,6 +2067,30 @@ class LxEuclidConfig:
                 self.preset_recall_mode = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET, LxEuclidConstant.PRESET_INTERNAL_RESET, self.preset_recall_mode, eeprom_addr)
 
+                algo_4_rhythm_found = False
+                algo_4_rhythm_index = -1
+                for rhythm_index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
+                    custom_rhythm_lsb = tap_tempo_lsb = self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr))
+                    custom_rhythm_msb = tap_tempo_lsb = self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr))
+                    custom_rhythm = custom_rhythm_lsb + \
+                        (custom_rhythm_msb << 8)
+                    euclidean_rhythm.set_custom_rhythm_16bits(custom_rhythm)
+
+                    if self.lx_hardware.lx_pander_seq is not None:
+                        sleep(0.01)  # give some time to expander to be ready
+                        self.lx_hardware.set_expander_rhythm(
+                            euclidean_rhythm.custom_rhythm.copy(), rhythm_index)
+
+                    if euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM and not algo_4_rhythm_found:
+                        algo_4_rhythm_found = True
+                        algo_4_rhythm_index = rhythm_index
+                if algo_4_rhythm_found:
+                    if self.lx_hardware.lx_pander_seq is not None:
+                        sleep(0.01)  # give some time to expander to be ready
+                        self.lx_hardware.set_expander_focus(
+                            algo_4_rhythm_index)
                 self.create_memory_dict()
                 self.previous_dict_data_list = list(self.dict_data.values())
 
