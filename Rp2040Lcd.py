@@ -564,6 +564,13 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(txt, 80, 140, self.white)
             txt = f"cv4:{cv_v_values[3]}V"
             self.font_writer_freesans20.text(txt, 80, 160, self.white)
+            if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
+                rhythm = self.lx_euclid_config.lx_hardware.lx_pander_seq.cached_test_mode_displayed_rhythm
+                if rhythm is not self.lx_euclid_config.lx_hardware.lx_pander_seq.LX_PANDER_ERROR_MESSAGE:
+                    txt = str(rhythm[:8])
+                    self.font_writer_font6.text(txt, 60, 180, self.white)
+                    txt = str(rhythm[8:])
+                    self.font_writer_font6.text(txt, 60, 200, self.white)
 
         if local_state == LxEuclidConstant.STATE_LIVE:
             self.display_rhythm_circles()

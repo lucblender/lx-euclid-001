@@ -18,6 +18,9 @@ class MemoryAddress():
     RHYTHM2_MSB = const(0x0A)
     RHYTHM3_LSB = const(0x0B)
     RHYTHM3_MSB = const(0x0C)
+    TEST_MODE_ENABLE = const(0x0D)
+    TEST_MODE_DISPLAYED_RHYTHM_LSB = const(0x0E)
+    TEST_MODE_DISPLAYED_RHYTHM_MSB = const(0x0F)
 
 
 class LxPanderSeq:
@@ -39,10 +42,14 @@ class LxPanderSeq:
             self.major = self._register8(MemoryAddress.MAJOR)
             self.minor = self._register8(MemoryAddress.MINOR)
             self.fix = self._register8(MemoryAddress.FIX)
+            # be sure we are not in test mode
+            self.set_test_mode_enable(0x00)
         else:
             self.major = 0
             self.minor = 0
             self.fix = 0
+
+        self.cached_test_mode_displayed_rhythm = self.LX_PANDER_ERROR_MESSAGE
 
     def get_has_change(self):
         return self._register8(MemoryAddress.HAS_CHANGE)
@@ -74,6 +81,24 @@ class LxPanderSeq:
             for i in range(16):
                 result.append((rhythm >> i) & 0x01)
             return result
+
+    def get_test_mode_enable(self):
+        return self._register8(MemoryAddress.TEST_MODE_ENABLE)
+
+    def get_test_mode_displayed_rhythm_cache(self):
+
+        rhythm = self._register16(MemoryAddress.TEST_MODE_DISPLAYED_RHYTHM_LSB)
+        if rhythm == self.LX_PANDER_ERROR_MESSAGE:
+            self.cached_test_mode_displayed_rhythm = self.LX_PANDER_ERROR_MESSAGE
+        else:
+            result = []
+            for i in range(16):
+                result.append((rhythm >> i) & 0x01)
+            self.cached_test_mode_displayed_rhythm = result
+        return self.cached_test_mode_displayed_rhythm
+
+    def set_test_mode_enable(self, value):
+        self._register8(MemoryAddress.TEST_MODE_ENABLE, value)
 
     def _register8(self, register, value=None):
         try:

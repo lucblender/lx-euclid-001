@@ -461,6 +461,8 @@ class LxHardware:
                     if self.lx_euclid_config.euclidean_rhythms[has_change].algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                         self.lx_euclid_config.euclidean_rhythms[has_change].set_rhythm(
                         )
+                        self.lxHardwareEventFifo.append(HandlerEventData(
+                            LxHardware.CUSTOM_RHYTHM_UPDATE, None))
 
     def poll_expander_for_rhythm(self, rhythm_index):
         if self.lx_pander_seq is not None:

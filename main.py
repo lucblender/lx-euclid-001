@@ -57,8 +57,6 @@ gc.collect()
 lx_euclid_config = LxEuclidConfig(
     lx_hardware, LCD, [MEMORY_MAJOR, MEMORY_MINOR, MEMORY_FIX])
 
-lx_hardware.set_lx_euclid_config(lx_euclid_config)
-
 last_tap_ms = 0
 last_config_ms = 0
 
@@ -123,6 +121,9 @@ def lxhardware_changed(handlerEventData):
                                 LCD.set_need_display()
                     last_tap_ms = temp_last_tap_ms
 
+        LCD.set_need_display()
+    elif event == lx_hardware.CUSTOM_RHYTHM_UPDATE:
+        lx_euclid_config.save_data()
         LCD.set_need_display()
     elif event == lx_hardware.INNER_CIRCLE_INCR:
         lx_euclid_config.on_event(

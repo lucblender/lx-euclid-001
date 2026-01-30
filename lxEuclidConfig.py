@@ -1893,9 +1893,7 @@ class LxEuclidConfig:
                 (custom_rhythm_16bits >> 8) & 0xff)
 
     def save_data(self):
-
         self.save_data_lock.acquire()
-
         self.create_memory_dict()
         self.need_save_data_in_file = True
         self.save_data_lock.release()
@@ -2163,6 +2161,10 @@ class LxEuclidConfig:
     def test_mode(self):
         self.state = LxEuclidConstant.STATE_TEST
         counter = 0
+
+        if self.lx_hardware.lx_pander_seq is not None:
+            self.lx_hardware.lx_pander_seq.set_test_mode_enable(0x01)
+
         while True:
             for i in range(0, 4):
                 self.lx_hardware.sw_leds[i].value(
@@ -2183,5 +2185,12 @@ class LxEuclidConfig:
                 self.lx_hardware.set_gate(2, 100)
             if (counter % 32) == 0:
                 self.lx_hardware.set_gate(3, 100)
+
+            if (self.lx_hardware.lx_pander_seq is not None):
+                self.lx_hardware.lx_pander_seq.get_test_mode_displayed_rhythm_cache()
+
+                # when testing multiple expander, make sure test mode is always enabled
+                if self.lx_hardware.lx_pander_seq.get_test_mode_enable() == 0x00:
+                    self.lx_hardware.lx_pander_seq.set_test_mode_enable(0x01)
 
             sleep(0.04)
