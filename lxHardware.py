@@ -222,23 +222,9 @@ class LxHardware:
         # a lock on the i2c so both thread can use i2c devices
         self.i2c_internal_lock = allocate_lock()
 
-        external_i2c_sda = Pin(EXTERNAL_I2C_SDA_PIN, Pin.IN)
-        external_i2c_scl = Pin(EXTERNAL_I2C_SCL_PIN, Pin.IN)
-        if (external_i2c_sda.value() == 0 or external_i2c_scl.value() == 0):
-            # if either line is low, expander is not connected
-            self.i2c_external = None
-            self.lx_pander_seq = None
-            print("LxPanderSeq not connected, i2c lines pulled low")
-        else:
-            self.i2c_external = I2C(1, sda=Pin(EXTERNAL_I2C_SDA_PIN), scl=Pin(
-                EXTERNAL_I2C_SCL_PIN), freq=800_000)
-            self.lx_pander_seq = LxPanderSeq(self.i2c_external)
-            if self.lx_pander_seq.connected:
-                print("LxPanderSeq connected:",
-                      self.lx_pander_seq.get_version_string())
-            else:
-                print("LxPanderSeq not connected, i2c scan failed")
-                self.lx_pander_seq = None
+        self.i2c_external = None
+        self.lx_pander_seq = None
+        self.init_lx_pander_seq()
 
         self.eeprom_memory = EEPROM(
             self.i2c_internal, chip_size=T24C64, addr=self.EEPROM_ADDR)
@@ -260,6 +246,28 @@ class LxHardware:
         self.last_clock_periods = deque((), 8)
         for i in range(0, 8):
             self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
+
+    def init_lx_pander_seq(self, debug_print=True):
+        external_i2c_sda = Pin(EXTERNAL_I2C_SDA_PIN, Pin.IN)
+        external_i2c_scl = Pin(EXTERNAL_I2C_SCL_PIN, Pin.IN)
+        if (external_i2c_sda.value() == 0 or external_i2c_scl.value() == 0):
+            # if either line is low, expander is not connected
+            self.i2c_external = None
+            self.lx_pander_seq = None
+            if debug_print:
+                print("LxPanderSeq not connected, i2c lines pulled low")
+        else:
+            self.i2c_external = I2C(1, sda=Pin(EXTERNAL_I2C_SDA_PIN), scl=Pin(
+                EXTERNAL_I2C_SCL_PIN), freq=800_000)
+            self.lx_pander_seq = LxPanderSeq(self.i2c_external)
+            if self.lx_pander_seq.connected:
+                if debug_print:
+                    print("LxPanderSeq connected:",
+                          self.lx_pander_seq.get_version_string())
+            else:
+                if debug_print:
+                    print("LxPanderSeq not connected, i2c scan failed")
+                self.lx_pander_seq = None
 
     def set_lx_euclid_config(self, lx_euclid_config):
         self.lx_euclid_config = lx_euclid_config

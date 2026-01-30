@@ -2192,5 +2192,8 @@ class LxEuclidConfig:
                 # when testing multiple expander, make sure test mode is always enabled
                 if self.lx_hardware.lx_pander_seq.get_test_mode_enable() == 0x00:
                     self.lx_hardware.lx_pander_seq.set_test_mode_enable(0x01)
+            else:
+                # if lx_pander_seq disconnected during test mode, try to reconnect it
+                self.lx_hardware.init_lx_pander_seq(False)
 
             sleep(0.04)
