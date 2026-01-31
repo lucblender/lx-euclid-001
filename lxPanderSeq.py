@@ -25,6 +25,7 @@ class MemoryAddress():
 
 class LxPanderSeq:
 
+    LX_PANDER_NEED_INIT = const(254)
     LX_PANDER_NO_RHYTHM = const(255)
     LX_PANDER_ERROR_MESSAGE = const(-1)
 
@@ -53,6 +54,10 @@ class LxPanderSeq:
 
     def get_has_change(self):
         return self._register8(MemoryAddress.HAS_CHANGE)
+
+    def clear_has_change_init(self):
+        if self.get_has_change() == self.LX_PANDER_NEED_INIT:
+            self._register8(MemoryAddress.HAS_CHANGE, self.LX_PANDER_NO_RHYTHM)
 
     def get_focus_rhythm(self):
         return self._register8(MemoryAddress.FOCUS_RHYTHM)
@@ -106,6 +111,7 @@ class LxPanderSeq:
                 return self.i2c.readfrom_mem(self.address, register, 1)[0]
             self.i2c.writeto_mem(self.address, register, bytearray([value]))
         except:
+            print("LxPanderSeq I2C error")
             return self.LX_PANDER_ERROR_MESSAGE
 
     def _register16(self, register, value=None):
@@ -116,6 +122,7 @@ class LxPanderSeq:
             self.i2c.writeto_mem(self.address, register,
                                  ustruct.pack("<H", value))
         except:
+            print("LxPanderSeq I2C error")
             return self.LX_PANDER_ERROR_MESSAGE
 
     def get_version_string(self):

@@ -461,8 +461,23 @@ class LxHardware:
 
     def poll_expander_for_updates(self):
         if self.lx_pander_seq is not None:
+            rhythm_found = False
             has_change = self.lx_pander_seq.get_has_change()
-            if has_change != LxPanderSeq.LX_PANDER_NO_RHYTHM and has_change != LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
+            if has_change == LxPanderSeq.LX_PANDER_NEED_INIT:
+
+                for index, euclidean_rhythm in enumerate(self.lx_euclid_config.euclidean_rhythms):
+
+                    if euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                        rhythm_copy = euclidean_rhythm.custom_rhythm.copy(
+                        )
+                        self.set_expander_rhythm(
+                            rhythm_copy, index)
+                        if not rhythm_found:
+                            self.set_expander_focus(index)
+                            rhythm_found = True
+                self.lx_pander_seq.clear_has_change_init()
+
+            elif has_change != LxPanderSeq.LX_PANDER_NO_RHYTHM and has_change != LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
                 new_custom_rhythm = self.lx_pander_seq.get_rhythm(has_change)
                 if new_custom_rhythm is not LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
                     self.lx_euclid_config.euclidean_rhythms[has_change].custom_rhythm = new_custom_rhythm
