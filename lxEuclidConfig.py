@@ -826,7 +826,7 @@ class LxEuclidConfig:
         self.state_lock = allocate_lock()
         self.save_data_lock = allocate_lock()
 
-        self.need_save_data_in_file = False
+        self.need_save_data_in_eeprom = False
 
         self.state = LxEuclidConstant.STATE_INIT
         self.on_event(LxEuclidConstant.EVENT_INIT)
@@ -872,11 +872,11 @@ class LxEuclidConfig:
 
         self.tap_delay_ms = 125  # default tap tempo 120bmp 125ms for 16th note
 
-        # list used to test if data changed and needs to be stocked in memory
-        self.previous_dict_data_list = []
+        # list used to test if data changed and needs to be stocked in memory (list version)
+        self.previous_list_data = []
 
-        # used in create_memory_dict, put it as attribute so it doesn't create memory in loop
-        self.dict_data = OrderedDict()
+        # used in create_memory_list, put it as attribute so it doesn't create memory in loop
+        self.list_data = [0]*445
 
         self.load_data()
         self.reload_rhythms()
@@ -1841,132 +1841,115 @@ class LxEuclidConfig:
 
             self.seconds_to_display = remaining_sec
 
-    def create_memory_dict(self):
-        self.dict_data["v_ma"] = self.v_major
-        self.dict_data["v_mi"] = self.v_minor
-        self.dict_data["v_fi"] = self.v_fix
+    def create_memory_list(self):
 
-        for rhythm_index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
-            rhythm_prefix = f"e_r_{rhythm_index}_"
-            self.dict_data[rhythm_prefix+"b"] = euclidean_rhythm.beats
-            self.dict_data[rhythm_prefix+"p"] = euclidean_rhythm.pulses
-            self.dict_data[rhythm_prefix+"o"] = euclidean_rhythm.offset
-            self.dict_data[rhythm_prefix +
-                           "pr"] = euclidean_rhythm.pulses_probability
-            self.dict_data[rhythm_prefix+"ai"] = euclidean_rhythm.algo_index
-            self.dict_data[rhythm_prefix +
-                           "p_i"] = euclidean_rhythm.prescaler_index
-            self.dict_data[rhythm_prefix +
-                           "g_l_m"] = euclidean_rhythm.gate_length_ms
-            self.dict_data[rhythm_prefix +
-                           "r_g_l"] = euclidean_rhythm.randomize_gate_length
-            self.dict_data[rhythm_prefix +
-                           "b_d_i"] = euclidean_rhythm.burst_div_index
+        addr = [0]
 
-        for preset_index, preset in enumerate(self.presets):
-            preset_prefix = f"pr_{preset_index}_"
-            for rhythm_index, preset_euclidean_rhythm in enumerate(preset):
+        def incr_addr(a):
+            a[0] += 1
+            return a[0]-1
 
-                rhythm_prefix = f"{preset_prefix}e_r_{rhythm_index}_"
+        self.list_data[incr_addr(addr)] = self.v_major
+        self.list_data[incr_addr(addr)] = self.v_minor
+        self.list_data[incr_addr(addr)] = self.v_fix
 
-                self.dict_data[rhythm_prefix +
-                               "b"] = preset_euclidean_rhythm.beats
-                self.dict_data[rhythm_prefix +
-                               "p"] = preset_euclidean_rhythm.pulses
-                self.dict_data[rhythm_prefix +
-                               "o"] = preset_euclidean_rhythm.offset
-                self.dict_data[rhythm_prefix +
-                               "pr"] = preset_euclidean_rhythm.pulses_probability
-                self.dict_data[rhythm_prefix +
-                               "ai"] = preset_euclidean_rhythm.algo_index
-                self.dict_data[rhythm_prefix +
-                               "p_i"] = preset_euclidean_rhythm.prescaler_index
-                self.dict_data[rhythm_prefix +
-                               "g_l_m"] = preset_euclidean_rhythm.gate_length_ms
-                self.dict_data[rhythm_prefix +
-                               "r_g_l"] = preset_euclidean_rhythm.randomize_gate_length
-                self.dict_data[rhythm_prefix +
-                               "b_d_i"] = preset_euclidean_rhythm.burst_div_index
+        for euclidean_rhythm in self.euclidean_rhythms:
+            self.list_data[incr_addr(addr)] = euclidean_rhythm.beats
+            self.list_data[incr_addr(addr)] = euclidean_rhythm.pulses
+            self.list_data[incr_addr(addr)] = euclidean_rhythm.offset
+            self.list_data[incr_addr(
+                addr)] = euclidean_rhythm.pulses_probability
+            self.list_data[incr_addr(addr)] = euclidean_rhythm.algo_index
+            self.list_data[incr_addr(addr)] = euclidean_rhythm.prescaler_index
+            self.list_data[incr_addr(addr)] = euclidean_rhythm.gate_length_ms
+            self.list_data[incr_addr(
+                addr)] = euclidean_rhythm.randomize_gate_length
+            self.list_data[incr_addr(addr)] = euclidean_rhythm.burst_div_index
 
-        self.dict_data["i_r_a"] = self.inner_rotate_action
-        self.dict_data["i_a_r"] = self.inner_action_rhythm
+        for preset in self.presets:
+            for preset_euclidean_rhythm in preset:
+                self.list_data[incr_addr(addr)] = preset_euclidean_rhythm.beats
+                self.list_data[incr_addr(
+                    addr)] = preset_euclidean_rhythm.pulses
+                self.list_data[incr_addr(
+                    addr)] = preset_euclidean_rhythm.offset
+                self.list_data[incr_addr(
+                    addr)] = preset_euclidean_rhythm.pulses_probability
+                self.list_data[incr_addr(
+                    addr)] = preset_euclidean_rhythm.algo_index
+                self.list_data[incr_addr(
+                    addr)] = preset_euclidean_rhythm.prescaler_index
+                self.list_data[incr_addr(
+                    addr)] = preset_euclidean_rhythm.gate_length_ms
+                self.list_data[incr_addr(
+                    addr)] = preset_euclidean_rhythm.randomize_gate_length
+                self.list_data[incr_addr(
+                    addr)] = preset_euclidean_rhythm.burst_div_index
 
-        self.dict_data["o_r_a"] = self.outer_rotate_action
-        self.dict_data["o_a_r"] = self.outer_action_rhythm
+        self.list_data[incr_addr(addr)] = self.inner_rotate_action
+        self.list_data[incr_addr(addr)] = self.inner_action_rhythm
+        self.list_data[incr_addr(addr)] = self.outer_rotate_action
+        self.list_data[incr_addr(addr)] = self.outer_action_rhythm
+        self.list_data[incr_addr(
+            addr)] = self.lx_hardware.capacitives_circles.touch_sensitivity
+        self.list_data[incr_addr(addr)] = self.clk_mode
 
-        self.dict_data["t_s"] = self.lx_hardware.capacitives_circles.touch_sensitivity
-
-        self.dict_data["c_m"] = self.clk_mode
-
-        for cv_index, cv_data in enumerate(self.lx_hardware.cv_manager.cvs_data):
-            for cv_action_index, cv_action_channel in enumerate(cv_data.cv_actions_channel):
-                cv_prefix = f"cv_{cv_index}_{cv_action_index}_"
-                self.dict_data[cv_prefix+"a"] = cv_action_channel
+        for cv_data in self.lx_hardware.cv_manager.cvs_data:
+            for cv_action_channel in cv_data.cv_actions_channel:
+                self.list_data[incr_addr(addr)] = cv_action_channel
 
         # split tap tempo in lsb and msb
         local_tap_tempo = self.tap_delay_ms
-        self.dict_data["t_t_l"] = local_tap_tempo & 0xff
-        self.dict_data["t_t_h"] = (local_tap_tempo >> 8) & 0xff
+        self.list_data[incr_addr(addr)] = local_tap_tempo & 0xff
+        self.list_data[incr_addr(addr)] = (local_tap_tempo >> 8) & 0xff
 
-        self.dict_data["d_o_f"] = self.flip
+        self.list_data[incr_addr(addr)] = self.flip
+        self.list_data[incr_addr(addr)] = self.preset_recall_mode
 
-        self.dict_data["p_r_m"] = self.preset_recall_mode
-
-        for rhythm_index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
-            rhythm_prefix = f"e_r_c_{rhythm_index}_"
+        for euclidean_rhythm in self.euclidean_rhythms:
             custom_rhythm_16bits = euclidean_rhythm.get_custom_rhythm_16bits()
-            self.dict_data[rhythm_prefix+"l"] = custom_rhythm_16bits & 0xff
-            self.dict_data[rhythm_prefix+"h"] = (
-                (custom_rhythm_16bits >> 8) & 0xff)
+            self.list_data[incr_addr(addr)] = custom_rhythm_16bits & 0xff
+            self.list_data[incr_addr(addr)] = (
+                custom_rhythm_16bits >> 8) & 0xff
 
-        for preset_index, preset in enumerate(self.presets):
-            preset_prefix = f"pr_{preset_index}_"
-            for rhythm_index, preset_euclidean_rhythm in enumerate(preset):
-                rhythm_prefix = f"{preset_prefix}e_r_r_c_{rhythm_index}_"
+        for preset in self.presets:
+            for preset_euclidean_rhythm in preset:
                 custom_rhythm_16bits = preset_euclidean_rhythm.get_custom_rhythm_16bits()
-                self.dict_data[rhythm_prefix +
-                               "l"] = custom_rhythm_16bits & 0xff
-                self.dict_data[rhythm_prefix +
-                               "h"] = (
-                    (custom_rhythm_16bits >> 8) & 0xff)
+                self.list_data[incr_addr(addr)] = custom_rhythm_16bits & 0xff
+                self.list_data[incr_addr(addr)] = (
+                    custom_rhythm_16bits >> 8) & 0xff
 
     def save_data(self):
         self.save_data_lock.acquire()
-        self.create_memory_dict()
-        self.need_save_data_in_file = True
+        self.create_memory_list()
+        self.need_save_data_in_eeprom = True
         self.save_data_lock.release()
 
-    def test_save_data_in_file(self):
-        if self.need_save_data_in_file:
+    def test_save_data_list_in_eeprom(self):
+        if self.need_save_data_in_eeprom:
             self.save_data_lock.acquire()
-            self.need_save_data_in_file = False
+            self.need_save_data_in_eeprom = False
             self.save_data_lock.release()
 
             changed_index = []
-            size_previous_dict_data_list = len(self.previous_dict_data_list)
+            size_previous_list_data = len(self.previous_list_data)
 
-            for index, current_value in enumerate(self.dict_data.values()):
+            for index, current_value in enumerate(self.list_data):
                 # necessary if we change version or at boot when list is empty
-                if index > (size_previous_dict_data_list-1):
+                if index > (size_previous_list_data-1):
                     changed_index.append(index)
-                elif current_value != self.previous_dict_data_list[index]:
+                elif current_value != self.previous_list_data[index]:
                     changed_index.append(index)
+                    self.previous_list_data[index] = current_value
 
             # uncomment for debug purpose
             # if len(changed_index) > 0:
-            #    print("data changed and needs to be put to eeprom", changed_index)
-
-            # if previous_dict_data_list is empty, replace it by a list, else just fill it to not create memory
-            if len(self.previous_dict_data_list) == 0:
-                self.previous_dict_data_list = list(self.dict_data.values())
-            else:
-                for index, current_value in enumerate(self.dict_data.values()):
-                    self.previous_dict_data_list[index] = current_value
+            #    print("List data changed and needs to be put to eeprom", changed_index)
 
             if len(changed_index) > 0:
-                for index, addr_to_update in enumerate(changed_index):
+                for addr_to_update in changed_index:
                     self.lx_hardware.set_eeprom_data_int(addr_to_update, int(
-                        self.previous_dict_data_list[addr_to_update]))
+                        self.previous_list_data[addr_to_update]))
 
     def load_data(self):
         print("Start loading data")
@@ -1984,6 +1967,7 @@ class LxEuclidConfig:
                   version_main, version_eeprom)
             print("Eeprom will be re-initialized, saving all data")
             self.save_data()
+            self.previous_list_data = self.list_data.copy()
         else:
             # check fix version number
             if self.v_fix is not eeprom_v_fix:
@@ -2141,8 +2125,8 @@ class LxEuclidConfig:
                         preset_euclidean_rhythm.set_custom_rhythm_16bits(
                             custom_rhythm)
 
-                self.create_memory_dict()
-                self.previous_dict_data_list = list(self.dict_data.values())
+                self.create_memory_list()
+                self.previous_list_data = self.list_data.copy()
 
             except Exception as e:
                 print("Couldn't load eeprom config because unknown error")

@@ -202,7 +202,7 @@ def display_thread():
         try:
             if not in_lxhardware_changed:
                 gc.collect()
-                lx_euclid_config.test_save_data_in_file()
+                lx_euclid_config.test_save_data_list_in_eeprom()
 
                 if LCD.get_need_flip():
                     gc.collect()
