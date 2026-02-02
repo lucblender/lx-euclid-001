@@ -5,6 +5,7 @@ from micropython import const
 import rp2
 from utime import ticks_us
 
+
 from capacitivesCircles import CapacitivesCircles
 from cvManager import CvManager
 from lxPanderSeq import LxPanderSeq
@@ -143,16 +144,6 @@ class LxHardware:
         # clk_subdivision_counter handle this 24 time division
         self.clk_subdivision_counter = 0
 
-        self.clk_pin.irq(handler=self.clk_pin_change,
-                         trigger=Pin.IRQ_FALLING, hard=True)
-        self.rst_pin.irq(handler=self.rst_pin_change,
-                         trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-        self.btn_tap_pin.irq(handler=self.btn_tap_pin_change,
-                             trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-
-        self.btn_menu_pin.irq(handler=self.btn_menu_pin_change,
-                              trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-
         sw_0_pin = Pin(SW0, Pin.IN, Pin.PULL_UP)
         sw_1_pin = Pin(SW1, Pin.IN, Pin.PULL_UP)
         sw_2_pin = Pin(SW2, Pin.IN, Pin.PULL_UP)
@@ -164,15 +155,6 @@ class LxHardware:
 
         for sw_pin in self.btn_menu_pins:
             self.btn_menu_pins_status.append(sw_pin.value())
-
-        sw_0_pin.irq(handler=self.btn_channel_change,
-                     trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-        sw_1_pin.irq(handler=self.btn_channel_change,
-                     trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-        sw_2_pin.irq(handler=self.btn_channel_change,
-                     trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-        sw_3_pin.irq(handler=self.btn_channel_change,
-                     trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
 
         sw_led_0 = Pin(SW_LED0, Pin.OUT)
         sw_led_1 = Pin(SW_LED1, Pin.OUT)
@@ -210,8 +192,6 @@ class LxHardware:
         self.sm_internal_clock = rp2.StateMachine(
             4, timed_10th_ms_pulse_internal_clock, freq=480_000)
         self.sm_internal_clock.active(1)
-        self.sm_internal_clock.irq(
-            handler=self.internal_clk_pin_change, hard=True)
 
         # initialize time tracking for clk period calculation
         self.temp_ticks_tenth_ms = ticks_us()//100
@@ -246,6 +226,23 @@ class LxHardware:
         self.last_clock_periods = deque((), 8)
         for i in range(0, 8):
             self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
+
+    def init_interrupts(self):
+        for btn_menu_pin in self.btn_menu_pins:
+            btn_menu_pin.irq(handler=self.btn_channel_change,
+                             trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+        self.clk_pin.irq(handler=self.clk_pin_change,
+                         trigger=Pin.IRQ_FALLING, hard=True)
+        self.rst_pin.irq(handler=self.rst_pin_change,
+                         trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+        self.btn_tap_pin.irq(handler=self.btn_tap_pin_change,
+                             trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+
+        self.btn_menu_pin.irq(handler=self.btn_menu_pin_change,
+                              trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+
+        self.sm_internal_clock.irq(
+            handler=self.internal_clk_pin_change, hard=True)
 
     def init_lx_pander_seq(self, debug_print=True):
         external_i2c_sda = Pin(EXTERNAL_I2C_SDA_PIN, Pin.IN)
@@ -316,6 +313,8 @@ class LxHardware:
                     #    return
                     if self.delta_tenth_ms > (LOWEST_CLK_IN_TENTH_MS):
                         self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
+                    elif self.delta_tenth_ms < (HIGHEST_CLK_IN_TENTH_MS):
+                        self.last_clock_periods.append(HIGHEST_CLK_IN_TENTH_MS)
                     else:
                         self.last_clock_periods.append(self.delta_tenth_ms)
                     self.last_clock_ticks_tenth_ms = self.temp_ticks_tenth_ms
@@ -335,6 +334,7 @@ class LxHardware:
                             self.clk_subdivision_counter = 0
                             self.relaunch_internal_clk()
                         self.lxHardwareEventFifo.append(self.clk_rise_event)
+
         except Exception as e:
             print(e)
 

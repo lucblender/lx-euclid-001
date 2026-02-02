@@ -57,6 +57,8 @@ gc.collect()
 lx_euclid_config = LxEuclidConfig(
     lx_hardware, LCD, [MEMORY_MAJOR, MEMORY_MINOR, MEMORY_FIX])
 
+lx_hardware.init_interrupts()
+
 last_tap_ms = 0
 last_config_ms = 0
 
