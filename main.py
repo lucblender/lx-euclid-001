@@ -24,6 +24,9 @@ from utime import sleep, ticks_ms
 from sys import print_exception
 from io import StringIO
 from _thread import start_new_thread
+import micropython
+
+micropython.alloc_emergency_exception_buf(500)
 
 def print_ram(code=""):
     print(code, "free ram: ", gc.mem_free(), ", alloc ram: ", gc.mem_alloc())
@@ -65,7 +68,6 @@ last_config_ms = 0
 DEBUG = True
 
 in_lxhardware_changed = False
-
 
 def debug_print(txt):
     if DEBUG:
