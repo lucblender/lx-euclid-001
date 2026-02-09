@@ -5,7 +5,7 @@ from Rp2040Lcd import LCD_1inch28
 # minor.major.fix + add
 MAJOR = 1
 MINOR = 17
-FIX = 1
+FIX = 2
 ADD = "_dev"
 
 MEMORY_MAJOR = 1
@@ -116,7 +116,7 @@ def lxhardware_changed(handlerEventData):
                         temp_tap_delay = max(
                             LxEuclidConstant.MIN_TAP_DELAY_MS*4, temp_tap_delay)
                         # here the tap tempo time is divided by 4, for a 4/4 rhythm
-                        lx_euclid_config.tap_delay_ms = int(temp_tap_delay / 4)
+                        lx_euclid_config.set_tap_delay_ms(int(temp_tap_delay / 4))
                         # tap tempo is saved in eeprom
                         lx_euclid_config.save_data()
                         if lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
