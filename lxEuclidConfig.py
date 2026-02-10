@@ -92,6 +92,7 @@ class EuclideanRhythmParameters:
         self.gate_length_percentage_time_ms = gate_length_ms
         self.gate_length_ms_percent = gate_length_ms_percent
         self.randomized_gate_length_ms = gate_length_ms
+        self.randomized_gate_length_percentage = gate_length_ms
 
         self.algo_index = algo_index
 
@@ -1841,15 +1842,20 @@ class LxEuclidConfig:
 
             if euclidean_rhythm.get_current_burst_step() and did_step and euclidean_rhythm.in_burst:
                 if euclidean_rhythm.randomize_gate_length:
-                    self.lx_hardware.set_gate(
-                        self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_ms)
+                    # burst gate when normal step occur
+                    if euclidean_rhythm.gate_length_ms_percent:
+                        self.lx_hardware.set_gate(
+                            self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_ms)
+                    else:
+                        self.lx_hardware.set_gate(
+                            self.computation_index_incr_step, (euclidean_rhythm.randomized_gate_length_percentage*euclidean_rhythm.prescaler)//euclidean_rhythm.burst_div)
                 else:
                     if euclidean_rhythm.gate_length_ms_percent:
                         self.lx_hardware.set_gate(
                             self.computation_index_incr_step, euclidean_rhythm.gate_length_ms)
                     else:
                         self.lx_hardware.set_gate(
-                            self.computation_index_incr_step, euclidean_rhythm.gate_length_percentage_time_ms)
+                            self.computation_index_incr_step, (euclidean_rhythm.gate_length_percentage_time_ms*euclidean_rhythm.prescaler)//euclidean_rhythm.burst_div)
             self.computation_index_incr_step = self.computation_index_incr_step + 1
         return to_return
 
@@ -1871,10 +1877,15 @@ class LxEuclidConfig:
                     euclidean_rhythm.prescaler_rhythm_counter = 0
                 did_step = True
 
+            # standard gate when normal step occur
             if euclidean_rhythm.get_current_step() and did_step and not (euclidean_rhythm.in_burst):
                 if euclidean_rhythm.randomize_gate_length:
-                    self.lx_hardware.set_gate(
-                        self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_ms)
+                    if euclidean_rhythm.gate_length_ms_percent:
+                        self.lx_hardware.set_gate(
+                            self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_ms)
+                    else:
+                        self.lx_hardware.set_gate(
+                            self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_percentage*euclidean_rhythm.prescaler)
                 else:
 
                     if euclidean_rhythm.gate_length_ms_percent:
@@ -1882,7 +1893,7 @@ class LxEuclidConfig:
                             self.computation_index_incr_step, euclidean_rhythm.gate_length_ms)
                     else:
                         self.lx_hardware.set_gate(
-                            self.computation_index_incr_step, euclidean_rhythm.gate_length_percentage_time_ms)
+                            self.computation_index_incr_step, euclidean_rhythm.gate_length_percentage_time_ms*euclidean_rhythm.prescaler)
             self.computation_index_incr_step = self.computation_index_incr_step + 1
 
         if self.state == LxEuclidConstant.STATE_LIVE:
@@ -1894,8 +1905,12 @@ class LxEuclidConfig:
     def random_gate_length_update(self):
         for euclidean_rhythm in self.euclidean_rhythms:
             if euclidean_rhythm.randomize_gate_length:
-                euclidean_rhythm.randomized_gate_length_ms = randint(
-                    5, euclidean_rhythm.gate_length_ms)
+                if euclidean_rhythm.gate_length_ms_percent:
+                    euclidean_rhythm.randomized_gate_length_ms = randint(
+                        5, euclidean_rhythm.gate_length_ms)
+                else:
+                    euclidean_rhythm.randomized_gate_length_percentage = randint(
+                        5, euclidean_rhythm.gate_length_percentage_time_ms)
 
     def reset_steps(self):
         for euclidean_rhythm in self.euclidean_rhythms:

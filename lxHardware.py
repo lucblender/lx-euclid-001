@@ -29,6 +29,8 @@ LOWEST_CLK_IN_TENTH_MS = const(2000*10)
 # 300/10ms -> 33.33Hz --> 2000 bpm 1/1 --> 500 bpm 1/4
 HIGHEST_CLK_IN_TENTH_MS = const(300)
 
+LOWEST_CLK_PULSE_MS = const(1)
+
 SW0 = const(19)
 SW1 = const(7)
 SW2 = const(23)
@@ -404,6 +406,7 @@ class LxHardware:
                 self.sw_leds[index].value(0)
 
     def set_gate(self, gate_index, time_tenth_ms):
+        time_tenth_ms = max(time_tenth_ms, LOWEST_CLK_PULSE_MS)
         if gate_index < 4:
             time = time_tenth_ms * 10
             # test if we are ready to start a new gate with the PIO (not currently having a gate out)
