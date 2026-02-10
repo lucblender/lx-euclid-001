@@ -18,7 +18,7 @@ MAX_PRESCALER_INDEX = const(6)
 MIN_GATE_LENGTH_MS = const(10)
 MAX_GATE_LENGTH_MS = const(250)
 MIN_GATE_LENGTH_PERCENTAGE = const(10)
-MAX_GATE_LENGTH_PERCENTAGE = const(75)
+MAX_GATE_LENGTH_PERCENTAGE = const(90)
 MAX_BURST_DIV_INDEX = const(4)
 # 4 bits to store the rhythm index for action, max 0b1111 = 15
 MAX_ACTION_RHYTHM = const(15)
@@ -408,6 +408,16 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.gate_length_percentage = self.gate_length_percentage - 5
         else:
             self.gate_length_percentage = MIN_GATE_LENGTH_PERCENTAGE
+
+    def update_gate_length_percentage_time_ms(self, clk_mode, time_delay):
+        # when using tap mode the time is in ms (so percent)
+        # when using clock input, the time is in tenth of ms (so percent divide by 10)
+        if clk_mode == LxEuclidConstant.TAP_MODE:
+            self.gate_length_percentage_time_ms = time_delay * \
+                self.gate_length_percentage // 100
+        else:
+            self.gate_length_percentage_time_ms = time_delay * \
+                self.gate_length_percentage // 1000
 
     # this function can be called by an interrupt, this is why it cannot allocate any memory
     def reset_step(self):
@@ -897,6 +907,7 @@ class LxEuclidConfig:
 
         self.load_data()
         self.reload_rhythms()
+        self.update_all_gates_length_percentage_time_ms()
 
         self.lx_hardware.capacitives_circles.flip = self._flip
         if self._flip == True:
@@ -1019,14 +1030,14 @@ class LxEuclidConfig:
             self.tap_delay_ms = tap_delay_ms
 
     # todo this function should either go with tap_delay_ms or the time between 2 clock when not in tap mode
-    def update_gate_length_percentage_time_ms(self):
+    def update_all_gates_length_percentage_time_ms(self):
         for euclidean_rhythm in self.euclidean_rhythms:
             if self.clk_mode == LxEuclidConstant.TAP_MODE:
-                euclidean_rhythm.gate_length_percentage_time_ms = self.tap_delay_ms * \
-                    euclidean_rhythm.gate_length_percentage // 100
+                euclidean_rhythm.update_gate_length_percentage_time_ms(
+                    self.clk_mode, self.tap_delay_ms)
             else:
-                euclidean_rhythm.gate_length_percentage_time_ms = self.lx_hardware.clock_period_avg_tenth_ms * \
-                    euclidean_rhythm.gate_length_percentage // 1000
+                euclidean_rhythm.update_gate_length_percentage_time_ms(
+                    self.clk_mode, self.lx_hardware.clock_period_avg_tenth_ms)
 
     def incr_bpm(self, incr):
         old_delay_ms = self.tap_delay_ms
@@ -1560,9 +1571,14 @@ class LxEuclidConfig:
                         euclidean_rhythm.incr_gate_length()
                     else:
                         euclidean_rhythm.incr_gate_length_percentage()
-                        # todo here we should do something diffrent for gate_length_percentage_time_ms if we are in tap or clock
-                        euclidean_rhythm.gate_length_percentage_time_ms = int(self.tap_delay_ms *
-                                                                              euclidean_rhythm.gate_length_percentage / 100)
+
+                        if self.clk_mode == LxEuclidConstant.TAP_MODE:
+                            euclidean_rhythm.update_gate_length_percentage_time_ms(
+                                self.clk_mode, self.tap_delay_ms)
+                        else:
+                            euclidean_rhythm.update_gate_length_percentage_time_ms(
+                                self.clk_mode, self.lx_hardware.clock_period_avg_tenth_ms)
+
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
                 if self.param_channel_config_page == 3:  # gate time
                     euclidean_rhythm = self.euclidean_rhythms[self.sm_rhythm_param_counter]
@@ -1570,9 +1586,14 @@ class LxEuclidConfig:
                         euclidean_rhythm.decr_gate_length()
                     else:
                         euclidean_rhythm.decr_gate_length_percentage()
-                        # todo here we should do something diffrent for gate_length_percentage_time_ms if we are in tap or clock
-                        euclidean_rhythm.gate_length_percentage_time_ms = int(self.tap_delay_ms *
-                                                                              euclidean_rhythm.gate_length_percentage / 100)
+
+                        if self.clk_mode == LxEuclidConstant.TAP_MODE:
+                            euclidean_rhythm.update_gate_length_percentage_time_ms(
+                                self.clk_mode, self.tap_delay_ms)
+                        else:
+                            euclidean_rhythm.update_gate_length_percentage_time_ms(
+                                self.clk_mode, self.lx_hardware.clock_period_avg_tenth_ms)
+
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 if self.param_channel_config_page == 0:  # CV
@@ -1756,22 +1777,22 @@ class LxEuclidConfig:
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
                     self.incr_bpm(5)
-                    self.update_gate_length_percentage_time_ms()
+                    self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
                     self.decr_bpm(5)
-                    self.update_gate_length_percentage_time_ms()
+                    self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
                     self.incr_bpm(1)
-                    self.update_gate_length_percentage_time_ms()
+                    self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
                 if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
                     self.decr_bpm(1)
-                    self.update_gate_length_percentage_time_ms()
+                    self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
@@ -1784,7 +1805,7 @@ class LxEuclidConfig:
                         self.clk_mode = 0
                     elif param_index == 4:
                         self.clk_mode = 1
-                    self.update_gate_length_percentage_time_ms()
+                    self.update_all_gates_length_percentage_time_ms()
                 elif self.param_menu_page == 1:  # sensitivity
                     sensi_index = angle_to_index(angle_inner, 3)
                     self.lx_hardware.capacitives_circles.touch_sensitivity = sensi_index

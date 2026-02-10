@@ -326,7 +326,7 @@ class LxHardware:
                     self.clock_period_avg_tenth_ms = self.clock_period_accumulator // 8
 
                     if self.lx_euclid_config.clk_mode == LxEuclidConstant.CLK_IN:
-                        self.lx_euclid_config.update_gate_length_percentage_time_ms()
+                        self.lx_euclid_config.update_all_gates_length_percentage_time_ms()
                         self.lx_euclid_config.incr_steps()
                         # resync the burst to the input clock
                         self.lx_euclid_config.test_start_burst()
