@@ -230,6 +230,10 @@ class LxHardware:
             self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
 
     def init_interrupts(self):
+        self.rst_pin_status = self.rst_pin.value()
+        self.btn_tap_pin_status = self.btn_tap_pin.value()
+        self.btn_menu_pin_status = self.btn_menu_pin.value()
+
         for btn_menu_pin in self.btn_menu_pins:
             btn_menu_pin.irq(handler=self.btn_channel_change,
                              trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
