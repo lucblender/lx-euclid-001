@@ -229,6 +229,9 @@ class LxHardware:
         for i in range(0, 8):
             self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
 
+        self.has_incr_decr_inner = False
+        self.has_incr_decr_outer = False
+
     def init_interrupts(self):
         self.rst_pin_status = self.rst_pin.value()
         self.btn_tap_pin_status = self.btn_tap_pin.value()
@@ -442,15 +445,23 @@ class LxHardware:
         if circles_data[2] == CapacitivesCircles.INNER_CIRCLE_INCR_EVENT:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_INCR, circles_data))
+
+            self.has_incr_decr_inner = True
         elif circles_data[2] == CapacitivesCircles.INNER_CIRCLE_DECR_EVENT:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_DECR, circles_data))
+
+            self.has_incr_decr_inner = True
         elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_INCR, circles_data))
+
+            self.has_incr_decr_outer = True
         elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_DECR, circles_data))
+
+            self.has_incr_decr_outer = True
         elif circles_data[0]:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_TOUCH, circles_data))
@@ -458,11 +469,18 @@ class LxHardware:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
         elif not circles_data[0] and self.inner_previous_state:
-            self.lxHardwareEventFifo.append(HandlerEventData(
-                LxHardware.INNER_CIRCLE_TAP, circles_data))
+            if not self.has_incr_decr_inner:  # to avoid registering a tap after an incr or decr
+                self.lxHardwareEventFifo.append(HandlerEventData(
+                    LxHardware.INNER_CIRCLE_TAP, circles_data))
+
+            self.has_incr_decr_inner = False
+
         elif not circles_data[1] and self.outer_previous_state:
-            self.lxHardwareEventFifo.append(HandlerEventData(
-                LxHardware.OUTER_CIRCLE_TAP, circles_data))
+            if not self.has_incr_decr_outer:  # to avoid registering a tap after an incr or decr
+                self.lxHardwareEventFifo.append(HandlerEventData(
+                    LxHardware.OUTER_CIRCLE_TAP, circles_data))
+
+            self.has_incr_decr_outer = False
 
         self.inner_previous_state = circles_data[0]
         self.outer_previous_state = circles_data[1]
