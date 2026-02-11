@@ -921,7 +921,11 @@ class LxEuclidConfig:
         # used in create_memory_list, put it as attribute so it doesn't create memory in loop
         self.list_data = [0]*LxEuclidConstant.MEMORY_LIST_SIZE
 
+        # if first boot, load_data will set it to true
+        self.first_boot = False
+
         self.load_data()
+
         self.reload_rhythms()
         self.update_all_gates_length_percentage_time_ms()
 
@@ -2101,6 +2105,10 @@ class LxEuclidConfig:
         eeprom_v_fix = self.lx_hardware.get_eeprom_data_int(FIX_E_ADDR)
         version_eeprom = f"v{eeprom_v_major}.{eeprom_v_minor}.{eeprom_v_fix}"
         print("version_eeprom", version_eeprom)
+
+        if eeprom_v_major == 255 and eeprom_v_minor == 255 and eeprom_v_fix == 255:
+            self.first_boot = True
+            print("First boot detected, eeprom is empty")
 
         # only check major and minor and reset if they are different from "in memory" version
         if self.v_minor is not eeprom_v_minor or self.v_major is not eeprom_v_major:
