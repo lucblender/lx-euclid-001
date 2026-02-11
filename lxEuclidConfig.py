@@ -2116,8 +2116,11 @@ class LxEuclidConfig:
             print("Error: memory version is different",
                   version_main, version_eeprom)
             print("Eeprom will be re-initialized, saving all data")
-            self.save_data()
             self.previous_list_data = self.list_data.copy()
+            # setup save of data
+            self.save_data()
+            # force saving all data
+            self.test_save_data_list_in_eeprom()
         else:
             # check fix version number
             if self.v_fix is not eeprom_v_fix:
