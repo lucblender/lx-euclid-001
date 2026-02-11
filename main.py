@@ -10,7 +10,7 @@ ADD = "_dev"
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 1
-MEMORY_FIX = 1
+MEMORY_FIX = 2
 
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
@@ -266,7 +266,7 @@ if __name__ == '__main__':
         wait_display_thread = False
 
         # if tap and config button are both pressed at boot, enter in test mode
-        if (lx_hardware.btn_tap_pin.value() or lx_hardware.btn_menu_pin.value()) == 0:
+        if lx_euclid_config.first_boot or ((lx_hardware.btn_tap_pin.value() or lx_hardware.btn_menu_pin.value()) == 0):
             lx_euclid_config.test_mode()
 
         # launch the internal clock, it is usefull for tap mode BUT also burst
