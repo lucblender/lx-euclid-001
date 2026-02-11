@@ -834,15 +834,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 gate_length_ms = self.lx_euclid_config.euclidean_rhythms[channel_index].gate_length_ms
                 gate_length_percentage = self.lx_euclid_config.euclidean_rhythms[
                     channel_index].gate_length_percentage
-                gate_length_ms_percent = self.lx_euclid_config.euclidean_rhythms[
-                    channel_index].gate_length_ms_percent
+                gate_length_ms_percent_mode = self.lx_euclid_config.euclidean_rhythms[
+                    channel_index].gate_length_ms_percent_mode
 
                 if randomize_gate_length:
                     randomize_color = txt_color_highlight
                 else:
                     randomize_color = txt_color
 
-                if gate_length_ms_percent:
+                if gate_length_ms_percent_mode == LxEuclidConstant.GATE_LENGTH_ABSOLUTE:
                     time_txt = f"{gate_length_ms}ms"
                     abs_color = self.white
                     percent_color = self.light_grey

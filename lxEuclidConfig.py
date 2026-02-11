@@ -46,17 +46,106 @@ def angle_to_index(angle, steps, offset_45=False):
     return int((int(((angle+(step_angle/2)) % 360)/step_angle)) % steps)
 
 
+class LxEuclidConstant:
+    TAP_MODE = const(0)
+    CLK_IN = const(1)
+
+    GATE_LENGTH_PERCENTAGE = const(0)
+    GATE_LENGTH_ABSOLUTE = const(1)
+
+    MAX_BPM = const(250)
+    MIN_BPM = const(8)
+
+    # tap is in 4/4 so time is 4x delay time
+    MIN_TAP_DELAY_MS = int(((60/(MAX_BPM*4))*1000))
+    # equivalent to ~2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
+    MAX_TAP_DELAY_MS = int(((60/(MIN_BPM*4))*1000))
+
+    CIRCLE_ACTION_NONE = const(0)
+    CIRCLE_ACTION_RESET = const(1)
+    CIRCLE_ACTION_BEATS = const(2)
+    CIRCLE_ACTION_PULSES = const(3)
+    CIRCLE_ACTION_ROTATE = const(4)
+    CIRCLE_ACTION_PROB = const(5)
+    CIRCLE_ACTION_FILL = const(6)
+    CIRCLE_ACTION_MUTE = const(7)
+    CIRCLE_ACTION_BURST = const(8)
+
+    CIRCLE_RHYTHM_1 = const(0)
+    CIRCLE_RHYTHM_2 = const(1)
+    CIRCLE_RHYTHM_3 = const(2)
+    CIRCLE_RHYTHM_4 = const(3)
+    CIRCLE_RHYTHM_ALL = const(4)
+
+    ALGO_EUCLIDEAN = const(0)
+    ALGO_EXP_EUCLIDEAN = const(1)
+    ALGO_INV_EXP_EUCLIDEAN = const(2)
+    ALGO_SYM_EXP_EUCLIDEAN = const(3)
+    ALGO_CUSTOM_RHYTHM = const(4)
+
+    STATE_INIT = const(0)
+    STATE_LIVE = const(1)
+    STATE_MENU_SELECT = const(2)
+    STATE_PARAM_MENU = const(3)
+    STATE_PARAM_MENU_SELECTION = const(4)
+    STATE_RHYTHM_PARAM_INNER_BEAT_PULSE = const(5)
+    STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(6)
+    STATE_PARAM_PRESETS = const(7)
+    STATE_PARAM_PADS_SELECTION = const(8)
+    STATE_PARAM_PADS = const(9)
+    STATE_CHANNEL_CONFIG = const(10)
+    STATE_CHANNEL_CONFIG_SELECTION = const(11)
+    STATE_CALIBRATION_COUNTDOWN = const(12)
+    STATE_TEST = const(100)
+
+    EVENT_INIT = const(0)
+    EVENT_MENU_BTN = const(1)
+    EVENT_MENU_BTN_LONG = const(2)
+    EVENT_TAP_BTN = const(3)
+    EVENT_TAP_BTN_LONG = const(4)
+    EVENT_INNER_CIRCLE_INCR = const(5)
+    EVENT_INNER_CIRCLE_DECR = const(6)
+    EVENT_OUTER_CIRCLE_INCR = const(7)
+    EVENT_OUTER_CIRCLE_DECR = const(8)
+    EVENT_INNER_CIRCLE_TOUCH = const(9)
+    EVENT_OUTER_CIRCLE_TOUCH = const(10)
+    EVENT_INNER_CIRCLE_TAP = const(11)
+    EVENT_OUTER_CIRCLE_TAP = const(12)
+    EVENT_BTN_SWITCHES = const(13)
+    EVENT_TAP_MENU_BTN_LONG = const(14)
+    EVENT_CALIBRATION_COUNTDOWN_END = const(15)
+
+    PRESET_RECALL_DIRECT_W_RESET = const(0)
+    PRESET_EXTERNAL_RESET = const(1)
+    PRESET_RECALL_DIRECT_WO_RESET = const(2)
+    PRESET_INTERNAL_RESET = const(3)
+
+    MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
+
+    PRESCALER_LIST = [1, 2, 3, 4, 6, 8, 16]
+
+    CALIBRATION_COUNTDOWN_DURATION_MS = const(5000)  # 5 seconds
+
+    # BURST_LIST is in subdivision of 24 (BURST_SUBDIVISION)
+    # so [2, 3, 4, 6, 8]
+    BURST_LIST = [12, 8, 6, 4, 3]
+    BURST_SUBDIVISION = const(24)
+
+    # size use by the eeprom
+    MEMORY_LIST_SIZE = const(517)
+
+
 class EuclideanRhythmParameters:
 
-    def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, gate_length_percentage=T_GATE_ON_PERCENTAGE, gate_length_ms_percent=True, randomize_gate_length=False, algo_index=0, burst_div_index=0, custom_rhythm=[0]*16):
+    def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, gate_length_percentage=T_GATE_ON_PERCENTAGE, gate_length_ms_percent_mode=LxEuclidConstant.GATE_LENGTH_ABSOLUTE, randomize_gate_length=False, algo_index=0, burst_div_index=0, custom_rhythm=[0]*16):
         self.set_parameters(beats, pulses, offset, pulses_probability,
-                            prescaler_index, gate_length_ms, gate_length_percentage, gate_length_ms_percent, randomize_gate_length, algo_index, burst_div_index, custom_rhythm)
+                            prescaler_index, gate_length_ms, gate_length_percentage, gate_length_ms_percent_mode, randomize_gate_length, algo_index, burst_div_index, custom_rhythm)
 
     def set_parameters_from_rhythm(self, euclideanRhythmParameters):
         self.set_parameters(euclideanRhythmParameters.beats, euclideanRhythmParameters.pulses, euclideanRhythmParameters.offset, euclideanRhythmParameters.pulses_probability,
-                            euclideanRhythmParameters.prescaler_index, euclideanRhythmParameters.gate_length_ms, euclideanRhythmParameters.gate_length_percentage, euclideanRhythmParameters.gate_length_ms_percent, euclideanRhythmParameters.randomize_gate_length, euclideanRhythmParameters.algo_index, euclideanRhythmParameters.burst_div_index, euclideanRhythmParameters.custom_rhythm)
+                            euclideanRhythmParameters.prescaler_index, euclideanRhythmParameters.gate_length_ms, euclideanRhythmParameters.gate_length_percentage, euclideanRhythmParameters.gate_length_ms_percent_mode, euclideanRhythmParameters.randomize_gate_length, euclideanRhythmParameters.algo_index, euclideanRhythmParameters.burst_div_index, euclideanRhythmParameters.custom_rhythm)
 
-    def set_parameters(self, beats, pulses, offset, pulses_probability, prescaler_index, gate_length_ms, gate_length_percentage, gate_length_ms_percent, randomize_gate_length, algo_index, burst_div_index, custom_rhythm):
+    def set_parameters(self, beats, pulses, offset, pulses_probability, prescaler_index, gate_length_ms, gate_length_percentage, gate_length_ms_percent_mode, randomize_gate_length, algo_index, burst_div_index, custom_rhythm):
         self._prescaler_index = prescaler_index
 
         self.prescaler = LxEuclidConstant.PRESCALER_LIST[prescaler_index]
@@ -87,11 +176,20 @@ class EuclideanRhythmParameters:
 
         self.__pulses_ratio = self.pulses / self.beats
         self.clear_gate_needed = False
+
+        # selection of mode: 0 absolute (ms) or 1 percentage (%)
+        self.gate_length_ms_percent_mode = gate_length_ms_percent_mode
+        # true ms time of gate when absolute mode
         self.gate_length_ms = gate_length_ms
+        # true percentage of gate length when percentage mode
         self.gate_length_percentage = gate_length_percentage
+        # converted time in ms from true percentage
         self.gate_length_percentage_time_ms = gate_length_ms
-        self.gate_length_ms_percent = gate_length_ms_percent
+        # if true, gate time is randommized
+        self.randomize_gate_length = randomize_gate_length
+        # randomized time for ms mode
         self.randomized_gate_length_ms = gate_length_ms
+        # randomized time for percentage mode
         self.randomized_gate_length_percentage = gate_length_ms
 
         self.algo_index = algo_index
@@ -722,89 +820,6 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         return result
 
 
-class LxEuclidConstant:
-    TAP_MODE = const(0)
-    CLK_IN = const(1)
-
-    MAX_BPM = const(250)
-    MIN_BPM = const(8)
-
-    # tap is in 4/4 so time is 4x delay time
-    MIN_TAP_DELAY_MS = int(((60/(MAX_BPM*4))*1000))
-    # equivalent to ~2s (rhythm 4/4) (Max would be  --> 2**16/10/1000 = 6.5536 s)
-    MAX_TAP_DELAY_MS = int(((60/(MIN_BPM*4))*1000))
-
-    CIRCLE_ACTION_NONE = const(0)
-    CIRCLE_ACTION_RESET = const(1)
-    CIRCLE_ACTION_BEATS = const(2)
-    CIRCLE_ACTION_PULSES = const(3)
-    CIRCLE_ACTION_ROTATE = const(4)
-    CIRCLE_ACTION_PROB = const(5)
-    CIRCLE_ACTION_FILL = const(6)
-    CIRCLE_ACTION_MUTE = const(7)
-    CIRCLE_ACTION_BURST = const(8)
-
-    CIRCLE_RHYTHM_1 = const(0)
-    CIRCLE_RHYTHM_2 = const(1)
-    CIRCLE_RHYTHM_3 = const(2)
-    CIRCLE_RHYTHM_4 = const(3)
-    CIRCLE_RHYTHM_ALL = const(4)
-
-    ALGO_EUCLIDEAN = const(0)
-    ALGO_EXP_EUCLIDEAN = const(1)
-    ALGO_INV_EXP_EUCLIDEAN = const(2)
-    ALGO_SYM_EXP_EUCLIDEAN = const(3)
-    ALGO_CUSTOM_RHYTHM = const(4)
-
-    STATE_INIT = const(0)
-    STATE_LIVE = const(1)
-    STATE_MENU_SELECT = const(2)
-    STATE_PARAM_MENU = const(3)
-    STATE_PARAM_MENU_SELECTION = const(4)
-    STATE_RHYTHM_PARAM_INNER_BEAT_PULSE = const(5)
-    STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY = const(6)
-    STATE_PARAM_PRESETS = const(7)
-    STATE_PARAM_PADS_SELECTION = const(8)
-    STATE_PARAM_PADS = const(9)
-    STATE_CHANNEL_CONFIG = const(10)
-    STATE_CHANNEL_CONFIG_SELECTION = const(11)
-    STATE_CALIBRATION_COUNTDOWN = const(12)
-    STATE_TEST = const(100)
-
-    EVENT_INIT = const(0)
-    EVENT_MENU_BTN = const(1)
-    EVENT_MENU_BTN_LONG = const(2)
-    EVENT_TAP_BTN = const(3)
-    EVENT_TAP_BTN_LONG = const(4)
-    EVENT_INNER_CIRCLE_INCR = const(5)
-    EVENT_INNER_CIRCLE_DECR = const(6)
-    EVENT_OUTER_CIRCLE_INCR = const(7)
-    EVENT_OUTER_CIRCLE_DECR = const(8)
-    EVENT_INNER_CIRCLE_TOUCH = const(9)
-    EVENT_OUTER_CIRCLE_TOUCH = const(10)
-    EVENT_INNER_CIRCLE_TAP = const(11)
-    EVENT_OUTER_CIRCLE_TAP = const(12)
-    EVENT_BTN_SWITCHES = const(13)
-    EVENT_TAP_MENU_BTN_LONG = const(14)
-    EVENT_CALIBRATION_COUNTDOWN_END = const(15)
-
-    PRESET_RECALL_DIRECT_W_RESET = const(0)
-    PRESET_EXTERNAL_RESET = const(1)
-    PRESET_RECALL_DIRECT_WO_RESET = const(2)
-    PRESET_INTERNAL_RESET = const(3)
-
-    MAX_CIRCLE_DISPLAY_TIME_MS = const(500)
-
-    PRESCALER_LIST = [1, 2, 3, 4, 6, 8, 16]
-
-    CALIBRATION_COUNTDOWN_DURATION_MS = const(5000)  # 5 seconds
-
-    # BURST_LIST is in subdivision of 24 (BURST_SUBDIVISION)
-    # so [2, 3, 4, 6, 8]
-    BURST_LIST = [12, 8, 6, 4, 3]
-    BURST_SUBDIVISION = const(24)
-
-
 class LxEuclidConfig:
 
     def __init__(self, lx_hardware, LCD, software_version):
@@ -904,7 +919,7 @@ class LxEuclidConfig:
         self.previous_list_data = []
 
         # used in create_memory_list, put it as attribute so it doesn't create memory in loop
-        self.list_data = [0]*445
+        self.list_data = [0]*LxEuclidConstant.MEMORY_LIST_SIZE
 
         self.load_data()
         self.reload_rhythms()
@@ -1568,7 +1583,7 @@ class LxEuclidConfig:
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
                 if self.param_channel_config_page == 3:  # gate time
                     euclidean_rhythm = self.euclidean_rhythms[self.sm_rhythm_param_counter]
-                    if euclidean_rhythm.gate_length_ms_percent:
+                    if euclidean_rhythm.gate_length_ms_percent_mode == LxEuclidConstant.GATE_LENGTH_ABSOLUTE:
                         euclidean_rhythm.incr_gate_length()
                     else:
                         euclidean_rhythm.incr_gate_length_percentage()
@@ -1583,7 +1598,7 @@ class LxEuclidConfig:
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
                 if self.param_channel_config_page == 3:  # gate time
                     euclidean_rhythm = self.euclidean_rhythms[self.sm_rhythm_param_counter]
-                    if euclidean_rhythm.gate_length_ms_percent:
+                    if euclidean_rhythm.gate_length_ms_percent_mode == LxEuclidConstant.GATE_LENGTH_ABSOLUTE:
                         euclidean_rhythm.decr_gate_length()
                     else:
                         euclidean_rhythm.decr_gate_length_percentage()
@@ -1725,9 +1740,9 @@ class LxEuclidConfig:
                         self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
                         )
                     elif fine_randomize_select == 2:
-                        self.euclidean_rhythms[self.sm_rhythm_param_counter].gate_length_ms_percent = True
+                        self.euclidean_rhythms[self.sm_rhythm_param_counter].gate_length_ms_percent_mode = LxEuclidConstant.GATE_LENGTH_PERCENTAGE
                     elif fine_randomize_select == 6:
-                        self.euclidean_rhythms[self.sm_rhythm_param_counter].gate_length_ms_percent = False
+                        self.euclidean_rhythms[self.sm_rhythm_param_counter].gate_length_ms_percent_mode = LxEuclidConstant.GATE_LENGTH_ABSOLUTE
 
                 elif self.param_channel_config_page == 4:  # burst div
                     burst_div_index = angle_to_index(angle_inner, 5)
@@ -1843,14 +1858,14 @@ class LxEuclidConfig:
             if euclidean_rhythm.get_current_burst_step() and did_step and euclidean_rhythm.in_burst:
                 if euclidean_rhythm.randomize_gate_length:
                     # burst gate when normal step occur
-                    if euclidean_rhythm.gate_length_ms_percent:
+                    if euclidean_rhythm.gate_length_ms_percent_mode == LxEuclidConstant.GATE_LENGTH_ABSOLUTE:
                         self.lx_hardware.set_gate(
                             self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_ms)
                     else:
                         self.lx_hardware.set_gate(
                             self.computation_index_incr_step, (euclidean_rhythm.randomized_gate_length_percentage*euclidean_rhythm.prescaler)//euclidean_rhythm.burst_div)
                 else:
-                    if euclidean_rhythm.gate_length_ms_percent:
+                    if euclidean_rhythm.gate_length_ms_percent_mode == LxEuclidConstant.GATE_LENGTH_ABSOLUTE:
                         self.lx_hardware.set_gate(
                             self.computation_index_incr_step, euclidean_rhythm.gate_length_ms)
                     else:
@@ -1880,7 +1895,7 @@ class LxEuclidConfig:
             # standard gate when normal step occur
             if euclidean_rhythm.get_current_step() and did_step and not (euclidean_rhythm.in_burst):
                 if euclidean_rhythm.randomize_gate_length:
-                    if euclidean_rhythm.gate_length_ms_percent:
+                    if euclidean_rhythm.gate_length_ms_percent_mode == LxEuclidConstant.GATE_LENGTH_ABSOLUTE:
                         self.lx_hardware.set_gate(
                             self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_ms)
                     else:
@@ -1888,7 +1903,7 @@ class LxEuclidConfig:
                             self.computation_index_incr_step, euclidean_rhythm.randomized_gate_length_percentage*euclidean_rhythm.prescaler)
                 else:
 
-                    if euclidean_rhythm.gate_length_ms_percent:
+                    if euclidean_rhythm.gate_length_ms_percent_mode == LxEuclidConstant.GATE_LENGTH_ABSOLUTE:
                         self.lx_hardware.set_gate(
                             self.computation_index_incr_step, euclidean_rhythm.gate_length_ms)
                     else:
@@ -1905,7 +1920,7 @@ class LxEuclidConfig:
     def random_gate_length_update(self):
         for euclidean_rhythm in self.euclidean_rhythms:
             if euclidean_rhythm.randomize_gate_length:
-                if euclidean_rhythm.gate_length_ms_percent:
+                if euclidean_rhythm.gate_length_ms_percent_mode == LxEuclidConstant.GATE_LENGTH_ABSOLUTE:
                     euclidean_rhythm.randomized_gate_length_ms = randint(
                         5, euclidean_rhythm.gate_length_ms)
                 else:
@@ -1952,10 +1967,12 @@ class LxEuclidConfig:
             a[0] += 1
             return a[0]-1
 
+        # eeprom version
         self.list_data[incr_addr(addr)] = self.v_major
         self.list_data[incr_addr(addr)] = self.v_minor
         self.list_data[incr_addr(addr)] = self.v_fix
 
+        # main rhythm parameters
         for euclidean_rhythm in self.euclidean_rhythms:
             self.list_data[incr_addr(addr)] = euclidean_rhythm.beats
             self.list_data[incr_addr(addr)] = euclidean_rhythm.pulses
@@ -1969,6 +1986,7 @@ class LxEuclidConfig:
                 addr)] = euclidean_rhythm.randomize_gate_length
             self.list_data[incr_addr(addr)] = euclidean_rhythm.burst_div_index
 
+        # main preset parameters
         for preset in self.presets:
             for preset_euclidean_rhythm in preset:
                 self.list_data[incr_addr(addr)] = preset_euclidean_rhythm.beats
@@ -1989,26 +2007,32 @@ class LxEuclidConfig:
                 self.list_data[incr_addr(
                     addr)] = preset_euclidean_rhythm.burst_div_index
 
+        # macro parameters
         self.list_data[incr_addr(addr)] = self.inner_rotate_action
         self.list_data[incr_addr(addr)] = self.inner_action_rhythm
         self.list_data[incr_addr(addr)] = self.outer_rotate_action
         self.list_data[incr_addr(addr)] = self.outer_action_rhythm
+
+        # touch sensitivity and clk mode
         self.list_data[incr_addr(
             addr)] = self.lx_hardware.capacitives_circles.touch_sensitivity
         self.list_data[incr_addr(addr)] = self.clk_mode
 
+        # cv data
         for cv_data in self.lx_hardware.cv_manager.cvs_data:
             for cv_action_channel in cv_data.cv_actions_channel:
                 self.list_data[incr_addr(addr)] = cv_action_channel
 
-        # split tap tempo in lsb and msb
+        # tap tempo split in lsb and msb
         local_tap_tempo = self.tap_delay_ms
         self.list_data[incr_addr(addr)] = local_tap_tempo & 0xff
         self.list_data[incr_addr(addr)] = (local_tap_tempo >> 8) & 0xff
 
+        # flip and preset recall mode
         self.list_data[incr_addr(addr)] = self.flip
         self.list_data[incr_addr(addr)] = self.preset_recall_mode
 
+        # custom rhythm data
         for euclidean_rhythm in self.euclidean_rhythms:
             custom_rhythm_16bits = euclidean_rhythm.get_custom_rhythm_16bits()
             self.list_data[incr_addr(addr)] = custom_rhythm_16bits & 0xff
@@ -2021,6 +2045,20 @@ class LxEuclidConfig:
                 self.list_data[incr_addr(addr)] = custom_rhythm_16bits & 0xff
                 self.list_data[incr_addr(addr)] = (
                     custom_rhythm_16bits >> 8) & 0xff
+
+        # gate length in percentage management
+        for euclidean_rhythm in self.euclidean_rhythms:
+            self.list_data[incr_addr(
+                addr)] = euclidean_rhythm.gate_length_ms_percent_mode
+            self.list_data[incr_addr(
+                addr)] = euclidean_rhythm.gate_length_percentage
+
+        for preset in self.presets:
+            for preset_euclidean_rhythm in preset:
+                self.list_data[incr_addr(
+                    addr)] = preset_euclidean_rhythm.gate_length_ms_percent_mode
+                self.list_data[incr_addr(
+                    addr)] = preset_euclidean_rhythm.gate_length_percentage
 
     def save_data(self):
         self.save_data_lock.acquire()
@@ -2057,6 +2095,7 @@ class LxEuclidConfig:
     def load_data(self):
         print("Start loading data")
 
+        # eeprom version
         eeprom_v_major = self.lx_hardware.get_eeprom_data_int(MAJOR_E_ADDR)
         eeprom_v_minor = self.lx_hardware.get_eeprom_data_int(MINOR_E_ADDR)
         eeprom_v_fix = self.lx_hardware.get_eeprom_data_int(FIX_E_ADDR)
@@ -2100,6 +2139,7 @@ class LxEuclidConfig:
                     else:
                         return data
 
+                # main rhythm parameters
                 for euclidean_rhythm in self.euclidean_rhythms:
 
                     euclidean_rhythm.beats = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
@@ -2128,6 +2168,7 @@ class LxEuclidConfig:
                     euclidean_rhythm.burst_div_index = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr)), 0, MAX_BURST_DIV_INDEX, euclidean_rhythm.burst_div_index, eeprom_addr)
 
+                # main preset parameters
                 for preset in self.presets:
                     for preset_euclidean_rhythm in preset:
                         preset_euclidean_rhythm.beats = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
@@ -2149,6 +2190,7 @@ class LxEuclidConfig:
                         preset_euclidean_rhythm.burst_div_index = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                             incr_addr(eeprom_addr)), 0, MAX_BURST_DIV_INDEX, preset_euclidean_rhythm.burst_div_index, eeprom_addr)
 
+                # macro parameters
                 self.inner_rotate_action = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_BURST, self.inner_rotate_action, eeprom_addr)
 
@@ -2161,11 +2203,14 @@ class LxEuclidConfig:
                 self.outer_action_rhythm = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), 0, MAX_ACTION_RHYTHM, self.outer_action_rhythm, eeprom_addr)
 
+                # touch sensitivity and clk mode
                 self.lx_hardware.capacitives_circles.touch_sensitivity = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), 0, MAX_TOUCH_SENSITIVITY, self.lx_hardware.capacitives_circles.touch_sensitivity, eeprom_addr)
 
                 self.clk_mode = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), LxEuclidConstant.TAP_MODE, LxEuclidConstant.CLK_IN, self.clk_mode, eeprom_addr)
+
+                # cv data
                 for cv_data in self.lx_hardware.cv_manager.cvs_data:
                     for i in range(0, CvAction.CV_ACTION_LEN):
                         cv_channel = self.lx_hardware.get_eeprom_data_int(
@@ -2173,7 +2218,7 @@ class LxEuclidConfig:
                         if cv_channel >= CvChannel.CV_CHANNEL_NONE and cv_channel <= CvChannel.CV_CHANNEL_THREE:
                             cv_data.set_cv_actions_channel(i, cv_channel)
 
-                # get back splitted tap tempo in lsb and msb
+                # tap tempo split in lsb and msb
                 tap_tempo_lsb = self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr))
                 tap_tempo_msb = self.lx_hardware.get_eeprom_data_int(
@@ -2184,12 +2229,14 @@ class LxEuclidConfig:
                 self.tap_delay_ms = data_set_in_range(
                     tap_delay_ms, LxEuclidConstant.MIN_TAP_DELAY_MS, LxEuclidConstant.MAX_TAP_DELAY_MS, self.tap_delay_ms, eeprom_addr)
 
+                # flip and preset recall mode
                 self.flip = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), 0, MAX_FLIP_SCREEN, self.flip, eeprom_addr)
 
                 self.preset_recall_mode = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET, LxEuclidConstant.PRESET_INTERNAL_RESET, self.preset_recall_mode, eeprom_addr)
 
+                # custom rhythm data
                 algo_4_rhythm_found = False
                 algo_4_rhythm_index = -1
                 for rhythm_index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
@@ -2227,6 +2274,20 @@ class LxEuclidConfig:
                             (custom_rhythm_msb << 8)
                         preset_euclidean_rhythm.set_custom_rhythm_16bits(
                             custom_rhythm)
+                # gate length in percentage management
+                for euclidean_rhythm in self.euclidean_rhythms:
+
+                    euclidean_rhythm.gate_length_ms_percent_mode = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr)), LxEuclidConstant.GATE_LENGTH_PERCENTAGE, LxEuclidConstant.GATE_LENGTH_ABSOLUTE, euclidean_rhythm.gate_length_ms_percent_mode, eeprom_addr)
+                    euclidean_rhythm.gate_length_percentage = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr)), MIN_GATE_LENGTH_PERCENTAGE, MAX_GATE_LENGTH_PERCENTAGE, euclidean_rhythm.gate_length_percentage, eeprom_addr)
+
+                for preset in self.presets:
+                    for preset_euclidean_rhythm in preset:
+                        preset_euclidean_rhythm.gate_length_ms_percent_mode = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr)), LxEuclidConstant.GATE_LENGTH_PERCENTAGE, LxEuclidConstant.GATE_LENGTH_ABSOLUTE, preset_euclidean_rhythm.gate_length_ms_percent_mode, eeprom_addr)
+                        preset_euclidean_rhythm.gate_length_percentage = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr)), MIN_GATE_LENGTH_PERCENTAGE, MAX_GATE_LENGTH_PERCENTAGE, preset_euclidean_rhythm.gate_length_percentage, eeprom_addr)
 
                 self.create_memory_list()
                 self.previous_list_data = self.list_data.copy()

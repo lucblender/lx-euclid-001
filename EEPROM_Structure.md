@@ -2,162 +2,192 @@
 
 This document describes the EEPROM memory layout used by the LX-Euclid device. The structure is defined by the `create_memory_list()` method in `lxEuclidConfig.py`.
 
+Latest version EEPROM version: v1.1.2.
+
 ## Memory Layout Table
 
-| Address | Description of Content |
-|---------|------------------------|
-| 0 | Memory mapping version major number |
-| 1 | Memory mapping version minor number |
-| 2 | Memory mapping version fix number |
+| Address | Description of Content | EEPROM version |
+|---------|------------------------|----------------|
+| 0 | Memory mapping version major number | v1.1.0 |
+| 1 | Memory mapping version minor number | v1.1.0 |
+| 2 | Memory mapping version fix number | v1.1.0 |
 
 ### Euclidean Rhythms (Channels 0-3)
 
-| Address | Description of Content |
-|---------|------------------------|
-| 3 | Euclidean Rhythm 0 - Beats count |
-| 4 | Euclidean Rhythm 0 - Pulses count |
-| 5 | Euclidean Rhythm 0 - Offset value |
-| 6 | Euclidean Rhythm 0 - Pulses probability (0-100) |
-| 7 | Euclidean Rhythm 0 - Algorithm index |
-| 8 | Euclidean Rhythm 0 - Prescaler index |
-| 9 | Euclidean Rhythm 0 - Gate length in milliseconds |
-| 10 | Euclidean Rhythm 0 - Randomize gate length flag |
-| 11 | Euclidean Rhythm 0 - Burst division index |
-| 12 | Euclidean Rhythm 1 - Beats count |
-| 13 | Euclidean Rhythm 1 - Pulses count |
-| 14 | Euclidean Rhythm 1 - Offset value |
-| 15 | Euclidean Rhythm 1 - Pulses probability (0-100) |
-| 16 | Euclidean Rhythm 1 - Algorithm index |
-| 17 | Euclidean Rhythm 1 - Prescaler index |
-| 18 | Euclidean Rhythm 1 - Gate length in milliseconds |
-| 19 | Euclidean Rhythm 1 - Randomize gate length flag |
-| 20 | Euclidean Rhythm 1 - Burst division index |
-| 21 | Euclidean Rhythm 2 - Beats count |
-| 22 | Euclidean Rhythm 2 - Pulses count |
-| 23 | Euclidean Rhythm 2 - Offset value |
-| 24 | Euclidean Rhythm 2 - Pulses probability (0-100) |
-| 25 | Euclidean Rhythm 2 - Algorithm index |
-| 26 | Euclidean Rhythm 2 - Prescaler index |
-| 27 | Euclidean Rhythm 2 - Gate length in milliseconds |
-| 28 | Euclidean Rhythm 2 - Randomize gate length flag |
-| 29 | Euclidean Rhythm 2 - Burst division index |
-| 30 | Euclidean Rhythm 3 - Beats count |
-| 31 | Euclidean Rhythm 3 - Pulses count |
-| 32 | Euclidean Rhythm 3 - Offset value |
-| 33 | Euclidean Rhythm 3 - Pulses probability (0-100) |
-| 34 | Euclidean Rhythm 3 - Algorithm index |
-| 35 | Euclidean Rhythm 3 - Prescaler index |
-| 36 | Euclidean Rhythm 3 - Gate length in milliseconds |
-| 37 | Euclidean Rhythm 3 - Randomize gate length flag |
-| 38 | Euclidean Rhythm 3 - Burst division index |
+| Address | Description of Content | EEPROM version |
+|---------|------------------------|----------------|
+| 3 | Euclidean Rhythm 0 - Beats count | v1.1.0 |
+| 4 | Euclidean Rhythm 0 - Pulses count | v1.1.0 |
+| 5 | Euclidean Rhythm 0 - Offset value | v1.1.0 |
+| 6 | Euclidean Rhythm 0 - Pulses probability (0-100) | v1.1.0 |
+| 7 | Euclidean Rhythm 0 - Algorithm index | v1.1.0 |
+| 8 | Euclidean Rhythm 0 - Prescaler index | v1.1.0 |
+| 9 | Euclidean Rhythm 0 - Gate length in milliseconds | v1.1.0 |
+| 10 | Euclidean Rhythm 0 - Randomize gate length flag | v1.1.0 |
+| 11 | Euclidean Rhythm 0 - Burst division index | v1.1.0 |
+| 12 | Euclidean Rhythm 1 - Beats count | v1.1.0 |
+| 13 | Euclidean Rhythm 1 - Pulses count | v1.1.0 |
+| 14 | Euclidean Rhythm 1 - Offset value | v1.1.0 |
+| 15 | Euclidean Rhythm 1 - Pulses probability (0-100) | v1.1.0 |
+| 16 | Euclidean Rhythm 1 - Algorithm index | v1.1.0 |
+| 17 | Euclidean Rhythm 1 - Prescaler index | v1.1.0 |
+| 18 | Euclidean Rhythm 1 - Gate length in milliseconds | v1.1.0 |
+| 19 | Euclidean Rhythm 1 - Randomize gate length flag | v1.1.0 |
+| 20 | Euclidean Rhythm 1 - Burst division index | v1.1.0 |
+| 21 | Euclidean Rhythm 2 - Beats count | v1.1.0 |
+| 22 | Euclidean Rhythm 2 - Pulses count | v1.1.0 |
+| 23 | Euclidean Rhythm 2 - Offset value | v1.1.0 |
+| 24 | Euclidean Rhythm 2 - Pulses probability (0-100) | v1.1.0 |
+| 25 | Euclidean Rhythm 2 - Algorithm index | v1.1.0 |
+| 26 | Euclidean Rhythm 2 - Prescaler index | v1.1.0 |
+| 27 | Euclidean Rhythm 2 - Gate length in milliseconds | v1.1.0 |
+| 28 | Euclidean Rhythm 2 - Randomize gate length flag | v1.1.0 |
+| 29 | Euclidean Rhythm 2 - Burst division index | v1.1.0 |
+| 30 | Euclidean Rhythm 3 - Beats count | v1.1.0 |
+| 31 | Euclidean Rhythm 3 - Pulses count | v1.1.0 |
+| 32 | Euclidean Rhythm 3 - Offset value | v1.1.0 |
+| 33 | Euclidean Rhythm 3 - Pulses probability (0-100) | v1.1.0 |
+| 34 | Euclidean Rhythm 3 - Algorithm index | v1.1.0 |
+| 35 | Euclidean Rhythm 3 - Prescaler index | v1.1.0 |
+| 36 | Euclidean Rhythm 3 - Gate length in milliseconds | v1.1.0 |
+| 37 | Euclidean Rhythm 3 - Randomize gate length flag | v1.1.0 |
+| 38 | Euclidean Rhythm 3 - Burst division index | v1.1.0 |
 
 ### Presets (8 Presets × 4 Rhythms each)
 
-| Address | Description of Content |
-|---------|------------------------|
-| 39 | Preset 0, Rhythm 0 - Beats count |
-| 40 | Preset 0, Rhythm 0 - Pulses count |
-| 41 | Preset 0, Rhythm 0 - Offset value |
-| 42 | Preset 0, Rhythm 0 - Pulses probability |
-| 43 | Preset 0, Rhythm 0 - Algorithm index |
-| 44 | Preset 0, Rhythm 0 - Prescaler index |
-| 45 | Preset 0, Rhythm 0 - Gate length in ms |
-| 46 | Preset 0, Rhythm 0 - Randomize gate length |
-| 47 | Preset 0, Rhythm 0 - Burst division index |
-| 48 | Preset 0, Rhythm 1 - Beats count |
-| 49 | Preset 0, Rhythm 1 - Pulses count |
-| 50 | Preset 0, Rhythm 1 - Offset value |
-| 51 | Preset 0, Rhythm 1 - Pulses probability |
-| 52 | Preset 0, Rhythm 1 - Algorithm index |
-| 53 | Preset 0, Rhythm 1 - Prescaler index |
-| 54 | Preset 0, Rhythm 1 - Gate length in ms |
-| 55 | Preset 0, Rhythm 1 - Randomize gate length |
-| 56 | Preset 0, Rhythm 1 - Burst division index |
-| 57 | Preset 0, Rhythm 2 - Beats count |
-| 58 | Preset 0, Rhythm 2 - Pulses count |
-| 59 | Preset 0, Rhythm 2 - Offset value |
-| 60 | Preset 0, Rhythm 2 - Pulses probability |
-| 61 | Preset 0, Rhythm 2 - Algorithm index |
-| 62 | Preset 0, Rhythm 2 - Prescaler index |
-| 63 | Preset 0, Rhythm 2 - Gate length in ms |
-| 64 | Preset 0, Rhythm 2 - Randomize gate length |
-| 65 | Preset 0, Rhythm 2 - Burst division index |
-| 66 | Preset 0, Rhythm 3 - Beats count |
-| 67 | Preset 0, Rhythm 3 - Pulses count |
-| 68 | Preset 0, Rhythm 3 - Offset value |
-| 69 | Preset 0, Rhythm 3 - Pulses probability |
-| 70 | Preset 0, Rhythm 3 - Algorithm index |
-| 71 | Preset 0, Rhythm 3 - Prescaler index |
-| 72 | Preset 0, Rhythm 3 - Gate length in ms |
-| 73 | Preset 0, Rhythm 3 - Randomize gate length |
-| 74 | Preset 0, Rhythm 3 - Burst division index |
+| Address | Description of Content | EEPROM version |
+|---------|------------------------|----------------|
+| 39 | Preset 0, Rhythm 0 - Beats count | v1.1.0 |
+| 40 | Preset 0, Rhythm 0 - Pulses count | v1.1.0 |
+| 41 | Preset 0, Rhythm 0 - Offset value | v1.1.0 |
+| 42 | Preset 0, Rhythm 0 - Pulses probability | v1.1.0 |
+| 43 | Preset 0, Rhythm 0 - Algorithm index | v1.1.0 |
+| 44 | Preset 0, Rhythm 0 - Prescaler index | v1.1.0 |
+| 45 | Preset 0, Rhythm 0 - Gate length in ms | v1.1.0 |
+| 46 | Preset 0, Rhythm 0 - Randomize gate length | v1.1.0 |
+| 47 | Preset 0, Rhythm 0 - Burst division index | v1.1.0 |
+| 48 | Preset 0, Rhythm 1 - Beats count | v1.1.0 |
+| 49 | Preset 0, Rhythm 1 - Pulses count | v1.1.0 |
+| 50 | Preset 0, Rhythm 1 - Offset value | v1.1.0 |
+| 51 | Preset 0, Rhythm 1 - Pulses probability | v1.1.0 |
+| 52 | Preset 0, Rhythm 1 - Algorithm index | v1.1.0 |
+| 53 | Preset 0, Rhythm 1 - Prescaler index | v1.1.0 |
+| 54 | Preset 0, Rhythm 1 - Gate length in ms | v1.1.0 |
+| 55 | Preset 0, Rhythm 1 - Randomize gate length | v1.1.0 |
+| 56 | Preset 0, Rhythm 1 - Burst division index | v1.1.0 |
+| 57 | Preset 0, Rhythm 2 - Beats count | v1.1.0 |
+| 58 | Preset 0, Rhythm 2 - Pulses count | v1.1.0 |
+| 59 | Preset 0, Rhythm 2 - Offset value | v1.1.0 |
+| 60 | Preset 0, Rhythm 2 - Pulses probability | v1.1.0 |
+| 61 | Preset 0, Rhythm 2 - Algorithm index | v1.1.0 |
+| 62 | Preset 0, Rhythm 2 - Prescaler index | v1.1.0 |
+| 63 | Preset 0, Rhythm 2 - Gate length in ms | v1.1.0 |
+| 64 | Preset 0, Rhythm 2 - Randomize gate length | v1.1.0 |
+| 65 | Preset 0, Rhythm 2 - Burst division index | v1.1.0 |
+| 66 | Preset 0, Rhythm 3 - Beats count | v1.1.0 |
+| 67 | Preset 0, Rhythm 3 - Pulses count | v1.1.0 |
+| 68 | Preset 0, Rhythm 3 - Offset value | v1.1.0 |
+| 69 | Preset 0, Rhythm 3 - Pulses probability | v1.1.0 |
+| 70 | Preset 0, Rhythm 3 - Algorithm index | v1.1.0 |
+| 71 | Preset 0, Rhythm 3 - Prescaler index | v1.1.0 |
+| 72 | Preset 0, Rhythm 3 - Gate length in ms | v1.1.0 |
+| 73 | Preset 0, Rhythm 3 - Randomize gate length | v1.1.0 |
+| 74 | Preset 0, Rhythm 3 - Burst division index | v1.1.0 |
 
 *Note: Presets 1-7 follow the same pattern, with addresses 75-326*
 
 ### Global Settings
 
-| Address | Description of Content |
-|---------|------------------------|
-| 327 | Inner rotate action |
-| 328 | Inner action rhythm |
-| 329 | Outer rotate action |
-| 330 | Outer action rhythm |
-| 331 | Touch sensitivity |
-| 332 | Clock mode |
+| Address | Description of Content | EEPROM version |
+|---------|------------------------|----------------|
+| 327 | Inner rotate action | v1.1.0 |
+| 328 | Inner action rhythm | v1.1.0 |
+| 329 | Outer rotate action | v1.1.0 |
+| 330 | Outer action rhythm | v1.1.0 |
+| 331 | Touch sensitivity | v1.1.0 |
+| 332 | Clock mode | v1.1.0 |
 
 ### CV Configuration (4 Channels × 9 Actions each)
 
-| Address | Description of Content |
-|---------|------------------------|
-| 333 | CV Channel 0, Action 0 - Channel assignment |
-| 334 | CV Channel 0, Action 1 - Channel assignment |
-| 335 | CV Channel 0, Action 2 - Channel assignment |
-| 336 | CV Channel 0, Action 3 - Channel assignment |
-| 337 | CV Channel 0, Action 4 - Channel assignment |
-| 338 | CV Channel 0, Action 5 - Channel assignment |
-| 339 | CV Channel 0, Action 6 - Channel assignment |
-| 340 | CV Channel 0, Action 7 - Channel assignment |
-| 341 | CV Channel 0, Action 8 - Channel assignment |
+| Address | Description of Content | EEPROM version |
+|---------|------------------------|----------------|
+| 333 | CV Channel 0, Action 0 - Channel assignment | v1.1.0 |
+| 334 | CV Channel 0, Action 1 - Channel assignment | v1.1.0 |
+| 335 | CV Channel 0, Action 2 - Channel assignment | v1.1.0 |
+| 336 | CV Channel 0, Action 3 - Channel assignment | v1.1.0 |
+| 337 | CV Channel 0, Action 4 - Channel assignment | v1.1.0 |
+| 338 | CV Channel 0, Action 5 - Channel assignment | v1.1.0 |
+| 339 | CV Channel 0, Action 6 - Channel assignment | v1.1.0 |
+| 340 | CV Channel 0, Action 7 - Channel assignment | v1.1.0 |
+| 341 | CV Channel 0, Action 8 - Channel assignment | v1.1.0 |
 
 *Note: CV Channels 1-3 follow the same pattern, with addresses 342-368*
 
 ### Timing and Display Settings
 
-| Address | Description of Content |
-|---------|------------------------|
-| 369 | Tap tempo delay LSB (lower 8 bits) |
-| 370 | Tap tempo delay MSB (upper 8 bits) |
-| 371 | Display flip setting |
-| 372 | Preset recall mode |
+| Address | Description of Content | EEPROM version |
+|---------|------------------------|----------------|
+| 369 | Tap tempo delay LSB (lower 8 bits) | v1.1.0 |
+| 370 | Tap tempo delay MSB (upper 8 bits) | v1.1.0 |
+| 371 | Display flip setting | v1.1.0 |
+| 372 | Preset recall mode | v1.1.0 |
 
 ### Custom Rhythms (4 Channels)
 
-| Address | Description of Content |
-|---------|------------------------|
-| 373 | Euclidean Rhythm 0 - Custom rhythm LSB |
-| 374 | Euclidean Rhythm 0 - Custom rhythm MSB |
-| 375 | Euclidean Rhythm 1 - Custom rhythm LSB |
-| 376 | Euclidean Rhythm 1 - Custom rhythm MSB |
-| 377 | Euclidean Rhythm 2 - Custom rhythm LSB |
-| 378 | Euclidean Rhythm 2 - Custom rhythm MSB |
-| 379 | Euclidean Rhythm 3 - Custom rhythm LSB |
-| 380 | Euclidean Rhythm 3 - Custom rhythm MSB |
+| Address | Description of Content | EEPROM version |
+|---------|------------------------|----------------|
+| 373 | Euclidean Rhythm 0 - Custom rhythm LSB | v1.1.1 |
+| 374 | Euclidean Rhythm 0 - Custom rhythm MSB | v1.1.1 |
+| 375 | Euclidean Rhythm 1 - Custom rhythm LSB | v1.1.1 |
+| 376 | Euclidean Rhythm 1 - Custom rhythm MSB | v1.1.1 |
+| 377 | Euclidean Rhythm 2 - Custom rhythm LSB | v1.1.1 |
+| 378 | Euclidean Rhythm 2 - Custom rhythm MSB | v1.1.1 |
+| 379 | Euclidean Rhythm 3 - Custom rhythm LSB | v1.1.1 |
+| 380 | Euclidean Rhythm 3 - Custom rhythm MSB | v1.1.1 |
 
 ### Preset Custom Rhythms (8 Presets × 4 Rhythms each)
 
-| Address | Description of Content |
-|---------|------------------------|
-| 381 | Preset 0, Rhythm 0 - Custom rhythm LSB |
-| 382 | Preset 0, Rhythm 0 - Custom rhythm MSB |
-| 383 | Preset 0, Rhythm 1 - Custom rhythm LSB |
-| 384 | Preset 0, Rhythm 1 - Custom rhythm MSB |
-| 385 | Preset 0, Rhythm 2 - Custom rhythm LSB |
-| 386 | Preset 0, Rhythm 2 - Custom rhythm MSB |
-| 387 | Preset 0, Rhythm 3 - Custom rhythm LSB |
-| 388 | Preset 0, Rhythm 3 - Custom rhythm MSB |
+| Address | Description of Content | EEPROM version |
+|---------|------------------------|----------------|
+| 381 | Preset 0, Rhythm 0 - Custom rhythm LSB | v1.1.1 |
+| 382 | Preset 0, Rhythm 0 - Custom rhythm MSB | v1.1.1 |
+| 383 | Preset 0, Rhythm 1 - Custom rhythm LSB | v1.1.1 |
+| 384 | Preset 0, Rhythm 1 - Custom rhythm MSB | v1.1.1 |
+| 385 | Preset 0, Rhythm 2 - Custom rhythm LSB | v1.1.1 |
+| 386 | Preset 0, Rhythm 2 - Custom rhythm MSB | v1.1.1 |
+| 387 | Preset 0, Rhythm 3 - Custom rhythm LSB | v1.1.1 |
+| 388 | Preset 0, Rhythm 3 - Custom rhythm MSB | v1.1.1 |
 
 *Note: Presets 1-7 follow the same pattern, with addresses 389-444*
 
+### Gate Length Percentage Management (4 Channels)
+
+| Address | Description of Content | EEPROM version |
+|---------|------------------------|----------------|
+| 445 | Euclidean Rhythm 0 - Gate length mode (ms/percent) | v1.1.2 |
+| 446 | Euclidean Rhythm 0 - Gate length percentage | v1.1.2 |
+| 447 | Euclidean Rhythm 1 - Gate length mode (ms/percent) | v1.1.2 |
+| 448 | Euclidean Rhythm 1 - Gate length percentage | v1.1.2 |
+| 449 | Euclidean Rhythm 2 - Gate length mode (ms/percent) | v1.1.2 |
+| 450 | Euclidean Rhythm 2 - Gate length percentage | v1.1.2 |
+| 451 | Euclidean Rhythm 3 - Gate length mode (ms/percent) | v1.1.2 |
+| 452 | Euclidean Rhythm 3 - Gate length percentage | v1.1.2 |
+
+### Preset Gate Length Percentage Management (8 Presets × 4 Rhythms each)
+
+| Address | Description of Content | EEPROM version |
+|---------|------------------------|----------------|
+| 453 | Preset 0, Rhythm 0 - Gate length mode (ms/percent) | v1.1.2 |
+| 454 | Preset 0, Rhythm 0 - Gate length percentage | v1.1.2 |
+| 455 | Preset 0, Rhythm 1 - Gate length mode (ms/percent) | v1.1.2 |
+| 456 | Preset 0, Rhythm 1 - Gate length percentage | v1.1.2 |
+| 457 | Preset 0, Rhythm 2 - Gate length mode (ms/percent) | v1.1.2 |
+| 458 | Preset 0, Rhythm 2 - Gate length percentage | v1.1.2 |
+| 459 | Preset 0, Rhythm 3 - Gate length mode (ms/percent) | v1.1.2 |
+| 460 | Preset 0, Rhythm 3 - Gate length percentage | v1.1.2 |
+
+*Note: Presets 1-7 follow the same pattern, with addresses 461-516*
+
 ## Total EEPROM Size
 
-**445 bytes** total are used for configuration storage.
+**517 bytes** total are used for configuration storage. This size is defined in LxEuclidConstant.MEMORY_LIST_SIZE.
