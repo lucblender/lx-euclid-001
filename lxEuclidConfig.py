@@ -2070,8 +2070,8 @@ class LxEuclidConfig:
         self.need_save_data_in_eeprom = True
         self.save_data_lock.release()
 
-    def test_save_data_list_in_eeprom(self):
-        if self.need_save_data_in_eeprom:
+    def test_save_data_list_in_eeprom(self, force_save_all=False):
+        if self.need_save_data_in_eeprom or force_save_all:
             self.save_data_lock.acquire()
             self.need_save_data_in_eeprom = False
             self.save_data_lock.release()
@@ -2081,12 +2081,15 @@ class LxEuclidConfig:
 
             for index, current_value in enumerate(self.list_data):
                 # necessary if we change version or at boot when list is empty
-                if index > (size_previous_list_data-1):
-                    changed_index.append(index)
-                elif current_value != self.previous_list_data[index]:
+                if force_save_all:
                     changed_index.append(index)
                     self.previous_list_data[index] = current_value
-
+                else:
+                    if index > (size_previous_list_data-1):
+                        changed_index.append(index)
+                    elif current_value != self.previous_list_data[index]:
+                        changed_index.append(index)
+                        self.previous_list_data[index] = current_value
             # uncomment for debug purpose
             # if len(changed_index) > 0:
             #    print("List data changed and needs to be put to eeprom", changed_index)
@@ -2120,7 +2123,7 @@ class LxEuclidConfig:
             # setup save of data
             self.save_data()
             # force saving all data
-            self.test_save_data_list_in_eeprom()
+            self.test_save_data_list_in_eeprom(True)
         else:
             # check fix version number
             if self.v_fix is not eeprom_v_fix:
