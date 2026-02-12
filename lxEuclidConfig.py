@@ -137,7 +137,7 @@ class LxEuclidConstant:
 
 class EuclideanRhythmParameters:
 
-    def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, gate_length_percentage=T_GATE_ON_PERCENTAGE, gate_length_ms_percent_mode=LxEuclidConstant.GATE_LENGTH_ABSOLUTE, randomize_gate_length=False, algo_index=0, burst_div_index=0, custom_rhythm=[0]*16):
+    def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, gate_length_percentage=T_GATE_ON_PERCENTAGE, gate_length_ms_percent_mode=LxEuclidConstant.GATE_LENGTH_ABSOLUTE, randomize_gate_length=False, algo_index=0, burst_div_index=0, custom_rhythm=None):
         self.set_parameters(beats, pulses, offset, pulses_probability,
                             prescaler_index, gate_length_ms, gate_length_percentage, gate_length_ms_percent_mode, randomize_gate_length, algo_index, burst_div_index, custom_rhythm)
 
@@ -197,7 +197,10 @@ class EuclideanRhythmParameters:
         self._burst_div_index = burst_div_index
         self.burst_div = LxEuclidConstant.BURST_LIST[burst_div_index]
 
-        self.custom_rhythm = custom_rhythm
+        if custom_rhythm is None:
+            self.custom_rhythm = [0]*16
+        else:
+            self.custom_rhythm = custom_rhythm
 
     @property
     def prescaler_index(self):
