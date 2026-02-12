@@ -5,6 +5,7 @@ from micropython import const
 import rp2
 from utime import ticks_us
 
+
 from capacitivesCircles import CapacitivesCircles
 from cvManager import CvManager
 from lxPanderSeq import LxPanderSeq
@@ -103,6 +104,8 @@ class LxHardware:
     BTN_SWITCHES_RISE = const(15)
     BTN_SWITCHES_FALL = const(16)
 
+    CUSTOM_RHYTHM_UPDATE = const(17)
+
     EEPROM_ADDR = const(0x50)
 
     def __init__(self):
@@ -141,16 +144,6 @@ class LxHardware:
         # clk_subdivision_counter handle this 24 time division
         self.clk_subdivision_counter = 0
 
-        self.clk_pin.irq(handler=self.clk_pin_change,
-                         trigger=Pin.IRQ_FALLING, hard=True)
-        self.rst_pin.irq(handler=self.rst_pin_change,
-                         trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-        self.btn_tap_pin.irq(handler=self.btn_tap_pin_change,
-                             trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-
-        self.btn_menu_pin.irq(handler=self.btn_menu_pin_change,
-                              trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-
         sw_0_pin = Pin(SW0, Pin.IN, Pin.PULL_UP)
         sw_1_pin = Pin(SW1, Pin.IN, Pin.PULL_UP)
         sw_2_pin = Pin(SW2, Pin.IN, Pin.PULL_UP)
@@ -162,15 +155,6 @@ class LxHardware:
 
         for sw_pin in self.btn_menu_pins:
             self.btn_menu_pins_status.append(sw_pin.value())
-
-        sw_0_pin.irq(handler=self.btn_channel_change,
-                     trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-        sw_1_pin.irq(handler=self.btn_channel_change,
-                     trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-        sw_2_pin.irq(handler=self.btn_channel_change,
-                     trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
-        sw_3_pin.irq(handler=self.btn_channel_change,
-                     trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
 
         sw_led_0 = Pin(SW_LED0, Pin.OUT)
         sw_led_1 = Pin(SW_LED1, Pin.OUT)
@@ -208,8 +192,6 @@ class LxHardware:
         self.sm_internal_clock = rp2.StateMachine(
             4, timed_10th_ms_pulse_internal_clock, freq=480_000)
         self.sm_internal_clock.active(1)
-        self.sm_internal_clock.irq(
-            handler=self.internal_clk_pin_change, hard=True)
 
         # initialize time tracking for clk period calculation
         self.temp_ticks_tenth_ms = ticks_us()//100
@@ -220,23 +202,9 @@ class LxHardware:
         # a lock on the i2c so both thread can use i2c devices
         self.i2c_internal_lock = allocate_lock()
 
-        external_i2c_sda = Pin(EXTERNAL_I2C_SDA_PIN, Pin.IN)
-        external_i2c_scl = Pin(EXTERNAL_I2C_SCL_PIN, Pin.IN)
-        if (external_i2c_sda.value() == 0 or external_i2c_scl.value() == 0):
-            # if either line is low, expander is not connected
-            self.i2c_external = None
-            self.lx_pander_seq = None
-            print("LxPanderSeq not connected, i2c lines pulled low")
-        else:
-            self.i2c_external = I2C(1, sda=Pin(EXTERNAL_I2C_SDA_PIN), scl=Pin(
-                EXTERNAL_I2C_SCL_PIN), freq=800_000)
-            self.lx_pander_seq = LxPanderSeq(self.i2c_external)
-            if self.lx_pander_seq.connected:
-                print("LxPanderSeq connected:",
-                      self.lx_pander_seq.get_version_string())
-            else:
-                print("LxPanderSeq not connected, i2c scan failed")
-                self.lx_pander_seq = None
+        self.i2c_external = None
+        self.lx_pander_seq = None
+        self.init_lx_pander_seq()
 
         self.eeprom_memory = EEPROM(
             self.i2c_internal, chip_size=T24C64, addr=self.EEPROM_ADDR)
@@ -258,6 +226,45 @@ class LxHardware:
         self.last_clock_periods = deque((), 8)
         for i in range(0, 8):
             self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
+
+    def init_interrupts(self):
+        for btn_menu_pin in self.btn_menu_pins:
+            btn_menu_pin.irq(handler=self.btn_channel_change,
+                             trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+        self.clk_pin.irq(handler=self.clk_pin_change,
+                         trigger=Pin.IRQ_FALLING, hard=True)
+        self.rst_pin.irq(handler=self.rst_pin_change,
+                         trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+        self.btn_tap_pin.irq(handler=self.btn_tap_pin_change,
+                             trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+
+        self.btn_menu_pin.irq(handler=self.btn_menu_pin_change,
+                              trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING, hard=True)
+
+        self.sm_internal_clock.irq(
+            handler=self.internal_clk_pin_change, hard=True)
+
+    def init_lx_pander_seq(self, debug_print=True):
+        external_i2c_sda = Pin(EXTERNAL_I2C_SDA_PIN, Pin.IN)
+        external_i2c_scl = Pin(EXTERNAL_I2C_SCL_PIN, Pin.IN)
+        if (external_i2c_sda.value() == 0 or external_i2c_scl.value() == 0):
+            # if either line is low, expander is not connected
+            self.i2c_external = None
+            self.lx_pander_seq = None
+            if debug_print:
+                print("LxPanderSeq not connected, i2c lines pulled low")
+        else:
+            self.i2c_external = I2C(1, sda=Pin(EXTERNAL_I2C_SDA_PIN), scl=Pin(
+                EXTERNAL_I2C_SCL_PIN), freq=800_000)
+            self.lx_pander_seq = LxPanderSeq(self.i2c_external)
+            if self.lx_pander_seq.connected:
+                if debug_print:
+                    print("LxPanderSeq connected:",
+                          self.lx_pander_seq.get_version_string())
+            else:
+                if debug_print:
+                    print("LxPanderSeq not connected, i2c scan failed")
+                self.lx_pander_seq = None
 
     def set_lx_euclid_config(self, lx_euclid_config):
         self.lx_euclid_config = lx_euclid_config
@@ -306,6 +313,8 @@ class LxHardware:
                     #    return
                     if self.delta_tenth_ms > (LOWEST_CLK_IN_TENTH_MS):
                         self.last_clock_periods.append(LOWEST_CLK_IN_TENTH_MS)
+                    elif self.delta_tenth_ms < (HIGHEST_CLK_IN_TENTH_MS):
+                        self.last_clock_periods.append(HIGHEST_CLK_IN_TENTH_MS)
                     else:
                         self.last_clock_periods.append(self.delta_tenth_ms)
                     self.last_clock_ticks_tenth_ms = self.temp_ticks_tenth_ms
@@ -325,6 +334,7 @@ class LxHardware:
                             self.clk_subdivision_counter = 0
                             self.relaunch_internal_clk()
                         self.lxHardwareEventFifo.append(self.clk_rise_event)
+
         except Exception as e:
             print(e)
 
@@ -448,6 +458,62 @@ class LxHardware:
 
         self.inner_previous_state = circles_data[0]
         self.outer_previous_state = circles_data[1]
+
+    def poll_expander_for_updates(self):
+        if self.lx_pander_seq is not None:
+            rhythm_found = False
+            has_change = self.lx_pander_seq.get_has_change()
+            if has_change == LxPanderSeq.LX_PANDER_NEED_INIT:
+
+                for index, euclidean_rhythm in enumerate(self.lx_euclid_config.euclidean_rhythms):
+
+                    if euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                        rhythm_copy = euclidean_rhythm.custom_rhythm.copy(
+                        )
+                        self.set_expander_rhythm(
+                            rhythm_copy, index)
+                        if not rhythm_found:
+                            self.set_expander_focus(index)
+                            rhythm_found = True
+                self.lx_pander_seq.clear_has_change_init()
+
+            elif has_change != LxPanderSeq.LX_PANDER_NO_RHYTHM and has_change != LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
+                new_custom_rhythm = self.lx_pander_seq.get_rhythm(has_change)
+                if new_custom_rhythm is not LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
+                    self.lx_euclid_config.euclidean_rhythms[has_change].custom_rhythm = new_custom_rhythm
+                    if self.lx_euclid_config.euclidean_rhythms[has_change].algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                        self.lx_euclid_config.euclidean_rhythms[has_change].set_rhythm(
+                        )
+                        self.lxHardwareEventFifo.append(HandlerEventData(
+                            LxHardware.CUSTOM_RHYTHM_UPDATE, None))
+
+    def poll_expander_for_rhythm(self, rhythm_index):
+        if self.lx_pander_seq is not None:
+            new_custom_rhythm = self.lx_pander_seq.get_rhythm(rhythm_index)
+            if new_custom_rhythm is not LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
+                self.lx_euclid_config.euclidean_rhythms[rhythm_index].custom_rhythm = new_custom_rhythm
+                if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                    self.lx_euclid_config.euclidean_rhythms[rhythm_index].set_rhythm(
+                    )
+
+    def set_expander_rhythm_and_focus(self, rhythm, rhythm_index):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_focus_rhythm(rhythm_index)
+            self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
+            self.poll_expander_for_rhythm(rhythm_index)
+
+    def set_expander_rhythm(self, rhythm, rhythm_index):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
+
+    def set_expander_focus(self, rhythm_index):
+        if self.lx_pander_seq is not None:
+            if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == 4:
+                self.lx_pander_seq.set_focus_rhythm(rhythm_index)
+
+    def clear_expander_focus(self):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.clear_focus_rhythm()
 
     def update_cv_values(self):
         self.i2c_internal_lock.acquire()

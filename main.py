@@ -5,12 +5,12 @@ from Rp2040Lcd import LCD_1inch28
 # minor.major.fix + add
 MAJOR = 1
 MINOR = 17
-FIX = 0
+FIX = 1
 ADD = "_dev"
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 1
-MEMORY_FIX = 0
+MEMORY_FIX = 1
 
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
@@ -24,6 +24,9 @@ from utime import sleep, ticks_ms
 from sys import print_exception
 from io import StringIO
 from _thread import start_new_thread
+import micropython
+
+micropython.alloc_emergency_exception_buf(500)
 
 def print_ram(code=""):
     print(code, "free ram: ", gc.mem_free(), ", alloc ram: ", gc.mem_alloc())
@@ -33,9 +36,11 @@ LONG_PRESS_MS = 500
 DEBOUNCE_MS = 20
 
 CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
+EXPANDER_DELAY_READ_MS = 50
 
 last_timer_launch_ms = ticks_ms()
 last_capacitive_circles_read_ms = ticks_ms()
+last_lx_pander_read_ms = ticks_ms()
 
 btn_menu_press = -1
 tap_btn_press = -1
@@ -55,7 +60,7 @@ gc.collect()
 lx_euclid_config = LxEuclidConfig(
     lx_hardware, LCD, [MEMORY_MAJOR, MEMORY_MINOR, MEMORY_FIX])
 
-lx_hardware.set_lx_euclid_config(lx_euclid_config)
+lx_hardware.init_interrupts()
 
 last_tap_ms = 0
 last_config_ms = 0
@@ -63,7 +68,6 @@ last_config_ms = 0
 DEBUG = True
 
 in_lxhardware_changed = False
-
 
 def debug_print(txt):
     if DEBUG:
@@ -121,6 +125,9 @@ def lxhardware_changed(handlerEventData):
                                 LCD.set_need_display()
                     last_tap_ms = temp_last_tap_ms
 
+        LCD.set_need_display()
+    elif event == lx_hardware.CUSTOM_RHYTHM_UPDATE:
+        lx_euclid_config.save_data()
         LCD.set_need_display()
     elif event == lx_hardware.INNER_CIRCLE_INCR:
         lx_euclid_config.on_event(
@@ -199,7 +206,7 @@ def display_thread():
         try:
             if not in_lxhardware_changed:
                 gc.collect()
-                lx_euclid_config.test_save_data_in_file()
+                lx_euclid_config.test_save_data_list_in_eeprom()
 
                 if LCD.get_need_flip():
                     gc.collect()
@@ -294,6 +301,10 @@ if __name__ == '__main__':
                         has_cvs_changed)
                     if need_lcd_update:
                         LCD.set_need_display()
+
+                if ticks_ms() - last_lx_pander_read_ms > EXPANDER_DELAY_READ_MS and lx_hardware.lx_pander_seq is not None:
+                    lx_hardware.poll_expander_for_updates()
+                    last_lx_pander_read_ms = ticks_ms()
 
         print("quit")
     except Exception as e:

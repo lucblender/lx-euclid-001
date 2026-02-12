@@ -564,6 +564,13 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(txt, 80, 140, self.white)
             txt = f"cv4:{cv_v_values[3]}V"
             self.font_writer_freesans20.text(txt, 80, 160, self.white)
+            if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
+                rhythm = self.lx_euclid_config.lx_hardware.lx_pander_seq.cached_test_mode_displayed_rhythm
+                if rhythm is not self.lx_euclid_config.lx_hardware.lx_pander_seq.LX_PANDER_ERROR_MESSAGE:
+                    txt = str(rhythm[:8])
+                    self.font_writer_font6.text(txt, 60, 180, self.white)
+                    txt = str(rhythm[8:])
+                    self.font_writer_font6.text(txt, 60, 200, self.white)
 
         if local_state == LxEuclidConstant.STATE_LIVE:
             self.display_rhythm_circles()
@@ -786,8 +793,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_font6.text(
                     current_channel_setting, 108, 130, page_color)
 
-                texts = [["Eucl."], ["Exp.", "Eucl."], [
-                    "Inv.", "Exp."], ["Sym.", "Eucl."],]
+                if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
+                    texts = [["Eucl."], ["Exp.", "Eucl."], [
+                        "Inv.", "Exp."], ["Sym.", "Eucl."], ["Seq."]]
+                else:
+                    texts = [["Eucl."], ["Exp.", "Eucl."], [
+                        "Inv.", "Exp."], ["Sym.", "Eucl."]]
 
                 txt_colors = [txt_color]*len(texts)
 
@@ -1018,8 +1029,11 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             self.circle(120, 120, 51, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 51-15, self.black, True)
-
-            self.circle(120, 120, 31, self.touch_circle_color_highlight, True)
+            if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM and local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
+                pulse_color = self.grey
+            else:
+                pulse_color = self.touch_circle_color_highlight
+            self.circle(120, 120, 31, pulse_color, True)
             self.circle(120, 120, 31-15, self.black, True)
 
             if local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
@@ -1028,12 +1042,23 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 b = str(current_euclidean_rhythm.beats)
                 b_len = self.font_writer_freesans20.stringlen(b)
 
-                p = str(current_euclidean_rhythm.pulses)
+                # for seq algo, display the custom rhythm pulses instead of pulses number
+                if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                    p = str(sum(
+                        current_euclidean_rhythm.custom_rhythm[:current_euclidean_rhythm.beats]))
+                else:
+                    p = str(current_euclidean_rhythm.pulses)
                 p_len = self.font_writer_freesans20.stringlen(p)
                 self.font_writer_freesans20.text(
                     str(b), 120-(b_len//2), 71, highlight_color)
+
+                if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                    pulse_color = self.grey
+                else:
+                    pulse_color = highlight_color
                 self.font_writer_freesans20.text(
-                    str(p), 120-(p_len//2), 90, highlight_color)
+                    str(p), 120-(p_len//2), 90, pulse_color)
+
             elif local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY:
                 self.poly(0, 0, array(
                     "h", [120, 120, 120-45, 65, 120+45, 65]), self.black, True)
