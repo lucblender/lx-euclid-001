@@ -108,11 +108,11 @@ def lxhardware_changed(handlerEventData):
                     lx_euclid_config.on_event(
                         LxEuclidConstant.EVENT_TAP_BTN_LONG)
                     tap_btn_press = -1
-                elif not lx_euclid_config.clk_internal_locked:
+                else:
                     tap_btn_press = -1
                     temp_tap_delay = temp_last_tap_ms - last_tap_ms
                     # MIN_TAP_DELAY_MS*4 and MAX_TAP_DELAY_MS*4 cause we are
-                    if temp_tap_delay > DEBOUNCE_MS and temp_tap_delay < (LxEuclidConstant.MAX_TAP_DELAY_MS*4):
+                    if temp_tap_delay > DEBOUNCE_MS and temp_tap_delay < (LxEuclidConstant.MAX_TAP_DELAY_MS*4) and not lx_euclid_config.clk_internal_locked:
                         temp_tap_delay = max(
                             LxEuclidConstant.MIN_TAP_DELAY_MS*4, temp_tap_delay)
                         # here the tap tempo time is divided by 4, for a 4/4 rhythm

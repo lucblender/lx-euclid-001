@@ -413,7 +413,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
     def display_circle_texts(self, texts, colours, angle_start=-90, total_angle=360):
 
-        if type(colours) != list:
+        if not isinstance(colours, list):
             colours = [colours]*len(texts)
 
         txt_height = self.font_writer_freesans20.font.height()
@@ -494,7 +494,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 # uncomment to show bouding box
                 # self.rect(x_0,y_0,txt_width_0,txt_height,self.blue)
                 # self.rect(x_1,y_1,txt_width_1,txt_height,self.blue)
-                if type(colours[index]) == list:
+                if isinstance(colours[index], list):
                     colour_0 = colours[index][0]
                     colour_1 = colours[index][1]
                 else:
