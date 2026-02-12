@@ -5,7 +5,7 @@ from Rp2040Lcd import LCD_1inch28
 # minor.major.fix + add
 MAJOR = 1
 MINOR = 17
-FIX = 3
+FIX = 4
 ADD = "_dev"
 
 MEMORY_MAJOR = 1
@@ -108,7 +108,7 @@ def lxhardware_changed(handlerEventData):
                     lx_euclid_config.on_event(
                         LxEuclidConstant.EVENT_TAP_BTN_LONG)
                     tap_btn_press = -1
-                else:
+                elif not lx_euclid_config.clk_internal_locked:
                     tap_btn_press = -1
                     temp_tap_delay = temp_last_tap_ms - last_tap_ms
                     # MIN_TAP_DELAY_MS*4 and MAX_TAP_DELAY_MS*4 cause we are

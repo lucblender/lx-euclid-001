@@ -1796,22 +1796,22 @@ class LxEuclidConfig:
 
                 self.param_menu_page = 0
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
-                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE and not self.clk_internal_locked:
                     self.incr_bpm(5)
                     self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR:
-                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE and not self.clk_internal_locked:
                     self.decr_bpm(5)
                     self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
-                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE and not self.clk_internal_locked:
                     self.incr_bpm(1)
                     self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
-                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE and not self.clk_internal_locked:
                     self.decr_bpm(1)
                     self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
