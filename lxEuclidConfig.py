@@ -928,6 +928,9 @@ class LxEuclidConfig:
         # if first boot, load_data will set it to true
         self.first_boot = False
 
+        self.last_loaded_preset_index = -1
+        self.last_saved_preset_index = -1
+
         self.load_data()
 
         self.reload_rhythms()
@@ -1388,8 +1391,10 @@ class LxEuclidConfig:
                     preset_index = angle_to_index(angle_inner, 8)
                     if self.param_presets_page == 0:
                         self.load_preset_index = preset_index
+                        self.last_loaded_preset_index = preset_index
                     else:
                         self.save_preset_index = preset_index
+                        self.last_saved_preset_index = preset_index
 
                     self.state_lock.acquire()
                     self.state = LxEuclidConstant.STATE_LIVE

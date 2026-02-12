@@ -905,10 +905,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
             if page in [0, 1]:
                 if page == 0:
                     self.font_writer_font6.text("load", 108, 130, page_color)
-                    num_color = txt_color_highlight
+                    num_color = [txt_color_highlight]*8
+                    if self.lx_euclid_config.last_loaded_preset_index != -1:
+                        num_color[self.lx_euclid_config.last_loaded_preset_index] = self.touch_circle_color_highlight
                 else:
                     self.font_writer_font6.text("save", 106, 130, page_color)
-                    num_color = txt_color
+                    num_color = [txt_color]*8
+                    if self.lx_euclid_config.last_saved_preset_index != -1:
+                        num_color[self.lx_euclid_config.last_saved_preset_index] = self.touch_circle_color
 
                 texts = [["1"], ["2"], ["3"], ["4"],
                          ["5"], ["6"], ["7"], ["8"]]
