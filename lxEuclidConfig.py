@@ -921,7 +921,11 @@ class LxEuclidConfig:
         # used in create_memory_list, put it as attribute so it doesn't create memory in loop
         self.list_data = [0]*LxEuclidConstant.MEMORY_LIST_SIZE
 
+        # if first boot, load_data will set it to true
+        self.first_boot = False
+
         self.load_data()
+
         self.reload_rhythms()
         self.update_all_gates_length_percentage_time_ms()
 
@@ -2066,8 +2070,8 @@ class LxEuclidConfig:
         self.need_save_data_in_eeprom = True
         self.save_data_lock.release()
 
-    def test_save_data_list_in_eeprom(self):
-        if self.need_save_data_in_eeprom:
+    def test_save_data_list_in_eeprom(self, force_save_all=False):
+        if self.need_save_data_in_eeprom or force_save_all:
             self.save_data_lock.acquire()
             self.need_save_data_in_eeprom = False
             self.save_data_lock.release()
@@ -2077,12 +2081,15 @@ class LxEuclidConfig:
 
             for index, current_value in enumerate(self.list_data):
                 # necessary if we change version or at boot when list is empty
-                if index > (size_previous_list_data-1):
-                    changed_index.append(index)
-                elif current_value != self.previous_list_data[index]:
+                if force_save_all:
                     changed_index.append(index)
                     self.previous_list_data[index] = current_value
-
+                else:
+                    if index > (size_previous_list_data-1):
+                        changed_index.append(index)
+                    elif current_value != self.previous_list_data[index]:
+                        changed_index.append(index)
+                        self.previous_list_data[index] = current_value
             # uncomment for debug purpose
             # if len(changed_index) > 0:
             #    print("List data changed and needs to be put to eeprom", changed_index)
@@ -2102,14 +2109,21 @@ class LxEuclidConfig:
         version_eeprom = f"v{eeprom_v_major}.{eeprom_v_minor}.{eeprom_v_fix}"
         print("version_eeprom", version_eeprom)
 
+        if eeprom_v_major == 255 and eeprom_v_minor == 255 and eeprom_v_fix == 255:
+            self.first_boot = True
+            print("First boot detected, eeprom is empty")
+
         # only check major and minor and reset if they are different from "in memory" version
         if self.v_minor is not eeprom_v_minor or self.v_major is not eeprom_v_major:
             version_main = f"v{self.v_major}.{self.v_minor}.{self.v_fix}"
             print("Error: memory version is different",
                   version_main, version_eeprom)
             print("Eeprom will be re-initialized, saving all data")
-            self.save_data()
             self.previous_list_data = self.list_data.copy()
+            # setup save of data
+            self.save_data()
+            # force saving all data
+            self.test_save_data_list_in_eeprom(True)
         else:
             # check fix version number
             if self.v_fix is not eeprom_v_fix:
