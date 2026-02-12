@@ -473,13 +473,17 @@ class LxHardware:
                 self.lxHardwareEventFifo.append(HandlerEventData(
                     LxHardware.INNER_CIRCLE_TAP, circles_data))
 
+            # reset both flags in case we touched both circles during a "touch incr/decr" event
             self.has_incr_decr_inner = False
+            self.has_incr_decr_outer = False
 
         elif not circles_data[1] and self.outer_previous_state:
             if not self.has_incr_decr_outer:  # to avoid registering a tap after an incr or decr
                 self.lxHardwareEventFifo.append(HandlerEventData(
                     LxHardware.OUTER_CIRCLE_TAP, circles_data))
 
+            # reset both flags in case we touched both circles during a "touch incr/decr" event
+            self.has_incr_decr_inner = False
             self.has_incr_decr_outer = False
 
         self.inner_previous_state = circles_data[0]

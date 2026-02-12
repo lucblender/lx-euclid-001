@@ -5,7 +5,7 @@ from mpr121 import MPR121
 
 
 class CapacitivesCircles():
-    MAX_DELAY_INCR_DECR_MS = 1000
+    MAX_DELAY_INCR_DECR_MS = 200
     STEP_TRIGGER_INCR_DEGREE = [25, 10, 5]
 
     NO_INCR_DECR_EVENT = 0
