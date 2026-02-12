@@ -831,22 +831,31 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
                 randomize_gate_length = self.lx_euclid_config.euclidean_rhythms[
                     channel_index].randomize_gate_length
-                gate_length = self.lx_euclid_config.euclidean_rhythms[channel_index].gate_length_ms
+                gate_length_ms = self.lx_euclid_config.euclidean_rhythms[channel_index].gate_length_ms
+                gate_length_percentage = self.lx_euclid_config.euclidean_rhythms[
+                    channel_index].gate_length_percentage
+                gate_length_ms_percent_mode = self.lx_euclid_config.euclidean_rhythms[
+                    channel_index].gate_length_ms_percent_mode
 
                 if randomize_gate_length:
                     randomize_color = txt_color_highlight
                 else:
                     randomize_color = txt_color
 
-                self.font_writer_freesans20.text(
-                    "Randomize", 70, 26, randomize_color)
+                if gate_length_ms_percent_mode == LxEuclidConstant.GATE_LENGTH_ABSOLUTE:
+                    time_txt = f"{gate_length_ms}ms"
+                    abs_color = self.white
+                    percent_color = self.light_grey
+                else:
+                    time_txt = f"{gate_length_percentage}%"
+                    abs_color = self.light_grey
+                    percent_color = self.white
 
-                time_txt = page_txt = f"{gate_length}ms"
+                texts = [["Randomize"], ["%"], [time_txt, ""], ["Abs"]]
 
-                time_txt_len = self.font_writer_font6.stringlen(time_txt)
-
-                self.font_writer_freesans20.text(
-                    time_txt, 115-(time_txt_len//2), 200, self.white)
+                txt_colors = [randomize_color,
+                              percent_color, self.white, abs_color]
+                self.display_circle_texts(texts, txt_colors)
 
                 self.font_writer_freesans20.text(
                     "+", 43, 179, self.light_grey)
