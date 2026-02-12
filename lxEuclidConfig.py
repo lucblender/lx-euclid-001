@@ -877,6 +877,7 @@ class LxEuclidConfig:
         self.sm_rhythm_param_counter = 0
 
         self.clk_mode = LxEuclidConstant.CLK_IN
+        self.clk_internal_locked = False
 
         self._save_preset_index = 0
         self._load_preset_index = 0
@@ -1822,9 +1823,16 @@ class LxEuclidConfig:
                     # so divide circle in 8 and only react to 0 and 4 (top and bottom)
                     param_index = angle_to_index(angle_inner, 8)
                     if param_index == 0:
-                        self.clk_mode = 0
+                        # at first tap, we set to clock mode
+                        if self.clk_mode != LxEuclidConstant.TAP_MODE:
+                            self.clk_mode = LxEuclidConstant.TAP_MODE
+                            # when passing to tap mode, we unlock the clock modification
+                            self.clk_internal_locked = False
+                        else:
+                            # at second and following tap, we lock the clock
+                            self.clk_internal_locked = not self.clk_internal_locked
                     elif param_index == 4:
-                        self.clk_mode = 1
+                        self.clk_mode = LxEuclidConstant.CLK_IN
                     self.update_all_gates_length_percentage_time_ms()
                 elif self.param_menu_page == 1:  # sensitivity
                     sensi_index = angle_to_index(angle_inner, 3)
