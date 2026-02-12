@@ -1039,9 +1039,9 @@ class LxEuclidConfig:
 
     def set_tap_delay_ms(self, tap_delay_ms):
         if tap_delay_ms < LxEuclidConstant.MIN_TAP_DELAY_MS:
-            tap_delay_ms = LxEuclidConstant.MIN_TAP_DELAY_MS
+            self.tap_delay_ms = LxEuclidConstant.MIN_TAP_DELAY_MS
         elif tap_delay_ms > LxEuclidConstant.MAX_TAP_DELAY_MS:
-            tap_delay_ms = LxEuclidConstant.MAX_TAP_DELAY_MS
+            self.tap_delay_ms = LxEuclidConstant.MAX_TAP_DELAY_MS
         else:
             self.tap_delay_ms = tap_delay_ms
 
