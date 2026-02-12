@@ -494,11 +494,16 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 # uncomment to show bouding box
                 # self.rect(x_0,y_0,txt_width_0,txt_height,self.blue)
                 # self.rect(x_1,y_1,txt_width_1,txt_height,self.blue)
-
+                if type(colours[index]) == list:
+                    colour_0 = colours[index][0]
+                    colour_1 = colours[index][1]
+                else:
+                    colour_0 = colours[index]
+                    colour_1 = colours[index]
                 self.font_writer_freesans20.text(
-                    text[0], x_0, y_0, colours[index])
+                    text[0], x_0, y_0, colour_0)
                 self.font_writer_freesans20.text(
-                    text[1], x_1, y_1, colours[index])
+                    text[1], x_1, y_1, colour_1)
 
             angle += angle_step
 
@@ -989,11 +994,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     self.font_writer_freesans20.text(
                         other_txt, (120-txt_len//2), 110, self.white)
 
-                texts = [["Internal"], ["External"]]
+                texts = [["Internal", "Locked"], ["External"]]
 
-                txt_colors = [txt_color]*len(texts)
+                txt_colors = [[txt_color, txt_color], txt_color]
 
-                txt_colors[clk_index] = txt_color_highlight
+                if clk_index == LxEuclidConstant.TAP_MODE:
+                    txt_colors[clk_index][0] = txt_color_highlight
+                else:
+                    txt_colors[clk_index] = txt_color_highlight
 
                 self.display_circle_texts(texts, txt_colors)
 
