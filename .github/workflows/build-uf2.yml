@@ -78,7 +78,7 @@ jobs:
             - name: Build MicroPython UF2
               run: |
                   cd $MICROPYTHON_RP2_DIRECTORY
-                  make clean
+                  # make clean
                   make -j$(nproc)
 
                   # Copy uf2 file to dir2uf2 folder
