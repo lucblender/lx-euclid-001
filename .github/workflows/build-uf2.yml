@@ -58,28 +58,22 @@ jobs:
 
             - name: Copy Python files to MicroPython modules
               run: |
-                  # Create the destination directory if it doesn't exist
+                  # Copy Python files to MicroPython modules
                   mkdir -p "$MICROPYTHON_RP2_MODULE_DIRECTORY"
-
-                  # Copy all .py files from the source directory and its subdirectories to the destination directory
-                  find "$LX_EUCLID_REPO_DIRECTORY" -type f -name "*.py" -not -path "*/.git/*" -not -path "*/tmp/*" | while read -r file; do
-                      # Get the relative path of the file from the source directory
+                  echo "Copying Python files from $LX_EUCLID_REPO_DIRECTORY to $MICROPYTHON_RP2_MODULE_DIRECTORY"
+                  find "$LX_EUCLID_REPO_DIRECTORY" -type f -name "*.py" -not -path "*/.git/*" -not -path "*/micropython/*" -not -path "*/tmp/*" | while read -r file; do
                       relative_path="${file#$LX_EUCLID_REPO_DIRECTORY/}"
-
-                      # Create the directory structure in the destination directory (if it doesn't exist)
                       mkdir -p "$MICROPYTHON_RP2_MODULE_DIRECTORY/$(dirname "$relative_path")"
-
-                      # Copy the file to the destination directory with the same relative path
                       cp "$file" "$MICROPYTHON_RP2_MODULE_DIRECTORY/$relative_path"
                   done
-
-                  echo "Python files copied successfully."
 
             - name: Build MicroPython UF2
               run: |
                   cd $MICROPYTHON_RP2_DIRECTORY
-                  # make clean
-                  make -j$(nproc)
+
+                  # Build with custom modules
+                  echo "Building UF2 with custom modules..."
+                  make BOARD=RPI_PICO -j$(nproc) V=1
 
                   # Copy uf2 file to dir2uf2 folder
                   cp ./build-RPI_PICO/firmware.uf2 $DIR_2_UF2_NO_FILESYSTEM_FILE
