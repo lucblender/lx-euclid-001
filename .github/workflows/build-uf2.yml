@@ -86,6 +86,9 @@ jobs:
                   mkdir -p $BINARY_FOLDER
                   if [ -d "$LX_EUCLID_BIN_DIRECTORY" ]; then
                       cp -a $LX_EUCLID_BIN_DIRECTORY ./
+                      echo "Copied binaries from $LX_EUCLID_BIN_DIRECTORY to $BINARY_FOLDER"
+                      echo "Contents of $BINARY_FOLDER:"
+                      ls -l $BINARY_FOLDER
                   else
                       echo "Warning: Binary directory not found, creating empty binary folder"
                   fi
