@@ -1,0 +1,126 @@
+name: Build UF2 Image
+
+on:
+    push:
+        branches: [main, develop]
+    pull_request:
+        branches: [main, develop]
+    workflow_dispatch: # Allows manual triggering
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout lx-euclid repository
+              uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "3.x"
+
+            - name: Install system dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential libffi-dev git cmake gcc-arm-none-eabi libnewlib-arm-none-eabi python3-pip
+
+            - name: Clone MicroPython repository
+              run: |
+                  git clone https://github.com/micropython/micropython.git --branch v1.27.0
+
+            - name: Build MicroPython submodules
+              run: |
+                  cd micropython
+                  make -C ports/rp2 submodules
+
+            - name: Clone dir2uf2 tool
+              run: |
+                  git clone https://github.com/Gadgetoid/dir2uf2.git
+
+            - name: Install dir2uf2 dependencies
+              run: |
+                  cd dir2uf2
+                  pip3 install -r requirements-micropython-1.23.0.txt
+
+            - name: Set up environment variables
+              run: |
+                  echo "LX_EUCLID_REPO_DIRECTORY=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+                  echo "MICROPYTHON_DIRECTORY=$GITHUB_WORKSPACE/micropython" >> $GITHUB_ENV
+                  echo "DIR_2_UF2_FOLDER=$GITHUB_WORKSPACE/dir2uf2" >> $GITHUB_ENV
+                  echo "UF2_OUTPUT_FILE=$GITHUB_WORKSPACE/lx-euclid-firmware.uf2" >> $GITHUB_ENV
+                  echo "MICROPYTHON_RP2_DIRECTORY=$GITHUB_WORKSPACE/micropython/ports/rp2" >> $GITHUB_ENV
+                  echo "MICROPYTHON_RP2_MODULE_DIRECTORY=$GITHUB_WORKSPACE/micropython/ports/rp2/modules" >> $GITHUB_ENV
+                  echo "BINARY_FOLDER=binaries" >> $GITHUB_ENV
+                  echo "LX_EUCLID_BIN_DIRECTORY=$GITHUB_WORKSPACE/binaries" >> $GITHUB_ENV
+                  echo "DIR_2_UF2_NO_FILESYSTEM_FILE=$GITHUB_WORKSPACE/dir2uf2/lx-euclid-firmware.uf2" >> $GITHUB_ENV
+                  echo "DIR_2_UF2_W_FILESYSTEM_FILE=$GITHUB_WORKSPACE/dir2uf2/lx-euclid-firmware-filesystem.uf2" >> $GITHUB_ENV
+
+            - name: Copy Python files to MicroPython modules
+              run: |
+                  # Create the destination directory if it doesn't exist
+                  mkdir -p "$MICROPYTHON_RP2_MODULE_DIRECTORY"
+
+                  # Copy all .py files from the source directory and its subdirectories to the destination directory
+                  find "$LX_EUCLID_REPO_DIRECTORY" -type f -name "*.py" -not -path "*/.git/*" -not -path "*/tmp/*" | while read -r file; do
+                      # Get the relative path of the file from the source directory
+                      relative_path="${file#$LX_EUCLID_REPO_DIRECTORY/}"
+
+                      # Create the directory structure in the destination directory (if it doesn't exist)
+                      mkdir -p "$MICROPYTHON_RP2_MODULE_DIRECTORY/$(dirname "$relative_path")"
+
+                      # Copy the file to the destination directory with the same relative path
+                      cp "$file" "$MICROPYTHON_RP2_MODULE_DIRECTORY/$relative_path"
+                  done
+
+                  echo "Python files copied successfully."
+
+            - name: Build MicroPython UF2
+              run: |
+                  cd $MICROPYTHON_RP2_DIRECTORY
+                  make clean
+                  make -j$(nproc)
+
+                  # Copy uf2 file to dir2uf2 folder
+                  cp ./build-RPI_PICO/firmware.uf2 $DIR_2_UF2_NO_FILESYSTEM_FILE
+
+            - name: Create UF2 with filesystem
+              run: |
+                  cd $DIR_2_UF2_FOLDER
+
+                  # Create binary folder and copy binaries
+                  mkdir -p $BINARY_FOLDER
+                  if [ -d "$LX_EUCLID_BIN_DIRECTORY" ]; then
+                      cp -a $LX_EUCLID_BIN_DIRECTORY ./
+                  else
+                      echo "Warning: Binary directory not found, creating empty binary folder"
+                  fi
+
+                  # Create the final UF2 image with filesystem
+                  python3 dir2uf2 ./$BINARY_FOLDER --append-to $DIR_2_UF2_NO_FILESYSTEM_FILE --fs-compact
+
+                  # Copy the final UF2 to output location
+                  cp $DIR_2_UF2_W_FILESYSTEM_FILE $UF2_OUTPUT_FILE
+
+            - name: Get commit info for artifact name
+              id: commit
+              run: |
+                  echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+                  echo "timestamp=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+
+            - name: Upload UF2 artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: lx-euclid-firmware-${{ steps.commit.outputs.timestamp }}-${{ steps.commit.outputs.short_sha }}
+                  path: lx-euclid-firmware.uf2
+                  retention-days: 90
+
+            - name: Create release on tag
+              if: startsWith(github.ref, 'refs/tags/')
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: lx-euclid-firmware.uf2
+                  name: Release ${{ github.ref_name }}
+                  generate_release_notes: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

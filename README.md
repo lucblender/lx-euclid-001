@@ -11,11 +11,13 @@ More info about the module can be found on its [product page](https://atovprojec
 - [lx-euclid](#lx-euclid)
   - [Installation of last firmware](#installation-of-last-firmware)
   - [Build an UF2 image from source](#build-an-uf2-image-from-source)
-    - [Requirement](#requirement)
-      - [Main repository : lx-euclid](#main-repository--lx-euclid)
-      - [Micropython](#micropython)
-      - [dir2uf2](#dir2uf2)
-    - [Build the image with provided shell script](#build-the-image-with-provided-shell-script)
+    - [Automated build with GitHub Actions](#automated-build-with-github-actions)
+    - [Manual build](#manual-build)
+      - [Requirement](#requirement)
+        - [Main repository : lx-euclid](#main-repository--lx-euclid)
+        - [Micropython](#micropython)
+        - [dir2uf2](#dir2uf2)
+      - [Build the image with provided shell script](#build-the-image-with-provided-shell-script)
   - [License](#license)
 
 ## Installation of last firmware
@@ -34,9 +36,51 @@ Download the last UF2 image in the [releases](https://github.com/lucblender/lx-e
 
 **This chapter is for advanced programmer only that want to play with the current *develop* code or want to create custom micropython firmware.**
 
+### Automated build with GitHub Actions
+
+The easiest way to build a UF2 image is to use the automated GitHub Actions workflow. This will build the firmware automatically in the cloud without requiring any local setup.
+
+#### Using the automated build
+
+1. **Fork this repository** or **create a pull request** with your changes
+2. The GitHub Action will automatically trigger and build the UF2 image on:
+   - Push to `main` or `develop` branches
+   - Pull requests to `main` or `develop` branches
+   - Manual trigger (see below)
+
+3. **Download the built firmware**:
+   - Go to the **Actions** tab in your GitHub repository
+   - Click on the latest workflow run
+   - Download the UF2 file from the **Artifacts** section at the bottom of the page
+
+#### Manual trigger
+
+You can manually trigger a build by:
+
+1. Go to the **Actions** tab in your GitHub repository
+2. Click on **Build UF2 Image** workflow
+3. Click **Run workflow** button
+4. Select the branch you want to build from
+5. Click **Run workflow**
+
+#### Releases
+
+When you create a git tag and push it, the workflow will automatically create a GitHub release with the UF2 file attached:
+
+```shell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### Manual build
+
+### Manual build
+
+If you prefer to build the UF2 image locally or want to customize the build process, you can use the manual build method described below.
+
 The following instruction are for Linux users. For Windows user, Ubuntu WSL is highly recommended.
 
-### Requirement
+#### Requirement
 
 To build and UF2 image, you will need:
 
@@ -48,11 +92,11 @@ To build and UF2 image, you will need:
 - [dir2uf2](#dir2uf2)
   - Python based tool to pack a directory of files into a LFSV2 filesystem and save as .uf2
 
-#### Main repository : lx-euclid
+##### Main repository : lx-euclid
 
 ```git clone https://github.com/lucblender/lx-euclid-001.git```
 
-#### Micropython
+##### Micropython
 
 More detailed information can be found in the [Raspberry Pi Pico Python SDK PDF book](https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf).
 
@@ -65,7 +109,7 @@ make -C ports/rp2 submodules
 
 ```
 
-#### dir2uf2
+##### dir2uf2
 
 dir2uf2 require python to work.
 
@@ -82,7 +126,7 @@ cd dir2uf2
 pip3 install -r requirements-micropython-1.23.0.txt
 ```
 
-### Build the image with provided shell script
+#### Build the image with provided shell script
 
 The shell script [build-uf2.sh](/shell%20scripts/build-uf2.sh) will create a complete UF2 image ready for upload to the lx-euclid module. This script will:
 
