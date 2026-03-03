@@ -34,7 +34,7 @@ jobs:
             - name: Build MicroPython submodules
               run: |
                   cd micropython
-                  # make -C ports/rp2 submodules
+                  make -C ports/rp2 submodules
 
             - name: Clone dir2uf2 tool
               run: |
