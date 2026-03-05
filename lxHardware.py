@@ -501,7 +501,7 @@ class LxHardware:
                         rhythm_copy = euclidean_rhythm.custom_rhythm.copy(
                         )
                         self.set_expander_rhythm(
-                            rhythm_copy, index)
+                            rhythm_copy, index, euclidean_rhythm.beats, euclidean_rhythm.offset)
                         if not rhythm_found:
                             self.set_expander_focus(index)
                             rhythm_found = True
@@ -526,15 +526,27 @@ class LxHardware:
                     self.lx_euclid_config.euclidean_rhythms[rhythm_index].set_rhythm(
                     )
 
-    def set_expander_rhythm_and_focus(self, rhythm, rhythm_index):
+    def set_expander_rhythm_and_focus(self, rhythm, rhythm_index, length, offset):
         if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_length(rhythm_index, length)
+            self.lx_pander_seq.set_offset(rhythm_index, offset)
             self.lx_pander_seq.set_focus_rhythm(rhythm_index)
             self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
             self.poll_expander_for_rhythm(rhythm_index)
 
-    def set_expander_rhythm(self, rhythm, rhythm_index):
+    def set_expander_rhythm(self, rhythm, rhythm_index, length, offset):
         if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_length(rhythm_index, length)
+            self.lx_pander_seq.set_offset(rhythm_index, offset)
             self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
+
+    def set_expander_rhythm_length(self, rhythm_index, length):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_length(rhythm_index, length)
+
+    def set_expander_rhythm_offset(self, rhythm_index, offset):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_offset(rhythm_index, offset)
 
     def set_expander_focus(self, rhythm_index):
         if self.lx_pander_seq is not None:

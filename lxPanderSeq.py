@@ -18,9 +18,17 @@ class MemoryAddress():
     RHYTHM2_MSB = const(0x0A)
     RHYTHM3_LSB = const(0x0B)
     RHYTHM3_MSB = const(0x0C)
-    TEST_MODE_ENABLE = const(0x0D)
-    TEST_MODE_DISPLAYED_RHYTHM_LSB = const(0x0E)
-    TEST_MODE_DISPLAYED_RHYTHM_MSB = const(0x0F)
+    RHYTHM0_LENGTH = const(0x0D)
+    RHYTHM1_LENGTH = const(0x0E)
+    RHYTHM2_LENGTH = const(0x0F)
+    RHYTHM3_LENGTH = const(0x10)
+    RHYTHM0_OFFSET = const(0x11)
+    RHYTHM1_OFFSET = const(0x12)
+    RHYTHM2_OFFSET = const(0x13)
+    RHYTHM3_OFFSET = const(0x14)
+    TEST_MODE_ENABLE = const(0x15)
+    TEST_MODE_DISPLAYED_RHYTHM_LSB = const(0x16)
+    TEST_MODE_DISPLAYED_RHYTHM_MSB = const(0x17)
 
 
 class LxPanderSeq:
@@ -86,6 +94,12 @@ class LxPanderSeq:
             for i in range(16):
                 result.append((rhythm >> i) & 0x01)
             return result
+
+    def set_offset(self, index, offset):
+        self._register8(MemoryAddress.RHYTHM0_OFFSET + index, offset)
+
+    def set_length(self, index, length):
+        self._register8(MemoryAddress.RHYTHM0_LENGTH + index, length)
 
     def get_test_mode_enable(self):
         return self._register8(MemoryAddress.TEST_MODE_ENABLE)
