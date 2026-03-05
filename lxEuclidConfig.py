@@ -137,7 +137,7 @@ class LxEuclidConstant:
 
 class EuclideanRhythmParameters:
 
-    def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, gate_length_percentage=T_GATE_ON_PERCENTAGE, gate_length_ms_percent_mode=LxEuclidConstant.GATE_LENGTH_ABSOLUTE, randomize_gate_length=False, algo_index=0, burst_div_index=0, custom_rhythm=[0]*16):
+    def __init__(self, beats, pulses, offset, pulses_probability, prescaler_index=0, gate_length_ms=T_GATE_ON_MS, gate_length_percentage=T_GATE_ON_PERCENTAGE, gate_length_ms_percent_mode=LxEuclidConstant.GATE_LENGTH_ABSOLUTE, randomize_gate_length=False, algo_index=0, burst_div_index=0, custom_rhythm=None):
         self.set_parameters(beats, pulses, offset, pulses_probability,
                             prescaler_index, gate_length_ms, gate_length_percentage, gate_length_ms_percent_mode, randomize_gate_length, algo_index, burst_div_index, custom_rhythm)
 
@@ -197,7 +197,10 @@ class EuclideanRhythmParameters:
         self._burst_div_index = burst_div_index
         self.burst_div = LxEuclidConstant.BURST_LIST[burst_div_index]
 
-        self.custom_rhythm = custom_rhythm
+        if custom_rhythm is None:
+            self.custom_rhythm = [0]*16
+        else:
+            self.custom_rhythm = custom_rhythm
 
     @property
     def prescaler_index(self):
@@ -877,6 +880,7 @@ class LxEuclidConfig:
         self.sm_rhythm_param_counter = 0
 
         self.clk_mode = LxEuclidConstant.CLK_IN
+        self.clk_internal_locked = False
 
         self._save_preset_index = 0
         self._load_preset_index = 0
@@ -923,6 +927,9 @@ class LxEuclidConfig:
 
         # if first boot, load_data will set it to true
         self.first_boot = False
+
+        self.last_loaded_preset_index = -1
+        self.last_saved_preset_index = -1
 
         self.load_data()
 
@@ -1384,8 +1391,10 @@ class LxEuclidConfig:
                     preset_index = angle_to_index(angle_inner, 8)
                     if self.param_presets_page == 0:
                         self.load_preset_index = preset_index
+                        self.last_loaded_preset_index = preset_index
                     else:
                         self.save_preset_index = preset_index
+                        self.last_saved_preset_index = preset_index
 
                     self.state_lock.acquire()
                     self.state = LxEuclidConstant.STATE_LIVE
@@ -1795,22 +1804,22 @@ class LxEuclidConfig:
 
                 self.param_menu_page = 0
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
-                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE and not self.clk_internal_locked:
                     self.incr_bpm(5)
                     self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR:
-                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE and not self.clk_internal_locked:
                     self.decr_bpm(5)
                     self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
-                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE and not self.clk_internal_locked:
                     self.incr_bpm(1)
                     self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
-                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE:
+                if self.param_menu_page == 0 and self.clk_mode == LxEuclidConstant.TAP_MODE and not self.clk_internal_locked:
                     self.decr_bpm(1)
                     self.update_all_gates_length_percentage_time_ms()
                     self.LCD.set_need_display()
@@ -1822,9 +1831,16 @@ class LxEuclidConfig:
                     # so divide circle in 8 and only react to 0 and 4 (top and bottom)
                     param_index = angle_to_index(angle_inner, 8)
                     if param_index == 0:
-                        self.clk_mode = 0
+                        # at first tap, we set to clock mode
+                        if self.clk_mode != LxEuclidConstant.TAP_MODE:
+                            self.clk_mode = LxEuclidConstant.TAP_MODE
+                            # when passing to tap mode, we unlock the clock modification
+                            self.clk_internal_locked = False
+                        else:
+                            # at second and following tap, we lock the clock
+                            self.clk_internal_locked = not self.clk_internal_locked
                     elif param_index == 4:
-                        self.clk_mode = 1
+                        self.clk_mode = LxEuclidConstant.CLK_IN
                     self.update_all_gates_length_percentage_time_ms()
                 elif self.param_menu_page == 1:  # sensitivity
                     sensi_index = angle_to_index(angle_inner, 3)
