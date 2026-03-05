@@ -378,6 +378,8 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.beats = 1
         if self.pulses > self.beats:
             self.pulses = self.beats
+        if self.beats == self.offset:
+            self.offset = 0
         if self.offset > self.beats:
             self.offset = self.beats
 

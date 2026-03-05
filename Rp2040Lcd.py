@@ -1120,13 +1120,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
         local_state = self.lx_euclid_config.state
         self.lx_euclid_config.state_lock.release()
         local_beat_coord = self.beats_coords
-        for euclidieanRhythm in self.lx_euclid_config.euclidean_rhythms:
+        for rhythm_index, euclidieanRhythm in enumerate(self.lx_euclid_config.euclidean_rhythms):
 
             beat_color = self.rhythm_colors[rhythm_index]
             beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
-
+            in_menu = False
             highlight_color = self.white
             if local_state in [LxEuclidConstant.STATE_PARAM_MENU, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE,  LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
+                in_menu = True
                 offset_radius = self.OFFSET_RADIUS_PARAM
                 local_beat_coord = self.param_beats_coords
                 if rhythm_index != rhythm_param_counter:
@@ -1199,11 +1200,27 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 filled = local_rhythm[(
                     index-local_offset) % len_euclidiean_rhythm]
 
-                self.circle(coord[0]+120, coord[1]+120,
-                            8, final_beat_color, filled)
-                if filled == 0:
-                    self.circle(coord[0]+120, coord[1] +
-                                120, 7, self.black, True)
+                # hightlight the first beat accoarding to the offset
+                if index == local_offset:
+                    # rhythm index 3 has a bright color so we make it bigger to pop out with white
+                    if (rhythm_index == 3 and not in_menu) or (in_menu and rhythm_index == rhythm_param_counter):
+                        hightlight_size = 9
+                    else:
+                        hightlight_size = 8
+                    self.circle(coord[0]+120, coord[1]+120,
+                                hightlight_size, self.white, filled)
+                    if filled == 0:
+                        self.circle(coord[0]+120, coord[1] +
+                                    120, 7, self.black, True)
+                    else:
+                        self.circle(coord[0]+120, coord[1] +
+                                    120, 7, final_beat_color, True)
+                else:
+                    self.circle(coord[0]+120, coord[1]+120,
+                                8, final_beat_color, filled)
+                    if filled == 0:
+                        self.circle(coord[0]+120, coord[1] +
+                                    120, 7, self.black, True)
 
             radius = radius - offset_radius
             rhythm_index = rhythm_index + 1
