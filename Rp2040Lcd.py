@@ -413,7 +413,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
     def display_circle_texts(self, texts, colours, angle_start=-90, total_angle=360):
 
-        if type(colours) != list:
+        if not isinstance(colours, list):
             colours = [colours]*len(texts)
 
         txt_height = self.font_writer_freesans20.font.height()
@@ -494,11 +494,16 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 # uncomment to show bouding box
                 # self.rect(x_0,y_0,txt_width_0,txt_height,self.blue)
                 # self.rect(x_1,y_1,txt_width_1,txt_height,self.blue)
-
+                if isinstance(colours[index], list):
+                    colour_0 = colours[index][0]
+                    colour_1 = colours[index][1]
+                else:
+                    colour_0 = colours[index]
+                    colour_1 = colours[index]
                 self.font_writer_freesans20.text(
-                    text[0], x_0, y_0, colours[index])
+                    text[0], x_0, y_0, colour_0)
                 self.font_writer_freesans20.text(
-                    text[1], x_1, y_1, colours[index])
+                    text[1], x_1, y_1, colour_1)
 
             angle += angle_step
 
@@ -900,10 +905,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
             if page in [0, 1]:
                 if page == 0:
                     self.font_writer_font6.text("load", 108, 130, page_color)
-                    num_color = txt_color_highlight
+                    num_color = [txt_color_highlight]*8
+                    if self.lx_euclid_config.last_loaded_preset_index != -1:
+                        num_color[self.lx_euclid_config.last_loaded_preset_index] = self.touch_circle_color_highlight
                 else:
                     self.font_writer_font6.text("save", 106, 130, page_color)
-                    num_color = txt_color
+                    num_color = [txt_color]*8
+                    if self.lx_euclid_config.last_saved_preset_index != -1:
+                        num_color[self.lx_euclid_config.last_saved_preset_index] = self.touch_circle_color
 
                 texts = [["1"], ["2"], ["3"], ["4"],
                          ["5"], ["6"], ["7"], ["8"]]
@@ -966,12 +975,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     other_txt, 100, 110, self.white)
             else:
                 # if in page 0 and tap mode, both circle are active
-                self.circle(
-                    120, 120, 58, self.touch_circle_color_highlight, True)
+                if self.lx_euclid_config.clk_internal_locked:
+                    circle_color = self.touch_circle_color
+                else:
+                    circle_color = self.touch_circle_color_highlight
+
+                self.circle(120, 120, 58, circle_color, True)
                 self.circle(120, 120, 58-13, self.black, True)
 
-                self.circle(
-                    120, 120, 42, self.touch_circle_color_highlight, True)
+                self.circle(120, 120, 42, circle_color, True)
                 self.circle(120, 120, 42-13, self.black, True)
 
             if page == 0:  # config clock source
@@ -980,6 +992,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     current_channel_setting, 100, 130, page_color)
 
                 clk_index = self.lx_euclid_config.clk_mode
+                clk_internal_locked = self.lx_euclid_config.clk_internal_locked
 
                 if clk_index == LxEuclidConstant.TAP_MODE:
                     other_txt = str(self.lx_euclid_config.get_int_bpm())
@@ -989,11 +1002,19 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     self.font_writer_freesans20.text(
                         other_txt, (120-txt_len//2), 110, self.white)
 
-                texts = [["Internal"], ["External"]]
+                texts = [["Internal", ""], ["External"]]
 
-                txt_colors = [txt_color]*len(texts)
+                txt_colors = [[txt_color, txt_color], txt_color]
 
-                txt_colors[clk_index] = txt_color_highlight
+                if clk_index == LxEuclidConstant.TAP_MODE:
+                    txt_colors[0][0] = txt_color_highlight
+                    if clk_internal_locked:
+                        txt_colors[0][1] = txt_color_highlight
+                        texts[0][1] = "Locked"
+                    else:
+                        texts[0][1] = "Lock"
+                else:
+                    txt_colors[1] = txt_color_highlight
 
                 self.display_circle_texts(texts, txt_colors)
 
