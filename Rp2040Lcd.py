@@ -154,6 +154,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
         except OSError:
             missing_files += PARAM+"\n"
 
+        self.firmware_version = version
+
         self.display_lxb_logo(version, missing_files)
         gc.collect()
 
@@ -544,7 +546,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.draw_approx_pie_slice(
                 [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.white)
 
-            txt = "debug"
+            txt = self.firmware_version if self.firmware_version is not None else "debug"
             txt_len = self.font_writer_freesans20.stringlen(txt)
             self.font_writer_freesans20.text(
                 txt, 120-(txt_len//2), 20, self.white)
@@ -558,20 +560,28 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 cv_v_values.append(round(((cv/100)*5), 1))
 
             txt = f"clk:{1-clk_value}"
-            self.font_writer_freesans20.text(txt, 80, 60, self.white)
+            self.font_writer_freesans20.text(txt, 80, 40, self.white)
             txt = f"rst:{1-rst_value}"
-            self.font_writer_freesans20.text(txt, 80, 80, self.white)
+            self.font_writer_freesans20.text(txt, 80, 60, self.white)
             txt = f"cv1:{cv_v_values[0]}V"
-            self.font_writer_freesans20.text(txt, 80, 100, self.white)
+            self.font_writer_freesans20.text(txt, 80, 80, self.white)
             txt = f"cv2:{cv_v_values[1]}V"
-            self.font_writer_freesans20.text(txt, 80, 120, self.white)
+            self.font_writer_freesans20.text(txt, 80, 100, self.white)
             txt = f"cv3:{cv_v_values[2]}V"
-            self.font_writer_freesans20.text(txt, 80, 140, self.white)
+            self.font_writer_freesans20.text(txt, 80, 120, self.white)
             txt = f"cv4:{cv_v_values[3]}V"
-            self.font_writer_freesans20.text(txt, 80, 160, self.white)
+            self.font_writer_freesans20.text(txt, 80, 140, self.white)
+
             if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
+
                 rhythm = self.lx_euclid_config.lx_hardware.lx_pander_seq.cached_test_mode_displayed_rhythm
+
                 if rhythm is not self.lx_euclid_config.lx_hardware.lx_pander_seq.LX_PANDER_ERROR_MESSAGE:
+
+                    txt_version = "expander " + \
+                        self.lx_euclid_config.lx_hardware.lx_pander_seq.get_version_string()
+                    self.font_writer_font6.text(
+                        txt_version, 60, 160, self.white)
                     txt = str(rhythm[:8])
                     self.font_writer_font6.text(txt, 60, 180, self.white)
                     txt = str(rhythm[8:])

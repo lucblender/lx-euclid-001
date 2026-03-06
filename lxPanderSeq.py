@@ -43,18 +43,22 @@ class LxPanderSeq:
             # LxPanderSeq not found on I2C bus
             self.connected = False
 
+        # set default "null" version
+        self.major = 0
+        self.minor = 0
+        self.fix = 0
+
         if self.connected:
-            self.major = self._register8(MemoryAddress.MAJOR)
-            self.minor = self._register8(MemoryAddress.MINOR)
-            self.fix = self._register8(MemoryAddress.FIX)
+            self.get_version()
             # be sure we are not in test mode
             self.set_test_mode_enable(0x00)
-        else:
-            self.major = 0
-            self.minor = 0
-            self.fix = 0
 
         self.cached_test_mode_displayed_rhythm = self.LX_PANDER_ERROR_MESSAGE
+
+    def get_version(self):
+        self.major = self._register8(MemoryAddress.MAJOR)
+        self.minor = self._register8(MemoryAddress.MINOR)
+        self.fix = self._register8(MemoryAddress.FIX)
 
     def get_has_change(self):
         return self._register8(MemoryAddress.HAS_CHANGE)

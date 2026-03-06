@@ -2424,8 +2424,12 @@ class LxEuclidConfig:
             if (counter % 32) == 0:
                 self.lx_hardware.set_gate(3, 100)
 
+            # test if we "hotplugged" an expander
             if (self.lx_hardware.lx_pander_seq is not None):
                 self.lx_hardware.lx_pander_seq.get_test_mode_displayed_rhythm_cache()
+
+                # get version of newly hotplugged expander to display it
+                self.lx_hardware.lx_pander_seq.get_version()
 
                 # when testing multiple expander, make sure test mode is always enabled
                 if self.lx_hardware.lx_pander_seq.get_test_mode_enable() == 0x00:
