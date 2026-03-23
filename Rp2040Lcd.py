@@ -1135,7 +1135,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
             beat_color = self.rhythm_colors[rhythm_index]
             beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
             in_menu = False
+            in_menu_current_rhythm = False
             highlight_color = self.white
+
             if local_state in [LxEuclidConstant.STATE_PARAM_MENU, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE,  LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
                 in_menu = True
                 offset_radius = self.OFFSET_RADIUS_PARAM
@@ -1144,7 +1146,28 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
                     highlight_color = self.grey
+
+                    # get global rhythm and offset w/ CV modification
+                    local_offset = euclidieanRhythm.offset
+                    if euclidieanRhythm.has_cv_offset:
+                        local_offset = euclidieanRhythm.global_cv_offset
+
+                    local_rhythm = euclidieanRhythm.rhythm.copy()
+                else:
+
+                    # get global rhythm and offset without CV modification
+                    local_offset = euclidieanRhythm.offset
+                    local_rhythm = euclidieanRhythm.rhythm_without_CV.copy()
+                    in_menu_current_rhythm = True
+
             elif local_state == LxEuclidConstant.STATE_LIVE:
+                # get global rhythm and offset w/ CV modification
+                local_offset = euclidieanRhythm.offset
+                if euclidieanRhythm.has_cv_offset:
+                    local_offset = euclidieanRhythm.global_cv_offset
+
+                local_rhythm = euclidieanRhythm.rhythm.copy()
+
                 if euclidieanRhythm.is_mute:
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
@@ -1168,12 +1191,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     local_current_step = euclidieanRhythm.current_burst_step
                 else:
                     local_current_step = euclidieanRhythm.current_step
-
-            local_offset = euclidieanRhythm.offset
-            if euclidieanRhythm.has_cv_offset:
-                local_offset = euclidieanRhythm.global_cv_offset
-
-            local_rhythm = euclidieanRhythm.rhythm.copy()
 
             len_euclidiean_rhythm = len(local_rhythm)
 
@@ -1202,7 +1219,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 coord = coords[index]
                 final_beat_color = beat_color
 
-                if index == local_current_step:
+                # we hide the current beat playing when we are in edit mode
+                if index == local_current_step and not in_menu_current_rhythm:
                     self.circle(coord[0]+120, coord[1] +
                                 120, 10, highlight_color, True)
                     final_beat_color = beat_color_hightlight

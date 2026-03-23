@@ -286,6 +286,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.current_burst_step = 0
 
         self.rhythm = []
+        self.rhythm_without_CV = []
         self.set_rhythm()
 
     @property
@@ -589,12 +590,15 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
     def set_rhythm(self):
         local_beats = self.beats
+        local_beats_without_CV = self.beats
 
         # todo adjust logic here for custom rhythm
         if self.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
             local_pulse = sum(self.custom_rhythm[:local_beats])
         else:
             local_pulse = self.pulses
+
+        local_pulse_without_CV = local_pulse
 
         if self.has_cv_beat:
 
@@ -658,6 +662,24 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             else:  # todo add custom rhythm here
                 self.rhythm = self.__custom_rhythm_euclidean_fill(self.custom_rhythm,
                                                                   local_beats, local_pulse)
+        if self.has_cv_beat or self.has_cv_pulse or self.is_mute or self.is_fill:
+            if self.algo_index == 0:
+                self.rhythm_without_CV = self.__set_rhythm_bjorklund(
+                    local_beats_without_CV, local_pulse_without_CV)
+            elif self.algo_index == 1:
+                self.rhythm_without_CV = self.__exponential_rhythm(
+                    local_beats_without_CV, local_pulse_without_CV)
+            elif self.algo_index == 2:
+                self.rhythm_without_CV = self.__exponential_rhythm(
+                    local_beats_without_CV, local_pulse_without_CV, True)
+            elif self.algo_index == 3:
+                self.rhythm_without_CV = self.__symmetric_exponential(
+                    local_beats_without_CV, local_pulse_without_CV)
+            else:  # todo add custom rhythm here
+                self.rhythm_without_CV = self.custom_rhythm[:]
+        else:
+            # rhythm must me the same, so we copy it to avoid reference problem
+            self.rhythm_without_CV = self.rhythm[:]
 
     # from https://github.com/brianhouse/bjorklund/tree/master
     def __set_rhythm_bjorklund(self, beats, pulses):
