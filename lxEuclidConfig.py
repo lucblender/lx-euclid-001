@@ -683,6 +683,8 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
     # from https://github.com/brianhouse/bjorklund/tree/master
     def __set_rhythm_bjorklund(self, beats, pulses):
+        if pulses > beats:
+            pulses = beats
         pattern = []
         counts = []
         remainders = []
@@ -2468,5 +2470,6 @@ class LxEuclidConfig:
             if (self.lx_hardware.btn_tap_pin.value() or self.lx_hardware.btn_menu_pin.value()) == 0 and btn_released:
                 quit_test_mode = True
                 self.state = LxEuclidConstant.STATE_LIVE
-                self.lx_hardware.lx_pander_seq.set_test_mode_enable(0x00)
+                if (self.lx_hardware.lx_pander_seq is not None):
+                    self.lx_hardware.lx_pander_seq.set_test_mode_enable(0x00)
             sleep(0.04)
