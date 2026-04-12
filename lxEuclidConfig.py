@@ -683,8 +683,14 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
     # from https://github.com/brianhouse/bjorklund/tree/master
     def __set_rhythm_bjorklund(self, beats, pulses):
-        if pulses > beats:
-            pulses = beats
+
+        if pulses == 0:
+            return [0]*beats
+        elif pulses == beats:
+            return [1]*beats
+        elif pulses == 1:
+            return [1]*1+[0]*(beats-1)
+
         pattern = []
         counts = []
         remainders = []
@@ -719,6 +725,8 @@ class EuclideanRhythm(EuclideanRhythmParameters):
     def __exponential_rhythm(self, beats, pulses, reverse=False):
         if pulses == 0:
             return [0]*beats
+        elif pulses == beats:
+            return [1]*beats
         elif pulses == 1:
             return [1]*1+[0]*(beats-1)
         else:
