@@ -615,6 +615,10 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             elif local_beats <= 0:
                 local_beats = 1
 
+            # adjust again local pulse if CV change beat number
+            if self.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                local_pulse = sum(self.custom_rhythm[:local_beats])
+
             if not self.pulses_set_0_1 and self.algo_index != LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
                 local_pulse = self.__compute_pulses_per_ratio(local_beats)
         if self.has_cv_pulse:
@@ -676,7 +680,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
                 self.rhythm_without_CV = self.__symmetric_exponential(
                     local_beats_without_CV, local_pulse_without_CV)
             else:  # todo add custom rhythm here
-                self.rhythm_without_CV = self.custom_rhythm[:]
+                self.rhythm_without_CV = self.custom_rhythm[:local_beats_without_CV]
         else:
             # rhythm must me the same, so we copy it to avoid reference problem
             self.rhythm_without_CV = self.rhythm[:]
