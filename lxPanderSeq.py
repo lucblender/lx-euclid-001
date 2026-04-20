@@ -10,21 +10,29 @@ class MemoryAddress():
     FIX = const(0x02)
     HAS_CHANGE = const(0x03)
     FOCUS_RHYTHM = const(0x04)
-    RHYTHM0_LSB = const(0x05)
-    RHYTHM0_MSB = const(0x06)
-    RHYTHM1_LSB = const(0x07)
-    RHYTHM1_MSB = const(0x08)
-    RHYTHM2_LSB = const(0x09)
-    RHYTHM2_MSB = const(0x0A)
-    RHYTHM3_LSB = const(0x0B)
-    RHYTHM3_MSB = const(0x0C)
-    RHYTHM0_LENGTH = const(0x0D)
-    RHYTHM1_LENGTH = const(0x0E)
-    RHYTHM2_LENGTH = const(0x0F)
-    RHYTHM3_LENGTH = const(0x10)
-    TEST_MODE_ENABLE = const(0x11)
-    TEST_MODE_DISPLAYED_RHYTHM_LSB = const(0x12)
-    TEST_MODE_DISPLAYED_RHYTHM_MSB = const(0x13)
+    RHYTHM0_BYTE_0 = const(0x05)
+    RHYTHM0_BYTE_1 = const(0x06)
+    RHYTHM0_BYTE_2 = const(0x07)
+    RHYTHM0_BYTE_3 = const(0x08)
+    RHYTHM1_BYTE_0 = const(0x09)
+    RHYTHM1_BYTE_1 = const(0x0A)
+    RHYTHM1_BYTE_2 = const(0x0B)
+    RHYTHM1_BYTE_3 = const(0x0C)
+    RHYTHM2_BYTE_0 = const(0x0D)
+    RHYTHM2_BYTE_1 = const(0x0E)
+    RHYTHM2_BYTE_2 = const(0x0F)
+    RHYTHM2_BYTE_3 = const(0x10)
+    RHYTHM3_BYTE_0 = const(0x11)
+    RHYTHM3_BYTE_1 = const(0x12)
+    RHYTHM3_BYTE_2 = const(0x13)
+    RHYTHM3_BYTE_3 = const(0x14)
+    RHYTHM0_LENGTH = const(0x15)
+    RHYTHM1_LENGTH = const(0x16)
+    RHYTHM2_LENGTH = const(0x17)
+    RHYTHM3_LENGTH = const(0x18)
+    TEST_MODE_ENABLE = const(0x19)
+    TEST_MODE_DISPLAYED_RHYTHM_LSB = const(0x1A)
+    TEST_MODE_DISPLAYED_RHYTHM_MSB = const(0x1B)
 
 
 class LxPanderSeq:
@@ -78,20 +86,20 @@ class LxPanderSeq:
 
     def set_rhythm(self, index, rhythm_array):
         rhythm = 0
-        rhythm_len_to_write = min(len(rhythm_array), 16)
+        rhythm_len_to_write = min(len(rhythm_array), 32)
 
         for i in range(rhythm_len_to_write):
             rhythm |= rhythm_array[i] << i
 
-        self._register16(MemoryAddress.RHYTHM0_LSB + index * 2, rhythm)
+        self._register32(MemoryAddress.RHYTHM0_BYTE_0 + index * 4, rhythm)
 
     def get_rhythm(self, index):
-        rhythm = self._register16(MemoryAddress.RHYTHM0_LSB + index * 2)
+        rhythm = self._register32(MemoryAddress.RHYTHM0_BYTE_0 + index * 4)
         if rhythm == self.LX_PANDER_ERROR_MESSAGE:
             return self.LX_PANDER_ERROR_MESSAGE
         else:
             result = []
-            for i in range(16):
+            for i in range(32):
                 result.append((rhythm >> i) & 0x01)
             return result
 
@@ -132,6 +140,17 @@ class LxPanderSeq:
                 return ustruct.unpack("<H", data)[0]
             self.i2c.writeto_mem(self.address, register,
                                  ustruct.pack("<H", value))
+        except:
+            print("LxPanderSeq I2C error")
+            return self.LX_PANDER_ERROR_MESSAGE
+
+    def _register32(self, register, value=None):
+        try:
+            if value is None:
+                data = self.i2c.readfrom_mem(self.address, register, 4)
+                return ustruct.unpack("<L", data)[0]
+            self.i2c.writeto_mem(self.address, register,
+                                 ustruct.pack("<L", value))
         except:
             print("LxPanderSeq I2C error")
             return self.LX_PANDER_ERROR_MESSAGE

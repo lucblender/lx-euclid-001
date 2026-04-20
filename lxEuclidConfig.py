@@ -11,7 +11,7 @@ T_GATE_ON_MS = const(10)
 T_GATE_ON_PERCENTAGE = const(10)
 
 MAX_BEATS = const(32)
-MAX_BEATS_CUSTOM = const(16)
+MAX_BEATS_CUSTOM = const(32)
 MAX_PROBABILITY = const(100)
 MAX_ALGO_INDEX = const(4)
 MAX_PRESCALER_INDEX = const(6)
@@ -132,7 +132,7 @@ class LxEuclidConstant:
     BURST_SUBDIVISION = const(24)
 
     # size use by the eeprom
-    MEMORY_LIST_SIZE = const(517)
+    MEMORY_LIST_SIZE = const(589)
 
 
 class EuclideanRhythmParameters:
@@ -198,7 +198,7 @@ class EuclideanRhythmParameters:
         self.burst_div = LxEuclidConstant.BURST_LIST[burst_div_index]
 
         if custom_rhythm is None:
-            self.custom_rhythm = [0]*16
+            self.custom_rhythm = [0]*32
         else:
             self.custom_rhythm = custom_rhythm
 
@@ -218,17 +218,17 @@ class EuclideanRhythmParameters:
     def burst_div_index(self, burst_div_index):
         self._burst_div_index = burst_div_index
 
-    def get_custom_rhythm_16bits(self):
+    def get_custom_rhythm_32bits(self):
         result = 0
-        for i in range(16):
+        for i in range(32):
             if self.custom_rhythm[i] == 1:
                 result = result | (1 << i)
         return result
 
-    def set_custom_rhythm_16bits(self, rhythm_16bits):
-        result = [0]*16
-        for i in range(16):
-            if (rhythm_16bits & (1 << i)) != 0:
+    def set_custom_rhythm_32bits(self, rhythm_32bits):
+        result = [0]*32
+        for i in range(32):
+            if (rhythm_32bits & (1 << i)) != 0:
                 result[i] = 1
         self.custom_rhythm = result
 
@@ -2098,17 +2098,25 @@ class LxEuclidConfig:
 
         # custom rhythm data
         for euclidean_rhythm in self.euclidean_rhythms:
-            custom_rhythm_16bits = euclidean_rhythm.get_custom_rhythm_16bits()
-            self.list_data[incr_addr(addr)] = custom_rhythm_16bits & 0xff
+            custom_rhythm_32bits = euclidean_rhythm.get_custom_rhythm_32bits()
+            self.list_data[incr_addr(addr)] = custom_rhythm_32bits & 0xff
             self.list_data[incr_addr(addr)] = (
-                custom_rhythm_16bits >> 8) & 0xff
+                custom_rhythm_32bits >> 8) & 0xff
+            self.list_data[incr_addr(addr)] = (
+                custom_rhythm_32bits >> 16) & 0xff
+            self.list_data[incr_addr(addr)] = (
+                custom_rhythm_32bits >> 24) & 0xff
 
         for preset in self.presets:
             for preset_euclidean_rhythm in preset:
-                custom_rhythm_16bits = preset_euclidean_rhythm.get_custom_rhythm_16bits()
-                self.list_data[incr_addr(addr)] = custom_rhythm_16bits & 0xff
+                custom_rhythm_32bits = preset_euclidean_rhythm.get_custom_rhythm_32bits()
+                self.list_data[incr_addr(addr)] = custom_rhythm_32bits & 0xff
                 self.list_data[incr_addr(addr)] = (
-                    custom_rhythm_16bits >> 8) & 0xff
+                    custom_rhythm_32bits >> 8) & 0xff
+                self.list_data[incr_addr(addr)] = (
+                    custom_rhythm_32bits >> 16) & 0xff
+                self.list_data[incr_addr(addr)] = (
+                    custom_rhythm_32bits >> 24) & 0xff
 
         # gate length in percentage management
         for euclidean_rhythm in self.euclidean_rhythms:
@@ -2123,6 +2131,8 @@ class LxEuclidConfig:
                     addr)] = preset_euclidean_rhythm.gate_length_ms_percent_mode
                 self.list_data[incr_addr(
                     addr)] = preset_euclidean_rhythm.gate_length_percentage
+
+        print("last addr: ", addr)
 
     def save_data(self):
         self.save_data_lock.acquire()
@@ -2314,13 +2324,19 @@ class LxEuclidConfig:
                 algo_4_rhythm_found = False
                 algo_4_rhythm_index = -1
                 for rhythm_index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
-                    custom_rhythm_lsb = self.lx_hardware.get_eeprom_data_int(
+                    custom_rhythm_byte0 = self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr))
-                    custom_rhythm_msb = self.lx_hardware.get_eeprom_data_int(
+                    custom_rhythm_byte1 = self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr))
-                    custom_rhythm = custom_rhythm_lsb + \
-                        (custom_rhythm_msb << 8)
-                    euclidean_rhythm.set_custom_rhythm_16bits(custom_rhythm)
+                    custom_rhythm_byte2 = self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr))
+                    custom_rhythm_byte3 = self.lx_hardware.get_eeprom_data_int(
+                        incr_addr(eeprom_addr))
+                    custom_rhythm = custom_rhythm_byte0 + \
+                        (custom_rhythm_byte1 << 8) + \
+                        (custom_rhythm_byte2 << 16) + \
+                        (custom_rhythm_byte3 << 24)
+                    euclidean_rhythm.set_custom_rhythm_32bits(custom_rhythm)
                     if self.lx_hardware.lx_pander_seq is not None:
                         sleep(0.01)  # give some time to expander to be ready
                         self.lx_hardware.set_expander_rhythm(
@@ -2339,13 +2355,19 @@ class LxEuclidConfig:
 
                 for preset in self.presets:
                     for preset_euclidean_rhythm in preset:
-                        custom_rhythm_lsb = self.lx_hardware.get_eeprom_data_int(
+                        custom_rhythm_byte0 = self.lx_hardware.get_eeprom_data_int(
                             incr_addr(eeprom_addr))
-                        custom_rhythm_msb = self.lx_hardware.get_eeprom_data_int(
+                        custom_rhythm_byte1 = self.lx_hardware.get_eeprom_data_int(
                             incr_addr(eeprom_addr))
-                        custom_rhythm = custom_rhythm_lsb + \
-                            (custom_rhythm_msb << 8)
-                        preset_euclidean_rhythm.set_custom_rhythm_16bits(
+                        custom_rhythm_byte2 = self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr))
+                        custom_rhythm_byte3 = self.lx_hardware.get_eeprom_data_int(
+                            incr_addr(eeprom_addr))
+                        custom_rhythm = custom_rhythm_byte0 + \
+                            (custom_rhythm_byte1 << 8) + \
+                            (custom_rhythm_byte2 << 16) + \
+                            (custom_rhythm_byte3 << 24)
+                        preset_euclidean_rhythm.set_custom_rhythm_32bits(
                             custom_rhythm)
                 # gate length in percentage management
                 for euclidean_rhythm in self.euclidean_rhythms:

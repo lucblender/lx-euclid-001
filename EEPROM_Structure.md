@@ -136,58 +136,74 @@ Latest version EEPROM version: v1.1.2.
 
 | Address | Description of Content | EEPROM version |
 |---------|------------------------|----------------|
-| 373 | Euclidean Rhythm 0 - Custom rhythm LSB | v1.1.1 |
-| 374 | Euclidean Rhythm 0 - Custom rhythm MSB | v1.1.1 |
-| 375 | Euclidean Rhythm 1 - Custom rhythm LSB | v1.1.1 |
-| 376 | Euclidean Rhythm 1 - Custom rhythm MSB | v1.1.1 |
-| 377 | Euclidean Rhythm 2 - Custom rhythm LSB | v1.1.1 |
-| 378 | Euclidean Rhythm 2 - Custom rhythm MSB | v1.1.1 |
-| 379 | Euclidean Rhythm 3 - Custom rhythm LSB | v1.1.1 |
-| 380 | Euclidean Rhythm 3 - Custom rhythm MSB | v1.1.1 |
+| 373 | Euclidean Rhythm 0 - Custom rhythm BYTE_0 | v1.1.1 |
+| 374 | Euclidean Rhythm 0 - Custom rhythm BYTE_1 | v1.1.1 |
+| 375 | Euclidean Rhythm 0 - Custom rhythm BYTE_2 | v1.1.1 |
+| 376 | Euclidean Rhythm 0 - Custom rhythm BYTE_3 | v1.1.1 |
+| 377 | Euclidean Rhythm 1 - Custom rhythm BYTE_0 | v1.1.1 |
+| 378 | Euclidean Rhythm 1 - Custom rhythm BYTE_1 | v1.1.1 |
+| 379 | Euclidean Rhythm 1 - Custom rhythm BYTE_2 | v1.1.1 |
+| 380 | Euclidean Rhythm 1 - Custom rhythm BYTE_3 | v1.1.1 |
+| 381 | Euclidean Rhythm 2 - Custom rhythm BYTE_0 | v1.1.1 |
+| 382 | Euclidean Rhythm 2 - Custom rhythm BYTE_1 | v1.1.1 |
+| 383 | Euclidean Rhythm 2 - Custom rhythm BYTE_2 | v1.1.1 |
+| 384 | Euclidean Rhythm 2 - Custom rhythm BYTE_3 | v1.1.1 |
+| 385 | Euclidean Rhythm 3 - Custom rhythm BYTE_0 | v1.1.1 |
+| 386 | Euclidean Rhythm 3 - Custom rhythm BYTE_1 | v1.1.1 |
+| 387 | Euclidean Rhythm 3 - Custom rhythm BYTE_2 | v1.1.1 |
+| 388 | Euclidean Rhythm 3 - Custom rhythm BYTE_3 | v1.1.1 |
 
 ### Preset Custom Rhythms (8 Presets × 4 Rhythms each)
 
 | Address | Description of Content | EEPROM version |
 |---------|------------------------|----------------|
-| 381 | Preset 0, Rhythm 0 - Custom rhythm LSB | v1.1.1 |
-| 382 | Preset 0, Rhythm 0 - Custom rhythm MSB | v1.1.1 |
-| 383 | Preset 0, Rhythm 1 - Custom rhythm LSB | v1.1.1 |
-| 384 | Preset 0, Rhythm 1 - Custom rhythm MSB | v1.1.1 |
-| 385 | Preset 0, Rhythm 2 - Custom rhythm LSB | v1.1.1 |
-| 386 | Preset 0, Rhythm 2 - Custom rhythm MSB | v1.1.1 |
-| 387 | Preset 0, Rhythm 3 - Custom rhythm LSB | v1.1.1 |
-| 388 | Preset 0, Rhythm 3 - Custom rhythm MSB | v1.1.1 |
+| 389 | Preset 0, Rhythm 0 - Custom rhythm BYTE_0 | v1.1.1 |
+| 390 | Preset 0, Rhythm 0 - Custom rhythm BYTE_1 | v1.1.1 |
+| 391 | Preset 0, Rhythm 0 - Custom rhythm BYTE_2 | v1.1.1 |
+| 392 | Preset 0, Rhythm 0 - Custom rhythm BYTE_3 | v1.1.1 |
+| 393 | Preset 0, Rhythm 1 - Custom rhythm BYTE_0 | v1.1.1 |
+| 394 | Preset 0, Rhythm 1 - Custom rhythm BYTE_1 | v1.1.1 |
+| 395 | Preset 0, Rhythm 1 - Custom rhythm BYTE_2 | v1.1.1 |
+| 396 | Preset 0, Rhythm 1 - Custom rhythm BYTE_3 | v1.1.1 |
+| 397 | Preset 0, Rhythm 2 - Custom rhythm BYTE_0 | v1.1.1 |
+| 398 | Preset 0, Rhythm 2 - Custom rhythm BYTE_1 | v1.1.1 |
+| 399 | Preset 0, Rhythm 2 - Custom rhythm BYTE_2 | v1.1.1 |
+| 400 | Preset 0, Rhythm 2 - Custom rhythm BYTE_3 | v1.1.1 |
+| 401 | Preset 0, Rhythm 3 - Custom rhythm BYTE_0 | v1.1.1 |
+| 402 | Preset 0, Rhythm 3 - Custom rhythm BYTE_1 | v1.1.1 |
+| 403 | Preset 0, Rhythm 3 - Custom rhythm BYTE_2 | v1.1.1 |
+| 404 | Preset 0, Rhythm 3 - Custom rhythm BYTE_3 | v1.1.1 |
 
-*Note: Presets 1-7 follow the same pattern, with addresses 389-444*
+*Note: Presets 1-7 follow the same pattern, with addresses 405-516*
 
 ### Gate Length Percentage Management (4 Channels)
 
 | Address | Description of Content | EEPROM version |
 |---------|------------------------|----------------|
-| 445 | Euclidean Rhythm 0 - Gate length mode (ms/percent) | v1.1.2 |
-| 446 | Euclidean Rhythm 0 - Gate length percentage | v1.1.2 |
-| 447 | Euclidean Rhythm 1 - Gate length mode (ms/percent) | v1.1.2 |
-| 448 | Euclidean Rhythm 1 - Gate length percentage | v1.1.2 |
-| 449 | Euclidean Rhythm 2 - Gate length mode (ms/percent) | v1.1.2 |
-| 450 | Euclidean Rhythm 2 - Gate length percentage | v1.1.2 |
-| 451 | Euclidean Rhythm 3 - Gate length mode (ms/percent) | v1.1.2 |
-| 452 | Euclidean Rhythm 3 - Gate length percentage | v1.1.2 |
+| 517 | Euclidean Rhythm 0 - Gate length mode (ms/percent) | v1.1.2 |
+| 518 | Euclidean Rhythm 0 - Gate length percentage | v1.1.2 |
+| 519 | Euclidean Rhythm 1 - Gate length mode (ms/percent) | v1.1.2 |
+| 520 | Euclidean Rhythm 1 - Gate length percentage | v1.1.2 |
+| 521 | Euclidean Rhythm 2 - Gate length mode (ms/percent) | v1.1.2 |
+| 522 | Euclidean Rhythm 2 - Gate length percentage | v1.1.2 |
+| 523 | Euclidean Rhythm 3 - Gate length mode (ms/percent) | v1.1.2 |
+| 524 | Euclidean Rhythm 3 - Gate length percentage | v1.1.2 |
 
 ### Preset Gate Length Percentage Management (8 Presets × 4 Rhythms each)
 
 | Address | Description of Content | EEPROM version |
 |---------|------------------------|----------------|
-| 453 | Preset 0, Rhythm 0 - Gate length mode (ms/percent) | v1.1.2 |
-| 454 | Preset 0, Rhythm 0 - Gate length percentage | v1.1.2 |
-| 455 | Preset 0, Rhythm 1 - Gate length mode (ms/percent) | v1.1.2 |
-| 456 | Preset 0, Rhythm 1 - Gate length percentage | v1.1.2 |
-| 457 | Preset 0, Rhythm 2 - Gate length mode (ms/percent) | v1.1.2 |
-| 458 | Preset 0, Rhythm 2 - Gate length percentage | v1.1.2 |
-| 459 | Preset 0, Rhythm 3 - Gate length mode (ms/percent) | v1.1.2 |
-| 460 | Preset 0, Rhythm 3 - Gate length percentage | v1.1.2 |
+| 525 | Preset 0, Rhythm 0 - Gate length mode (ms/percent) | v1.1.2 |
+| 526 | Preset 0, Rhythm 0 - Gate length percentage | v1.1.2 |
+| 527 | Preset 0, Rhythm 1 - Gate length mode (ms/percent) | v1.1.2 |
+| 528 | Preset 0, Rhythm 1 - Gate length percentage | v1.1.2 |
+| 529 | Preset 0, Rhythm 2 - Gate length mode (ms/percent) | v1.1.2 |
+| 530 | Preset 0, Rhythm 2 - Gate length percentage | v1.1.2 |
+| 531 | Preset 0, Rhythm 3 - Gate length mode (ms/percent) | v1.1.2 |
+| 532 | Preset 0, Rhythm 3 - Gate length percentage | v1.1.2 |
 
-*Note: Presets 1-7 follow the same pattern, with addresses 461-516*
+*Note: Presets 1-7 follow the same pattern, with addresses 533-588*
 
 ## Total EEPROM Size
 
-**517 bytes** total are used for configuration storage. This size is defined in LxEuclidConstant.MEMORY_LIST_SIZE.
+**589 bytes** total are used for configuration storage. This size is defined in LxEuclidConstant.MEMORY_LIST_SIZE.
