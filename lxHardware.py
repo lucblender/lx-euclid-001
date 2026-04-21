@@ -501,9 +501,15 @@ class LxHardware:
                     else:
                         rhythm_copy = euclidean_rhythm.rhythm.copy()
                     self.set_expander_rhythm(
-                        rhythm_copy, index, euclidean_rhythm.beats, euclidean_rhythm.offset)
+                        rhythm_copy, index, euclidean_rhythm.beats)
 
-                    self.set_expander_focus(0)
+                    focus_mode = self.lx_euclid_config.expander_focus_navigation_type
+                    if focus_mode == LxEuclidConstant.EXPANDER_FOCUS_DEFAULT:
+                        self.set_expander_focus(0)
+                    else:
+                        rhythm_index = focus_mode - 1
+                        self.set_expander_focus(rhythm_index)
+
                 self.lx_pander_seq.clear_has_change_init()
 
             elif has_change != LxPanderSeq.LX_PANDER_NO_RHYTHM and has_change != LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
@@ -528,14 +534,14 @@ class LxHardware:
                     self.lx_euclid_config.euclidean_rhythms[rhythm_index].set_rhythm(
                     )
 
-    def set_expander_rhythm_and_focus(self, rhythm, rhythm_index, length, offset):
+    def set_expander_rhythm_and_focus(self, rhythm, rhythm_index, length):
         if self.lx_pander_seq is not None:
             self.lx_pander_seq.set_length(rhythm_index, length)
             self.lx_pander_seq.set_focus_rhythm(rhythm_index)
             self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
             self.poll_expander_for_rhythm(rhythm_index)
 
-    def set_expander_rhythm(self, rhythm, rhythm_index, length, offset):
+    def set_expander_rhythm(self, rhythm, rhythm_index, length):
         if self.lx_pander_seq is not None:
             self.lx_pander_seq.set_length(rhythm_index, length)
             self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
@@ -547,7 +553,14 @@ class LxHardware:
     def set_expander_focus(self, rhythm_index):
         if self.lx_pander_seq is not None:
             # now for all rhythm if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_custom:
-            self.lx_pander_seq.set_focus_rhythm(rhythm_index)
+            focus_mode = self.lx_euclid_config.expander_focus_navigation_type
+
+            # in default mode we can change focus
+            if focus_mode == LxEuclidConstant.EXPANDER_FOCUS_DEFAULT:
+                self.lx_pander_seq.set_focus_rhythm(rhythm_index)
+            # when not in focus mode, we can only focus to the rhythm corresponding to the focus mode (focus_mode-1 because of the default focus mode)
+            elif focus_mode-1 == rhythm_index:
+                self.lx_pander_seq.set_focus_rhythm(rhythm_index)
 
     def clear_expander_focus(self):
         if self.lx_pander_seq is not None:

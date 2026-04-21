@@ -954,8 +954,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(
                 other_txt, 100, 110, self.white)
 
-            texts = [["Clock", "Source"], [
-                "Sensi", "Touch"], ["Rot", "Screen"]]
+            if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
+                texts = [["Clock", "Source"], [
+                    "Sensi", "Touch"], ["Rot", "Screen"], ["Exp.", "Focus"]]
+            else:
+                texts = [["Clock", "Source"], [
+                    "Sensi", "Touch"], ["Rot", "Screen"]]
 
             self.display_circle_texts(texts, self.white)
 
@@ -1050,6 +1054,21 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 txt_colors = [txt_color]*len(texts)
 
                 txt_colors[flip_index] = txt_color_highlight
+
+                self.display_circle_texts(texts, txt_colors)
+            elif page == 3:  # Expander focus
+                current_channel_setting = "focus"
+                self.font_writer_font6.text(
+                    current_channel_setting, 100, 130, page_color)
+
+                focus_mode = self.lx_euclid_config.expander_focus_navigation_type
+
+                texts = [["Default"], ["Fix to", "Ch1"], [
+                    "Fix to", "Ch2"], ["Fix to", "Ch3"], ["Fix to", "Ch4"]]
+
+                txt_colors = [txt_color]*len(texts)
+
+                txt_colors[focus_mode] = txt_color_highlight
 
                 self.display_circle_texts(texts, txt_colors)
 

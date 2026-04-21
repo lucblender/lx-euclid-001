@@ -2,7 +2,7 @@
 
 This document describes the EEPROM memory layout used by the LX-Euclid device. The structure is defined by the `create_memory_list()` method in `lxEuclidConfig.py`.
 
-Latest version EEPROM version: v1.1.3.
+Latest version EEPROM version: v1.1.4.
 
 ## Memory Layout Table
 
@@ -224,6 +224,12 @@ Latest version EEPROM version: v1.1.3.
 
 *Note: Presets 1-7 follow the same pattern, with addresses 569-624*
 
+### Expander Settings
+
+| Address | Description of Content | EEPROM version |
+|---------|------------------------|----------------|
+| 625 | Expander focus navigation type | v1.1.4 |
+
 ## Total EEPROM Size
 
-**625 bytes** total are used for configuration storage. This size is defined in LxEuclidConstant.MEMORY_LIST_SIZE.
+**626 bytes** total are used for configuration storage. This size is defined in LxEuclidConstant.MEMORY_LIST_SIZE.
