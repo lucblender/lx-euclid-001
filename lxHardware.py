@@ -497,7 +497,7 @@ class LxHardware:
 
                 for index, euclidean_rhythm in enumerate(self.lx_euclid_config.euclidean_rhythms):
 
-                    if euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                    if euclidean_rhythm.algo_custom:
                         rhythm_copy = euclidean_rhythm.custom_rhythm.copy(
                         )
                         self.set_expander_rhythm(
@@ -511,7 +511,7 @@ class LxHardware:
                 new_custom_rhythm = self.lx_pander_seq.get_rhythm(has_change)
                 if new_custom_rhythm is not LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
                     self.lx_euclid_config.euclidean_rhythms[has_change].custom_rhythm = new_custom_rhythm
-                    if self.lx_euclid_config.euclidean_rhythms[has_change].algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                    if self.lx_euclid_config.euclidean_rhythms[has_change].algo_custom:
                         self.lx_euclid_config.euclidean_rhythms[has_change].set_rhythm(
                         )
                         self.lxHardwareEventFifo.append(HandlerEventData(
@@ -522,7 +522,7 @@ class LxHardware:
             new_custom_rhythm = self.lx_pander_seq.get_rhythm(rhythm_index)
             if new_custom_rhythm is not LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
                 self.lx_euclid_config.euclidean_rhythms[rhythm_index].custom_rhythm = new_custom_rhythm
-                if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_custom:
                     self.lx_euclid_config.euclidean_rhythms[rhythm_index].set_rhythm(
                     )
 
@@ -544,7 +544,7 @@ class LxHardware:
 
     def set_expander_focus(self, rhythm_index):
         if self.lx_pander_seq is not None:
-            if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == 4:
+            if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_custom:
                 self.lx_pander_seq.set_focus_rhythm(rhythm_index)
 
     def clear_expander_focus(self):

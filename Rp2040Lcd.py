@@ -819,8 +819,14 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
                 algo_index = self.lx_euclid_config.euclidean_rhythms[channel_index].algo_index
-
-                txt_colors[algo_index] = txt_color_highlight
+                if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
+                    if self.lx_euclid_config.euclidean_rhythms[channel_index].algo_custom:
+                        # highlight custom seq if enabled
+                        txt_colors[4] = txt_color_highlight
+                    else:
+                        txt_colors[algo_index] = txt_color_highlight
+                else:
+                    txt_colors[algo_index] = txt_color_highlight
 
                 self.display_circle_texts(texts, txt_colors)
 
@@ -1069,7 +1075,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             self.circle(120, 120, 51, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 51-15, self.black, True)
-            if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM and local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
+            if current_euclidean_rhythm.algo_custom and local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
                 pulse_color = self.grey
             else:
                 pulse_color = self.touch_circle_color_highlight
@@ -1083,7 +1089,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 b_len = self.font_writer_freesans20.stringlen(b)
 
                 # for seq algo, display the custom rhythm pulses instead of pulses number
-                if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                if current_euclidean_rhythm.algo_custom:
                     p = str(sum(
                         current_euclidean_rhythm.custom_rhythm[:current_euclidean_rhythm.beats]))
                 else:
@@ -1092,7 +1098,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     str(b), 120-(b_len//2), 71, highlight_color)
 
-                if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                if current_euclidean_rhythm.algo_custom:
                     pulse_color = self.grey
                 else:
                     pulse_color = highlight_color
