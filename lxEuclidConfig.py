@@ -676,7 +676,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         if self.has_cv_beat or self.has_cv_pulse or self.is_mute or self.is_fill:
             if self.algo_custom:
                 self.rhythm_without_CV = self.custom_rhythm[:local_beats_without_CV]
-            if self.algo_index == 0:
+            elif self.algo_index == 0:
                 self.rhythm_without_CV = self.__set_rhythm_bjorklund(
                     local_beats_without_CV, local_pulse_without_CV)
             elif self.algo_index == 1:
