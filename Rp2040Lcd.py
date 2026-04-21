@@ -128,8 +128,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.pwm = PWM(Pin(BL))
         self.pwm.freq(5000)
 
-        self.font_writer_freesans20 = None  # writer.Writer(self, freesans20)
-        self.font_writer_font6 = None  # writer.Writer(self, font6)
+        # self.font_writer_freesans20 = None  # writer.Writer(self, freesans20)
+        # self.font_writer_font6 = None  # writer.Writer(self, font6)
 
         self.__need_display = False
         self.need_display_lock = allocate_lock()
@@ -808,25 +808,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_font6.text(
                     current_channel_setting, 108, 130, page_color)
 
-                if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
-                    texts = [["Eucl."], ["Exp.", "Eucl."], [
-                        "Inv.", "Exp."], ["Sym.", "Eucl."], ["Seq."]]
-                else:
-                    texts = [["Eucl."], ["Exp.", "Eucl."], [
-                        "Inv.", "Exp."], ["Sym.", "Eucl."]]
+                texts = [["Eucl."], ["Exp.", "Eucl."], [
+                    "Inv.", "Exp."], ["Sym.", "Eucl."]]
 
                 txt_colors = [txt_color]*len(texts)
 
                 channel_index = self.lx_euclid_config.sm_rhythm_param_counter
                 algo_index = self.lx_euclid_config.euclidean_rhythms[channel_index].algo_index
-                if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
-                    if self.lx_euclid_config.euclidean_rhythms[channel_index].algo_custom:
-                        # highlight custom seq if enabled
-                        txt_colors[4] = txt_color_highlight
-                    else:
-                        txt_colors[algo_index] = txt_color_highlight
-                else:
-                    txt_colors[algo_index] = txt_color_highlight
+
+                txt_colors[algo_index] = txt_color_highlight
 
                 self.display_circle_texts(texts, txt_colors)
 

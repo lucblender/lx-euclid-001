@@ -651,7 +651,10 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         elif local_beats == local_pulse:
             self.rhythm = [1]*local_beats
         else:
-            if self.algo_index == 0:
+            if self.algo_custom:
+                self.rhythm = self.__custom_rhythm_euclidean_fill(self.custom_rhythm,
+                                                                  local_beats, local_pulse)
+            elif self.algo_index == 0:
                 self.rhythm = self.__set_rhythm_bjorklund(
                     local_beats, local_pulse)
             elif self.algo_index == 1:
@@ -663,10 +666,10 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             elif self.algo_index == 3:
                 self.rhythm = self.__symmetric_exponential(
                     local_beats, local_pulse)
-            else:  # todo add custom rhythm here
-                self.rhythm = self.__custom_rhythm_euclidean_fill(self.custom_rhythm,
-                                                                  local_beats, local_pulse)
+
         if self.has_cv_beat or self.has_cv_pulse or self.is_mute or self.is_fill:
+            if self.algo_custom:
+                self.rhythm_without_CV = self.custom_rhythm[:local_beats_without_CV]
             if self.algo_index == 0:
                 self.rhythm_without_CV = self.__set_rhythm_bjorklund(
                     local_beats_without_CV, local_pulse_without_CV)
@@ -679,8 +682,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             elif self.algo_index == 3:
                 self.rhythm_without_CV = self.__symmetric_exponential(
                     local_beats_without_CV, local_pulse_without_CV)
-            else:  # todo add custom rhythm here
-                self.rhythm_without_CV = self.custom_rhythm[:local_beats_without_CV]
+
         else:
             # rhythm must me the same, so we copy it to avoid reference problem
             self.rhythm_without_CV = self.rhythm[:]
@@ -877,11 +879,10 @@ class LxEuclidConfig:
         self.flip_lock = allocate_lock()
 
         self.LCD.set_config(self)
-        self.euclidean_rhythms = []
-        self.euclidean_rhythms.append(EuclideanRhythm(16, 4, 0, 100))
-        self.euclidean_rhythms.append(EuclideanRhythm(8, 1, 4, 100))
-        self.euclidean_rhythms.append(EuclideanRhythm(4, 1, 2, 100))
-        self.euclidean_rhythms.append(EuclideanRhythm(9, 5, 0, 100))
+        self.euclidean_rhythms = [EuclideanRhythm(16, 4, 0, 100),
+                                  EuclideanRhythm(8, 1, 4, 100),
+                                  EuclideanRhythm(4, 1, 2, 100),
+                                  EuclideanRhythm(9, 5, 0, 100)]
 
         self.presets = []
         self.presets.append([EuclideanRhythmParameters(8, 3, 1, 100), EuclideanRhythmParameters(
@@ -1051,34 +1052,25 @@ class LxEuclidConfig:
     def delegate_load_preset(self):
         # if expander is connected, we need to send custom rhythms to it
         # and set focus on first custom rhythm found
-        if self.lx_hardware.lx_pander_seq is not None:
-            rhythm_found = False
-            for index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
-                euclidean_rhythm.set_parameters_from_rhythm(
-                    self.presets[self._load_preset_index][index])
+        for index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
+            euclidean_rhythm.set_parameters_from_rhythm(
+                self.presets[self._load_preset_index][index])
 
-                if euclidean_rhythm.algo_custom:
-                    rhythm_copy = euclidean_rhythm.custom_rhythm.copy(
-                    )
-                    self.lx_hardware.set_expander_rhythm(
-                        rhythm_copy, index, euclidean_rhythm.beats, euclidean_rhythm.pulses)
-                    if not rhythm_found:
-                        self.lx_hardware.set_expander_focus(index)
-                        rhythm_found = True
+            # if no expander, force algo to be non custom
+            if self.lx_hardware.lx_pander_seq is None:
+                euclidean_rhythm.algo_custom = False
 
-                euclidean_rhythm.set_rhythm()
-            if not rhythm_found:
-                self.lx_hardware.clear_expander_focus()
-        else:
-            # no expander, just load preset normally
-            for index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
-                euclidean_rhythm.set_parameters_from_rhythm(
-                    self.presets[self._load_preset_index][index])
-                # in the case of no expander, we just disable the algo_custom
-                if euclidean_rhythm.algo_custom:
-                    euclidean_rhythm.algo_custom = False
-                    # todo remove euclidean_rhythm.algo_index = LxEuclidConstant.ALGO_EUCLIDEAN
-                euclidean_rhythm.set_rhythm()
+            euclidean_rhythm.set_rhythm()
+
+            if euclidean_rhythm.algo_custom:
+                rhythm_copy = euclidean_rhythm.custom_rhythm.copy(
+                )
+            else:
+                rhythm_copy = euclidean_rhythm.rhythm.copy(
+                )
+
+            self.lx_hardware.set_expander_rhythm(
+                rhythm_copy, index, euclidean_rhythm.beats, euclidean_rhythm.pulses)
 
         # if current recall mode is direct wo reset or, we called previously a preset_recall_ext_reset
         if self.preset_recall_mode is not LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET and self.preset_recall_ext_reset is False:
@@ -1195,7 +1187,8 @@ class LxEuclidConfig:
                 self.lx_hardware.set_menu_led()
 
                 self.menu_lock.acquire()
-                self.sm_rhythm_param_counter = data
+                if isinstance(data, int):
+                    self.sm_rhythm_param_counter = data
                 self.menu_lock.release()
 
             elif event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TAP, LxEuclidConstant.EVENT_OUTER_CIRCLE_TAP]:
@@ -1418,7 +1411,7 @@ class LxEuclidConfig:
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
 
-            elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and data < 2:
+            elif event == LxEuclidConstant.EVENT_BTN_SWITCHES and isinstance(data, int) and data < 2:
                 self.param_pads_inner_outer_page = data
                 self.param_pads_page = 0
 
@@ -1480,7 +1473,8 @@ class LxEuclidConfig:
                 self.lx_hardware.set_expander_focus(data)
 
                 self.menu_lock.acquire()
-                self.sm_rhythm_param_counter = data
+                if isinstance(data, int):
+                    self.sm_rhythm_param_counter = data
                 self.menu_lock.release()
             elif event == LxEuclidConstant.EVENT_TAP_BTN:
                 self.save_data()
@@ -1493,23 +1487,52 @@ class LxEuclidConfig:
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_INCR:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_beats(
                 )
+                if not self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom:
+                    rhythm = self.euclidean_rhythms[self.sm_rhythm_param_counter].rhythm.copy(
+                    )
+                    self.lx_hardware.set_expander_rhythm(
+                        rhythm, self.sm_rhythm_param_counter, self.euclidean_rhythms[self.sm_rhythm_param_counter].beats, self.euclidean_rhythms[self.sm_rhythm_param_counter].offset)
                 if self.lx_hardware.lx_pander_seq is not None:
                     self.lx_hardware.set_expander_rhythm_length(
                         self.sm_rhythm_param_counter, self.euclidean_rhythms[self.sm_rhythm_param_counter].beats)
             elif event == LxEuclidConstant.EVENT_OUTER_CIRCLE_DECR:
                 self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_beats(
                 )
+                if not self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom:
+                    rhythm = self.euclidean_rhythms[self.sm_rhythm_param_counter].rhythm.copy(
+                    )
+                    self.lx_hardware.set_expander_rhythm(
+                        rhythm, self.sm_rhythm_param_counter, self.euclidean_rhythms[self.sm_rhythm_param_counter].beats, self.euclidean_rhythms[self.sm_rhythm_param_counter].offset)
+
                 if self.lx_hardware.lx_pander_seq is not None:
                     self.lx_hardware.set_expander_rhythm_length(
                         self.sm_rhythm_param_counter, self.euclidean_rhythms[self.sm_rhythm_param_counter].beats)
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_INCR:
-                if not self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom:
-                    self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_pulses(
-                    )
+                # if we are in custom algo, when incr the pulse, we go back to normal algo
+                if self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom:
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom = False
+
+                self.euclidean_rhythms[self.sm_rhythm_param_counter].incr_pulses(
+                )
+                rhythm = self.euclidean_rhythms[self.sm_rhythm_param_counter].rhythm.copy(
+                )
+                print("incr pulses, new rhythm : ", rhythm)
+                self.lx_hardware.set_expander_rhythm(
+                    rhythm, self.sm_rhythm_param_counter, self.euclidean_rhythms[self.sm_rhythm_param_counter].beats, self.euclidean_rhythms[self.sm_rhythm_param_counter].offset)
+
             elif event == LxEuclidConstant.EVENT_INNER_CIRCLE_DECR:
-                if not self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom:
-                    self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_pulses(
-                    )
+                # if we are in custom algo, when decr the pulse, we go back to normal algo
+
+                if self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom:
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom = False
+
+                self.euclidean_rhythms[self.sm_rhythm_param_counter].decr_pulses(
+                )
+                rhythm = self.euclidean_rhythms[self.sm_rhythm_param_counter].rhythm.copy(
+                )
+                print("decr pulses, new rhythm : ", rhythm)
+                self.lx_hardware.set_expander_rhythm(
+                    rhythm, self.sm_rhythm_param_counter, self.euclidean_rhythms[self.sm_rhythm_param_counter].beats, self.euclidean_rhythms[self.sm_rhythm_param_counter].offset)
 
         elif local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY:
             if event == LxEuclidConstant.EVENT_BTN_SWITCHES and data == self.sm_rhythm_param_counter:
@@ -1537,7 +1560,8 @@ class LxEuclidConfig:
                 self.lx_hardware.set_expander_focus(data)
 
                 self.menu_lock.acquire()
-                self.sm_rhythm_param_counter = data
+                if isinstance(data, int):
+                    self.sm_rhythm_param_counter = data
                 self.menu_lock.release()
             elif event == LxEuclidConstant.EVENT_TAP_BTN:
                 self.save_data()
@@ -1574,7 +1598,8 @@ class LxEuclidConfig:
                     self.lx_hardware.set_expander_focus(data)
 
                     self.menu_lock.acquire()
-                    self.sm_rhythm_param_counter = data
+                    if isinstance(data, int):
+                        self.sm_rhythm_param_counter = data
                     self.menu_lock.release()
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.state_lock.acquire()
@@ -1627,7 +1652,8 @@ class LxEuclidConfig:
                 self.lx_hardware.set_expander_focus(data)
 
                 self.menu_lock.acquire()
-                self.sm_rhythm_param_counter = data
+                if isinstance(data, int):
+                    self.sm_rhythm_param_counter = data
                 self.menu_lock.release()
             elif event == LxEuclidConstant.EVENT_TAP_BTN:
                 # save data, clear everything, go back to live
@@ -1755,45 +1781,24 @@ class LxEuclidConfig:
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
                     )
                 elif self.param_channel_config_page == 2:  # algo
-                    # if expander is connected, we have one more algo : custom
-                    if self.lx_hardware.lx_pander_seq is not None:
-                        algo_index_number = 5
-                    else:
-                        algo_index_number = 4
+
+                    algo_index_number = 4
                     algo_selection = angle_to_index(
                         angle_inner, algo_index_number)
-                    previous_algo_custom = self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom
 
-                    if algo_selection == 4:  # Custom rhythm selection
-                        self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom = True
-                        if self.euclidean_rhythms[self.sm_rhythm_param_counter].beats > MAX_BEATS_CUSTOM:
-                            self.euclidean_rhythms[self.sm_rhythm_param_counter].beats = MAX_BEATS_CUSTOM
-                        # take the current rhythm and send it to expander as new custom rhythm
-                        rhythm_copy = self.euclidean_rhythms[self.sm_rhythm_param_counter].rhythm.copy(
-                        )
-                        self.lx_hardware.set_expander_rhythm_and_focus(
-                            rhythm_copy, self.sm_rhythm_param_counter, self.euclidean_rhythms[self.sm_rhythm_param_counter].beats, self.euclidean_rhythms[self.sm_rhythm_param_counter].offset)
-                    else:  # Regular algorithm selection (0-3)
-                        self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index = algo_selection
-                        self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom = False
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_index = algo_selection
 
-                        if previous_algo_custom:
-                            # when passing from custom rhythm to another, we need to set expander focus to another custom rhythm if any
-                            rhythm_found = False
-                            for rhythm_index in range(0, 4):
-                                if self.euclidean_rhythms[rhythm_index].algo_custom:
-                                    # search for the first custom rhythm to set the expander focus
-                                    rhythm_copy = self.euclidean_rhythms[rhythm_index].custom_rhythm.copy(
-                                    )
-                                    self.lx_hardware.set_expander_rhythm_and_focus(
-                                        rhythm_copy, rhythm_index, self.euclidean_rhythms[rhythm_index].beats, self.euclidean_rhythms[rhythm_index].offset)
-                                    rhythm_found = True
-                                    break
-                            if not rhythm_found:
-                                self.lx_hardware.clear_expander_focus()
+                    # if we change rhythm algo, we clear the custom rhythm if any
+                    self.euclidean_rhythms[self.sm_rhythm_param_counter].algo_custom = False
 
                     self.euclidean_rhythms[self.sm_rhythm_param_counter].set_rhythm(
                     )
+
+                    # send the rhythm to the expander
+                    rhythm = self.euclidean_rhythms[self.sm_rhythm_param_counter].rhythm.copy(
+                    )
+                    self.lx_hardware.set_expander_rhythm(
+                        rhythm, self.sm_rhythm_param_counter, self.euclidean_rhythms[self.sm_rhythm_param_counter].beats, self.euclidean_rhythms[self.sm_rhythm_param_counter].offset)
 
                 elif self.param_channel_config_page == 3:  # gate time, also have some scrolling
                     fine_randomize_select = angle_to_index(angle_inner, 8)
@@ -2333,8 +2338,6 @@ class LxEuclidConfig:
                     incr_addr(eeprom_addr)), LxEuclidConstant.PRESET_RECALL_DIRECT_W_RESET, LxEuclidConstant.PRESET_INTERNAL_RESET, self.preset_recall_mode, eeprom_addr)
 
                 # custom rhythm data
-                algo_4_rhythm_found = False
-                algo_4_rhythm_index = -1
                 for rhythm_index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
                     custom_rhythm_byte0 = self.lx_hardware.get_eeprom_data_int(
                         incr_addr(eeprom_addr))
@@ -2351,24 +2354,27 @@ class LxEuclidConfig:
                     euclidean_rhythm.set_custom_rhythm_32bits(custom_rhythm)
                     if self.lx_hardware.lx_pander_seq is not None:
                         sleep(0.01)  # give some time to expander to be ready
+                        if euclidean_rhythm.algo_custom:
+                            rhythm = euclidean_rhythm.custom_rhythm.copy()
+                        else:
+                            rhythm = euclidean_rhythm.rhythm.copy()
                         self.lx_hardware.set_expander_rhythm(
-                            euclidean_rhythm.custom_rhythm.copy(), rhythm_index, euclidean_rhythm.beats, euclidean_rhythm.offset)
+                            rhythm, rhythm_index, euclidean_rhythm.beats, euclidean_rhythm.offset)
 
-                    if euclidean_rhythm.algo_custom and not algo_4_rhythm_found:
-                        algo_4_rhythm_found = True
-                        algo_4_rhythm_index = rhythm_index
-                if algo_4_rhythm_found:
-                    if self.lx_hardware.lx_pander_seq is not None:
-                        sleep(0.01)  # give some time to expander to be ready
-                        self.lx_hardware.set_expander_focus(
-                            algo_4_rhythm_index)
-                        # we init the expander so we can clear the has change init flag
-                        self.lx_hardware.lx_pander_seq.clear_has_change_init()
+                if self.lx_hardware.lx_pander_seq is not None:
+
+                    self.lx_hardware.set_expander_focus(0)
+                    # we init the expander so we can clear the has change init flag
+                    self.lx_hardware.lx_pander_seq.clear_has_change_init()
 
                 # algo_custom for main rhythms
                 for euclidean_rhythm in self.euclidean_rhythms:
-                    euclidean_rhythm.algo_custom = bool(
-                        self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
+                    if self.lx_hardware.lx_pander_seq is not None:
+                        euclidean_rhythm.algo_custom = bool(
+                            self.lx_hardware.get_eeprom_data_int(incr_addr(eeprom_addr)))
+                    else:
+                        # if no expander, we cannot have custom algo, so we set to false
+                        euclidean_rhythm.algo_custom = False
 
                 for preset in self.presets:
                     for preset_euclidean_rhythm in preset:
