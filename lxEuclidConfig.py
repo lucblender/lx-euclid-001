@@ -977,6 +977,8 @@ class LxEuclidConfig:
         self.last_saved_preset_index = -1
 
         self.expander_focus_navigation_type = LxEuclidConstant.EXPANDER_FOCUS_DEFAULT
+        self.focus_rhythm_display = 0
+        self.focus_page_display = 0
 
         self.load_data()
 
@@ -1189,7 +1191,9 @@ class LxEuclidConfig:
                 self.state_lock.release()
 
                 self.lx_hardware.set_sw_leds(data)
-                self.lx_hardware.set_expander_focus(data)
+
+                if data != self.focus_rhythm_display:
+                    self.lx_hardware.set_expander_focus(data)
 
                 self.lx_hardware.set_tap_led()
                 self.lx_hardware.set_menu_led()

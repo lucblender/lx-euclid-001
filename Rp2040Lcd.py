@@ -116,6 +116,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.rhythm_colors = [rgb888_to_rgb565(255, 136, 31), rgb888_to_rgb565(
             224, 28, 2), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(95, 255, 226), self.white]
 
+        self.rhythm_colors_low_high = [rgb888_to_rgb565(255, 177, 114), rgb888_to_rgb565(
+            239, 108, 91), rgb888_to_rgb565(174, 194, 255), rgb888_to_rgb565(169, 254, 240), self.white]
+
         self.rhythm_colors_highlight = [rgb888_to_rgb565(255, 219, 197), rgb888_to_rgb565(
             255, 189, 180), rgb888_to_rgb565(227, 234, 255), rgb888_to_rgb565(243, 253, 255), self.white]
 
@@ -1240,8 +1243,15 @@ class LCD_1inch28(framebuf.FrameBuffer):
                                 120, 10, highlight_color, True)
                     final_beat_color = beat_color_hightlight
 
-                filled = local_rhythm[(
-                    index-local_offset) % len_euclidiean_rhythm]
+                true_index = (index-local_offset) % len_euclidiean_rhythm
+                filled = local_rhythm[true_index]
+
+                outline_color = final_beat_color
+                if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
+                    if rhythm_index == self.lx_euclid_config.focus_rhythm_display:
+                        page = self.lx_euclid_config.focus_page_display
+                        if (page == 0 and true_index < 16) or (page == 1 and true_index >= 16):
+                            outline_color = self.rhythm_colors_low_high[rhythm_index]
 
                 # hightlight the first beat accoarding to the offset
                 if index == local_offset:
@@ -1250,6 +1260,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                         hightlight_size = 9
                     else:
                         hightlight_size = 8
+
                     self.circle(coord[0]+120, coord[1]+120,
                                 hightlight_size, self.white, filled)
                     if filled == 0:
@@ -1260,10 +1271,13 @@ class LCD_1inch28(framebuf.FrameBuffer):
                                     120, 7, final_beat_color, True)
                 else:
                     self.circle(coord[0]+120, coord[1]+120,
-                                8, final_beat_color, filled)
+                                8, outline_color, filled)
                     if filled == 0:
                         self.circle(coord[0]+120, coord[1] +
                                     120, 7, self.black, True)
+                    else:
+                        self.circle(coord[0]+120, coord[1]+120,
+                                    7, final_beat_color, filled)
 
             radius = radius - offset_radius
             rhythm_index = rhythm_index + 1

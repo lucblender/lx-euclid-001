@@ -525,6 +525,12 @@ class LxHardware:
                     self.lxHardwareEventFifo.append(HandlerEventData(
                         LxHardware.CUSTOM_RHYTHM_UPDATE, None))
 
+            has_display_change = self.lx_pander_seq.get_has_display_change()
+            if has_display_change != 0:
+                self.get_expander_display_change()
+                self.lxHardwareEventFifo.append(HandlerEventData(
+                    LxHardware.CUSTOM_RHYTHM_UPDATE, None))
+
     def poll_expander_for_rhythm(self, rhythm_index):
         if self.lx_pander_seq is not None:
             new_custom_rhythm = self.lx_pander_seq.get_rhythm(rhythm_index)
@@ -533,6 +539,13 @@ class LxHardware:
                 if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_custom:
                     self.lx_euclid_config.euclidean_rhythms[rhythm_index].set_rhythm(
                     )
+
+    def get_expander_display_change(self):
+        if self.lx_pander_seq is not None:
+            self.lx_euclid_config.focus_rhythm_display = self.lx_pander_seq.get_focus_rhythm()
+            self.lx_euclid_config.focus_page_display = self.lx_pander_seq.get_focus_page()
+            print("Display change, focus rhythm:", self.lx_euclid_config.focus_rhythm_display,
+                  "focus page:", self.lx_euclid_config.focus_page_display)
 
     def set_expander_rhythm_and_focus(self, rhythm, rhythm_index, length):
         if self.lx_pander_seq is not None:
