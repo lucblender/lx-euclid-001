@@ -1192,6 +1192,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 elif euclidieanRhythm.is_fill:
                     beat_color = self.rhythm_colors_highlight[rhythm_index]
                     beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
+            else:
+                # this shouldn't happen, but in case, we don't display circle rhythm
+                break
 
             if euclidieanRhythm.in_burst:
                 circle_color = self.white

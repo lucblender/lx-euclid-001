@@ -12,29 +12,30 @@ class MemoryAddress():
     HAS_DISPLAY_CHANGED = const(0x04)
     FOCUS_RHYTHM = const(0x05)
     FOCUS_PAGE = const(0x06)
-    RHYTHM0_BYTE_0 = const(0x07)
-    RHYTHM0_BYTE_1 = const(0x08)
-    RHYTHM0_BYTE_2 = const(0x09)
-    RHYTHM0_BYTE_3 = const(0x0A)
-    RHYTHM1_BYTE_0 = const(0x0B)
-    RHYTHM1_BYTE_1 = const(0x0C)
-    RHYTHM1_BYTE_2 = const(0x0D)
-    RHYTHM1_BYTE_3 = const(0x0E)
-    RHYTHM2_BYTE_0 = const(0x0F)
-    RHYTHM2_BYTE_1 = const(0x10)
-    RHYTHM2_BYTE_2 = const(0x11)
-    RHYTHM2_BYTE_3 = const(0x12)
-    RHYTHM3_BYTE_0 = const(0x13)
-    RHYTHM3_BYTE_1 = const(0x14)
-    RHYTHM3_BYTE_2 = const(0x15)
-    RHYTHM3_BYTE_3 = const(0x16)
-    RHYTHM0_LENGTH = const(0x17)
-    RHYTHM1_LENGTH = const(0x18)
-    RHYTHM2_LENGTH = const(0x19)
-    RHYTHM3_LENGTH = const(0x1A)
-    TEST_MODE_ENABLE = const(0x1B)
-    TEST_MODE_DISPLAYED_RHYTHM_LSB = const(0x1C)
-    TEST_MODE_DISPLAYED_RHYTHM_MSB = const(0x1D)
+    CURRENT_STEP = const(0x07)
+    RHYTHM0_BYTE_0 = const(0x08)
+    RHYTHM0_BYTE_1 = const(0x09)
+    RHYTHM0_BYTE_2 = const(0x0A)
+    RHYTHM0_BYTE_3 = const(0x0B)
+    RHYTHM1_BYTE_0 = const(0x0C)
+    RHYTHM1_BYTE_1 = const(0x0D)
+    RHYTHM1_BYTE_2 = const(0x0E)
+    RHYTHM1_BYTE_3 = const(0x0F)
+    RHYTHM2_BYTE_0 = const(0x10)
+    RHYTHM2_BYTE_1 = const(0x11)
+    RHYTHM2_BYTE_2 = const(0x12)
+    RHYTHM2_BYTE_3 = const(0x13)
+    RHYTHM3_BYTE_0 = const(0x14)
+    RHYTHM3_BYTE_1 = const(0x15)
+    RHYTHM3_BYTE_2 = const(0x16)
+    RHYTHM3_BYTE_3 = const(0x17)
+    RHYTHM0_LENGTH = const(0x18)
+    RHYTHM1_LENGTH = const(0x19)
+    RHYTHM2_LENGTH = const(0x1A)
+    RHYTHM3_LENGTH = const(0x1B)
+    TEST_MODE_ENABLE = const(0x1C)
+    TEST_MODE_DISPLAYED_RHYTHM_LSB = const(0x1D)
+    TEST_MODE_DISPLAYED_RHYTHM_MSB = const(0x1E)
 
 
 class LxPanderSeq:
@@ -65,6 +66,8 @@ class LxPanderSeq:
 
         self.cached_test_mode_displayed_rhythm = self.LX_PANDER_ERROR_MESSAGE
 
+        self.current_focus_rhythm = self.LX_PANDER_NO_RHYTHM
+
     def get_version(self):
         self.major = self._register8(MemoryAddress.MAJOR)
         self.minor = self._register8(MemoryAddress.MINOR)
@@ -87,9 +90,11 @@ class LxPanderSeq:
         return self._register8(MemoryAddress.FOCUS_PAGE)
 
     def set_focus_rhythm(self, value):
+        self.current_focus_rhythm = value
         self._register8(MemoryAddress.FOCUS_RHYTHM, value)
 
     def clear_focus_rhythm(self):
+        self.current_focus_rhythm = self.LX_PANDER_NO_RHYTHM
         self._register8(MemoryAddress.FOCUS_RHYTHM, self.LX_PANDER_NO_RHYTHM)
 
     def set_rhythm(self, index, rhythm_array):
@@ -112,6 +117,12 @@ class LxPanderSeq:
             for i in range(32):
                 result.append((rhythm >> i) & 0x01)
             return result
+
+    def set_current_step(self, step):
+        self._register8(MemoryAddress.CURRENT_STEP, step)
+
+    def get_current_step(self):
+        return self._register8(MemoryAddress.CURRENT_STEP)
 
     def set_length(self, index, length):
         self._register8(MemoryAddress.RHYTHM0_LENGTH + index, length)

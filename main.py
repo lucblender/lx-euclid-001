@@ -81,6 +81,8 @@ def lxhardware_changed(handlerEventData):
         if lx_euclid_config.state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_LIVE]:
             LCD.set_need_display()
         lx_euclid_config.random_gate_length_update()
+
+        lx_hardware.set_expander_current_step_from_lx_euclid()
     elif event == lx_hardware.RST_RISE:
         if lx_euclid_config.preset_recall_ext_reset:
             lx_euclid_config.delegate_load_preset()
