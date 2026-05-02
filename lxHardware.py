@@ -569,6 +569,14 @@ class LxHardware:
                     current_step = current_euclidean_rhythm.current_burst_step
                 else:
                     current_step = current_euclidean_rhythm.current_step
+
+                local_offset = current_euclidean_rhythm.offset
+                if current_euclidean_rhythm.has_cv_offset:
+                    local_offset = current_euclidean_rhythm.global_cv_offset
+
+                local_length = len(current_euclidean_rhythm.rhythm)
+
+                current_step = (current_step - local_offset) % local_length
                 self.lx_pander_seq.set_current_step(current_step)
 
     def set_expander_rhythm(self, rhythm, rhythm_index, length, current_step):
