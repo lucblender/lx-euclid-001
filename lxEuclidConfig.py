@@ -2410,19 +2410,6 @@ class LxEuclidConfig:
                         (custom_rhythm_byte2 << 16) + \
                         (custom_rhythm_byte3 << 24)
                     euclidean_rhythm.set_custom_rhythm_32bits(custom_rhythm)
-                    if self.lx_hardware.lx_pander_seq is not None:
-                        sleep(0.01)  # give some time to expander to be ready
-                        if euclidean_rhythm.algo_custom:
-                            rhythm = euclidean_rhythm.custom_rhythm.copy()
-                        else:
-                            rhythm = euclidean_rhythm.rhythm.copy()
-
-                        if euclidean_rhythm.in_burst:
-                            current_step = euclidean_rhythm.current_burst_step
-                        else:
-                            current_step = euclidean_rhythm.current_step
-                        self.lx_hardware.set_expander_rhythm(
-                            rhythm, rhythm_index, euclidean_rhythm.beats, current_step)
 
                 # algo_custom for main rhythms
                 for euclidean_rhythm in self.euclidean_rhythms:
@@ -2480,6 +2467,29 @@ class LxEuclidConfig:
                 # expander focus navigation type
                 self.expander_focus_navigation_type = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), LxEuclidConstant.EXPANDER_FOCUS_DEFAULT, LxEuclidConstant.EXPANDER_FOCUS_RHYTHM_3, self.expander_focus_navigation_type, eeprom_addr)
+
+                # reload rhythms with loaded parameters before sending to expander (if needed)
+                self.reload_rhythms()
+                # Send rhythm to expander
+                for rhythm_index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
+                    if self.lx_hardware.lx_pander_seq is not None:
+                        sleep(0.01)  # give some time to expander to be ready
+                        if euclidean_rhythm.algo_custom:
+                            print(
+                                "loading custom rhythm algo for rhythm ", rhythm_index)
+                            rhythm = euclidean_rhythm.custom_rhythm.copy()
+                        else:
+                            print(
+                                "loading normal rhythm algo for rhythm ", rhythm_index)
+                            rhythm = euclidean_rhythm.rhythm.copy()
+
+                        if euclidean_rhythm.in_burst:
+                            current_step = euclidean_rhythm.current_burst_step
+                        else:
+                            current_step = euclidean_rhythm.current_step
+                        print("loading data")
+                        self.lx_hardware.set_expander_rhythm(
+                            rhythm, rhythm_index, euclidean_rhythm.beats, current_step)
 
                 if self.lx_hardware.lx_pander_seq is not None:
                     focus_mode = self.expander_focus_navigation_type

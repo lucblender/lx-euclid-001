@@ -505,6 +505,7 @@ class LxHardware:
                         current_step = euclidean_rhythm.current_burst_step
                     else:
                         current_step = euclidean_rhythm.current_step
+                    print("set_expander_rhythm on need init")
                     self.set_expander_rhythm(
                         rhythm_copy, index, euclidean_rhythm.beats, current_step)
 
