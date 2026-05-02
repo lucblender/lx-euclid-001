@@ -99,7 +99,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
         gc.collect()
         a = ticks_ms()
         self.init_display()
-        print("init", ticks_ms()-a)
         gc.collect()
 
         self.blue = const(0x07E0)

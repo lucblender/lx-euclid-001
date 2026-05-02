@@ -550,8 +550,6 @@ class LxHardware:
         if self.lx_pander_seq is not None:
             self.lx_euclid_config.focus_rhythm_display = self.lx_pander_seq.get_focus_rhythm()
             self.lx_euclid_config.focus_page_display = self.lx_pander_seq.get_focus_page()
-            print("Display change, focus rhythm:", self.lx_euclid_config.focus_rhythm_display,
-                  "focus page:", self.lx_euclid_config.focus_page_display)
 
     def set_expander_rhythm_and_focus(self, rhythm, rhythm_index, length, current_step):
         if self.lx_pander_seq is not None:

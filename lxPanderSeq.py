@@ -104,8 +104,6 @@ class LxPanderSeq:
         for i in range(rhythm_len_to_write):
             rhythm |= rhythm_array[i] << i
 
-        print("index:", index, "bin(rhythm):", bin(rhythm))
-
         self._register32(MemoryAddress.RHYTHM0_BYTE_0 + index * 4, rhythm)
 
     def get_rhythm(self, index):

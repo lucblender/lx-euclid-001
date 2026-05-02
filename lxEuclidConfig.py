@@ -1542,7 +1542,6 @@ class LxEuclidConfig:
                 )
                 rhythm = self.euclidean_rhythms[self.sm_rhythm_param_counter].rhythm.copy(
                 )
-                print("incr pulses, new rhythm : ", rhythm)
 
                 if self.euclidean_rhythms[self.sm_rhythm_param_counter].in_burst:
                     current_step = self.euclidean_rhythms[self.sm_rhythm_param_counter].current_burst_step
@@ -1562,7 +1561,6 @@ class LxEuclidConfig:
                 )
                 rhythm = self.euclidean_rhythms[self.sm_rhythm_param_counter].rhythm.copy(
                 )
-                print("decr pulses, new rhythm : ", rhythm)
 
                 if self.euclidean_rhythms[self.sm_rhythm_param_counter].in_burst:
                     current_step = self.euclidean_rhythms[self.sm_rhythm_param_counter].current_burst_step
@@ -2210,7 +2208,8 @@ class LxEuclidConfig:
         # expander focus navigation type
         self.list_data[incr_addr(addr)] = self.expander_focus_navigation_type
 
-        print("last addr: ", addr)
+        # uncomment for debug purpose to know how many eeprom address we are using
+        # print("Last eeprom addresse: ", addr)
 
     def save_data(self):
         self.save_data_lock.acquire()
@@ -2475,19 +2474,14 @@ class LxEuclidConfig:
                     if self.lx_hardware.lx_pander_seq is not None:
                         sleep(0.01)  # give some time to expander to be ready
                         if euclidean_rhythm.algo_custom:
-                            print(
-                                "loading custom rhythm algo for rhythm ", rhythm_index)
                             rhythm = euclidean_rhythm.custom_rhythm.copy()
                         else:
-                            print(
-                                "loading normal rhythm algo for rhythm ", rhythm_index)
                             rhythm = euclidean_rhythm.rhythm.copy()
 
                         if euclidean_rhythm.in_burst:
                             current_step = euclidean_rhythm.current_burst_step
                         else:
                             current_step = euclidean_rhythm.current_step
-                        print("loading data")
                         self.lx_hardware.set_expander_rhythm(
                             rhythm, rhythm_index, euclidean_rhythm.beats, current_step)
 
