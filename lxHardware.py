@@ -505,7 +505,6 @@ class LxHardware:
                         current_step = euclidean_rhythm.current_burst_step
                     else:
                         current_step = euclidean_rhythm.current_step
-                    print("set_expander_rhythm on need init")
                     self.set_expander_rhythm(
                         rhythm_copy, index, euclidean_rhythm.beats, current_step)
 
@@ -558,6 +557,17 @@ class LxHardware:
             self.lx_pander_seq.set_current_step(current_step)
             self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
             self.poll_expander_for_rhythm(rhythm_index)
+
+    def set_expander_page(self, rhythm_index, page_index):
+        if self.lx_pander_seq is not None:
+            focus_mode = self.lx_euclid_config.expander_focus_navigation_type
+
+            # in default mode we can change page
+            if focus_mode == LxEuclidConstant.EXPANDER_FOCUS_DEFAULT:
+                self.lx_pander_seq.set_focus_page(page_index)
+            # when not in focus mode, we can only change page to the rhythm corresponding to the focus mode (focus_mode-1 because of the default focus mode)
+            elif focus_mode-1 == rhythm_index:
+                self.lx_pander_seq.set_focus_page(page_index)
 
     def set_expander_current_step_from_lx_euclid(self):
         if self.lx_pander_seq is not None:

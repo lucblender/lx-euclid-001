@@ -1471,6 +1471,8 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY
                 self.state_lock.release()
+                self.lx_hardware.set_expander_page(
+                    self.sm_rhythm_param_counter, 1)
             elif event == LxEuclidConstant.EVENT_MENU_BTN:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_CHANNEL_CONFIG_SELECTION
@@ -1498,6 +1500,10 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
                 self.state_lock.release()
+
+                self.lx_hardware.set_expander_page(
+                    self.sm_rhythm_param_counter, 0)
+
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
@@ -1576,6 +1582,10 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
                 self.state_lock.release()
+
+                self.lx_hardware.set_expander_page(
+                    self.sm_rhythm_param_counter, 0)
+
                 self.lx_hardware.clear_sw_leds()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_tap_led()
@@ -1604,6 +1614,10 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
                 self.state_lock.release()
+
+                self.lx_hardware.set_expander_page(
+                    self.sm_rhythm_param_counter, 0)
+
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()
@@ -1627,6 +1641,9 @@ class LxEuclidConfig:
                     self.state_lock.acquire()
                     self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                     self.state_lock.release()
+
+                    self.lx_hardware.set_expander_page(
+                        self.sm_rhythm_param_counter, 0)
                 # change rhythm in selection and clear cv page
                 else:
                     self.lx_hardware.clear_sw_leds()
@@ -1641,12 +1658,19 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
+
+                self.lx_hardware.set_expander_page(
+                    self.sm_rhythm_param_counter, 0)
             elif event == LxEuclidConstant.EVENT_TAP_BTN:
                 # save data, clear everything, go back to live
                 self.save_data()
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_LIVE
                 self.state_lock.release()
+
+                self.lx_hardware.set_expander_page(
+                    self.sm_rhythm_param_counter, 0)
+
                 self.lx_hardware.clear_tap_led()
                 self.lx_hardware.clear_menu_led()
                 self.lx_hardware.clear_sw_leds()

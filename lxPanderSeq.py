@@ -89,6 +89,9 @@ class LxPanderSeq:
     def get_focus_page(self):
         return self._register8(MemoryAddress.FOCUS_PAGE)
 
+    def set_focus_page(self, value):
+        self._register8(MemoryAddress.FOCUS_PAGE, value)
+
     def set_focus_rhythm(self, value):
         self.current_focus_rhythm = value
         self._register8(MemoryAddress.FOCUS_RHYTHM, value)
