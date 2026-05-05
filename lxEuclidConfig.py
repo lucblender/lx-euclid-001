@@ -1087,6 +1087,8 @@ class LxEuclidConfig:
             self.lx_hardware.set_expander_rhythm(
                 rhythm_copy, index, euclidean_rhythm.beats, current_step)
 
+        self.update_all_gates_length_percentage_time_ms()
+
         # if current recall mode is direct wo reset or, we called previously a preset_recall_ext_reset
         if self.preset_recall_mode is not LxEuclidConstant.PRESET_RECALL_DIRECT_WO_RESET and self.preset_recall_ext_reset is False:
             self.reset_steps()
