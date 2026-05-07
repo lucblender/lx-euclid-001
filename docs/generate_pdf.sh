@@ -34,12 +34,19 @@ fi
 echo "✅ Dependencies check passed"
 echo "📄 Converting EEPROM_Structure.md to PDF..."
 
+# Inject git hash for footer
+GIT_HASH=$(git -C "$(dirname "$0")" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_HASH_TEX=$(mktemp /tmp/git_hash_XXXXXX.tex)
+echo "\\newcommand{\\gitHash}{${GIT_HASH}}" > "${GIT_HASH_TEX}"
+
 
 # Run pandoc conversion
 pandoc EEPROM_Structure.md \
   -o EEPROM_Structure.pdf \
   --pdf-engine=pdflatex \
-  --variable geometry:"top=0.4in,bottom=0.4in,left=0.4in,right=0.4in" \
+  --include-in-header="${GIT_HASH_TEX}" \
+  --include-in-header header_footer.tex \
+  --variable geometry:"top=1in,bottom=1in,left=1in,right=1in" \
   --variable fontsize=7pt \
   --variable documentclass=article \
   --variable classoption="a4paper" \
