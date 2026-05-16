@@ -494,6 +494,9 @@ class LxHardware:
             has_change = self.lx_pander_seq.get_has_change()
             if has_change == LxPanderSeq.LX_PANDER_NEED_INIT:
 
+                # set if we need to flip the expander screen when re-initializing expander
+                self.set_expander_flip_state(self.lx_euclid_config.flip)
+
                 for index, euclidean_rhythm in enumerate(self.lx_euclid_config.euclidean_rhythms):
 
                     if euclidean_rhythm.algo_custom:
@@ -624,6 +627,10 @@ class LxHardware:
     def clear_expander_focus(self):
         if self.lx_pander_seq is not None:
             self.lx_pander_seq.clear_focus_rhythm()
+
+    def set_expander_flip_state(self, value: bool):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_flip_state(value)
 
     def update_cv_values(self):
         self.i2c_internal_lock.acquire()

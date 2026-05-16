@@ -36,6 +36,7 @@ class MemoryAddress():
     TEST_MODE_ENABLE = const(0x1C)
     TEST_MODE_DISPLAYED_RHYTHM_LSB = const(0x1D)
     TEST_MODE_DISPLAYED_RHYTHM_MSB = const(0x1E)
+    FLIP_STATE = const(0x1F)
 
 
 class LxPanderSeq:
@@ -142,6 +143,9 @@ class LxPanderSeq:
                 result.append((rhythm >> i) & 0x01)
             self.cached_test_mode_displayed_rhythm = result
         return self.cached_test_mode_displayed_rhythm
+
+    def set_flip_state(self, value: bool):
+        self._register8(MemoryAddress.FLIP_STATE, int(value))
 
     def set_test_mode_enable(self, value):
         self._register8(MemoryAddress.TEST_MODE_ENABLE, value)

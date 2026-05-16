@@ -1975,6 +1975,9 @@ class LxEuclidConfig:
                 elif self.param_menu_page == 2:  # display flip
                     flip_index = angle_to_index(angle_inner, 2)
                     self.flip = flip_index
+
+                    # send flip information to expander
+                    self.lx_hardware.set_expander_flip_state(self.flip)
                 elif self.param_menu_page == 3:  # expander focus
                     focus_index = angle_to_index(angle_inner, 5)
                     self.expander_focus_navigation_type = focus_index
@@ -2495,6 +2498,10 @@ class LxEuclidConfig:
 
                 # reload rhythms with loaded parameters before sending to expander (if needed)
                 self.reload_rhythms()
+
+                # set if we need to flip the expander screen at boot
+                self.lx_hardware.set_expander_flip_state(self.flip)
+
                 # Send rhythm to expander
                 for rhythm_index, euclidean_rhythm in enumerate(self.euclidean_rhythms):
                     if self.lx_hardware.lx_pander_seq is not None:
