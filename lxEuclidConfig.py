@@ -70,6 +70,8 @@ class LxEuclidConstant:
     CIRCLE_ACTION_FILL = const(6)
     CIRCLE_ACTION_MUTE = const(7)
     CIRCLE_ACTION_BURST = const(8)
+    CIRCLE_ACTION_BURST_2_4_8 = const(9)
+    CIRCLE_ACTION_LENGTH = const(10)
 
     CIRCLE_RHYTHM_1 = const(0)
     CIRCLE_RHYTHM_2 = const(1)
@@ -1210,6 +1212,39 @@ class LxEuclidConfig:
                     self.sm_rhythm_param_counter = data
                 self.menu_lock.release()
 
+            # very special case for burst 2/4/8 we need to detect touch and incr/dect to constantly know if user touch the circle
+            elif ((self.inner_rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8 and event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR])
+                  or (self.outer_rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8 and event in [LxEuclidConstant.EVENT_OUTER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR])):
+
+                if event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR]:
+                    rotate_action = self.inner_rotate_action
+                    action_rhythm = self.inner_action_rhythm
+                    angle = self.lx_hardware.capacitives_circles.inner_circle_angle
+                else:
+                    rotate_action = self.outer_rotate_action
+                    action_rhythm = self.outer_action_rhythm
+                    angle = self.lx_hardware.capacitives_circles.outer_circle_angle
+
+                # take the angle + 45° to have 0..90 --> 0, 90..180 --> 1, etc...
+                index_angle = angle_to_index(angle+45, 4)
+
+                burst_value = 2**(index_angle+1)
+
+                self.action_display_info = "b\\"+str(burst_value)
+
+                if action_rhythm == 1:  # circle action only affect one rhythm
+                    self.action_display_index = 0
+                elif action_rhythm == 2:
+                    self.action_display_index = 1
+                elif action_rhythm == 4:
+                    self.action_display_index = 2
+                elif action_rhythm == 8:
+                    self.action_display_index = 3
+                else:  # circle action only affect multiple rhythm --> color will be white
+                    self.action_display_index = 4
+
+                self.need_circle_action_display = True
+
             elif event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TAP, LxEuclidConstant.EVENT_OUTER_CIRCLE_TAP]:
 
                 if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
@@ -1374,7 +1409,8 @@ class LxEuclidConfig:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 if self.param_pads_page == 0:  # action
-                    rotate_action_index = angle_to_index(angle_inner, 9)
+                    rotate_action_index = angle_to_index(
+                        angle_inner, LxEuclidConstant.CIRCLE_ACTION_LENGTH)
                     if self.param_pads_inner_outer_page == 0:  # inner
                         previous_rotate_action = self.inner_rotate_action
                         action_rhythm = self.inner_action_rhythm
@@ -2379,13 +2415,13 @@ class LxEuclidConfig:
 
                 # macro parameters
                 self.inner_rotate_action = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr)), LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_BURST, self.inner_rotate_action, eeprom_addr)
+                    incr_addr(eeprom_addr)), LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8, self.inner_rotate_action, eeprom_addr)
 
                 self.inner_action_rhythm = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), 0, MAX_ACTION_RHYTHM, self.inner_action_rhythm, eeprom_addr)
 
                 self.outer_rotate_action = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr)), LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_BURST, self.outer_rotate_action, eeprom_addr)
+                    incr_addr(eeprom_addr)), LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8, self.outer_rotate_action, eeprom_addr)
 
                 self.outer_action_rhythm = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), 0, MAX_ACTION_RHYTHM, self.outer_action_rhythm, eeprom_addr)
