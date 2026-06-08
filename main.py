@@ -163,6 +163,14 @@ def lxhardware_changed(handlerEventData):
         lx_euclid_config.on_event(
             LxEuclidConstant.EVENT_OUTER_CIRCLE_TAP, handlerEventData.data)
         LCD.set_need_display()
+    elif event == lx_hardware.INNER_CIRCLE_RELEASE:
+        lx_euclid_config.on_event(
+            LxEuclidConstant.EVENT_INNER_CIRCLE_RELEASE, handlerEventData.data)
+        LCD.set_need_display()
+    elif event == lx_hardware.OUTER_CIRCLE_RELEASE:
+        lx_euclid_config.on_event(
+            LxEuclidConstant.EVENT_OUTER_CIRCLE_RELEASE, handlerEventData.data)
+        LCD.set_need_display()
     elif event == lx_hardware.BTN_SWITCHES_RISE:
         tmp_time = ticks_ms()
         if (tmp_time - sw_btns_press[handlerEventData.data]) > DEBOUNCE_MS:

@@ -112,9 +112,12 @@ class LxEuclidConstant:
     EVENT_OUTER_CIRCLE_TOUCH = const(10)
     EVENT_INNER_CIRCLE_TAP = const(11)
     EVENT_OUTER_CIRCLE_TAP = const(12)
-    EVENT_BTN_SWITCHES = const(13)
-    EVENT_TAP_MENU_BTN_LONG = const(14)
-    EVENT_CALIBRATION_COUNTDOWN_END = const(15)
+    EVENT_INNER_CIRCLE_RELEASE = const(13)
+    EVENT_OUTER_CIRCLE_RELEASE = const(14)
+
+    EVENT_BTN_SWITCHES = const(15)
+    EVENT_TAP_MENU_BTN_LONG = const(16)
+    EVENT_CALIBRATION_COUNTDOWN_END = const(17)
 
     PRESET_RECALL_DIRECT_W_RESET = const(0)
     PRESET_EXTERNAL_RESET = const(1)
@@ -1213,10 +1216,10 @@ class LxEuclidConfig:
                 self.menu_lock.release()
 
             # very special case for burst 2/4/8 we need to detect touch and incr/dect to constantly know if user touch the circle
-            elif ((self.inner_rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8 and event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR])
-                  or (self.outer_rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8 and event in [LxEuclidConstant.EVENT_OUTER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR])):
+            elif ((self.inner_rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8 and event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, LxEuclidConstant.EVENT_INNER_CIRCLE_RELEASE])
+                  or (self.outer_rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8 and event in [LxEuclidConstant.EVENT_OUTER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, LxEuclidConstant.EVENT_OUTER_CIRCLE_RELEASE])):
 
-                if event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR]:
+                if event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, LxEuclidConstant.EVENT_INNER_CIRCLE_RELEASE]:
                     rotate_action = self.inner_rotate_action
                     action_rhythm = self.inner_action_rhythm
                     angle = self.lx_hardware.capacitives_circles.inner_circle_angle
@@ -1225,10 +1228,34 @@ class LxEuclidConfig:
                     action_rhythm = self.outer_action_rhythm
                     angle = self.lx_hardware.capacitives_circles.outer_circle_angle
 
+                release_burst = False
+                if event in [LxEuclidConstant.EVENT_INNER_CIRCLE_RELEASE, LxEuclidConstant.EVENT_OUTER_CIRCLE_RELEASE]:
+                    release_burst = True
+
                 # take the angle + 45° to have 0..90 --> 0, 90..180 --> 1, etc...
                 index_angle = angle_to_index(angle+45, 4)
 
+                # we only support burst up to 8
+                # so its 2 -> 4 -> 8 -> 8
+                if index_angle == 3:
+                    index_angle = 2
+
                 burst_value = 2**(index_angle+1)
+
+                for euclidean_rhythm_index in range(0, 4):
+                    if action_rhythm & (1 << euclidean_rhythm_index) != 0:
+                        # Linked to_burst_list: burst is [2, 3, 4, 6, 8]
+                        # index_angle = 0, 1 ,2
+                        # burst_value = 2, 4, 8
+                        # burst_div_index = 0, 2, 4 --> index_angle*2
+
+                        self.euclidean_rhythms[euclidean_rhythm_index].burst_div_index = index_angle*2
+                        if release_burst:
+                            self.euclidean_rhythms[euclidean_rhythm_index].stop_burst_cv(
+                            )
+                        else:
+                            self.euclidean_rhythms[euclidean_rhythm_index].start_continue_burst(in_cv=True
+                                                                                                )
 
                 self.action_display_info = "b\\"+str(burst_value)
 
