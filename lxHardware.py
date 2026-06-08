@@ -473,11 +473,6 @@ class LxHardware:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
         elif not circles_data[0] and self.inner_previous_state:
-            # we released inner circle
-            self.lxHardwareEventFifo.append(HandlerEventData(
-                LxHardware.INNER_CIRCLE_RELEASE, circles_data))
-
-            # it can also be considered as tap
             if not self.has_incr_decr_inner:  # to avoid registering a tap after an incr or decr
                 self.lxHardwareEventFifo.append(HandlerEventData(
                     LxHardware.INNER_CIRCLE_TAP, circles_data))
@@ -487,11 +482,6 @@ class LxHardware:
             self.has_incr_decr_outer = False
 
         elif not circles_data[1] and self.outer_previous_state:
-            # we released outer circle
-            self.lxHardwareEventFifo.append(HandlerEventData(
-                LxHardware.OUTER_CIRCLE_RELEASE, circles_data))
-
-            # it can also be considered as tap
             if not self.has_incr_decr_outer:  # to avoid registering a tap after an incr or decr
                 self.lxHardwareEventFifo.append(HandlerEventData(
                     LxHardware.OUTER_CIRCLE_TAP, circles_data))
@@ -499,6 +489,17 @@ class LxHardware:
             # reset both flags in case we touched both circles during a "touch incr/decr" event
             self.has_incr_decr_inner = False
             self.has_incr_decr_outer = False
+
+        # handle release only
+        if not circles_data[0] and self.inner_previous_state:
+            # we released inner circle
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.INNER_CIRCLE_RELEASE, circles_data))
+
+        elif not circles_data[1] and self.outer_previous_state:
+            # we released outer circle
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.OUTER_CIRCLE_RELEASE, circles_data))
 
         self.inner_previous_state = circles_data[0]
         self.outer_previous_state = circles_data[1]
