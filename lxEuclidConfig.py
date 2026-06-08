@@ -208,6 +208,9 @@ class EuclideanRhythmParameters:
         self._burst_div_index = burst_div_index
         self.burst_div = LxEuclidConstant.BURST_LIST[burst_div_index]
 
+        self._burst_div_index_2_4_8 = 0
+        self.burst_div_2_4_8 = LxEuclidConstant.BURST_LIST[0]
+
         if custom_rhythm is None:
             self.custom_rhythm = [0]*32
         else:
@@ -228,6 +231,14 @@ class EuclideanRhythmParameters:
     @burst_div_index.setter
     def burst_div_index(self, burst_div_index):
         self._burst_div_index = burst_div_index
+
+    @property
+    def burst_div_index_2_4_8(self):
+        return self._burst_div_index_2_4_8
+
+    @burst_div_index_2_4_8.setter
+    def burst_div_index_2_4_8(self, burst_div_index_2_4_8):
+        self._burst_div_index_2_4_8 = burst_div_index_2_4_8
 
     def get_custom_rhythm_32bits(self):
         result = 0
@@ -294,6 +305,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.in_burst_cv = False
         self.in_burst_2_4_8 = False
         self.burst_engaged = False
+        self.burst_engaged_2_4_8 = False
         self.burst_steps_left = 0
         self.current_burst_step = 0
 
@@ -322,6 +334,17 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             burst_div_index = len(LxEuclidConstant.BURST_LIST)-1
         self._burst_div_index = burst_div_index
         self.burst_div = LxEuclidConstant.BURST_LIST[self._burst_div_index]
+
+    @property
+    def burst_div_index_2_4_8(self):
+        return self._burst_div_index_2_4_8
+
+    @burst_div_index_2_4_8.setter
+    def burst_div_index_2_4_8(self, burst_div_index_2_4_8):
+        if burst_div_index_2_4_8 > len(LxEuclidConstant.BURST_LIST)-1:
+            burst_div_index_2_4_8 = len(LxEuclidConstant.BURST_LIST)-1
+        self._burst_div_index_2_4_8 = burst_div_index_2_4_8
+        self.burst_div_2_4_8 = LxEuclidConstant.BURST_LIST[self._burst_div_index_2_4_8]
 
     def mute(self, mute_by_macro=False):
         self.is_mute = True
@@ -471,7 +494,14 @@ class EuclideanRhythm(EuclideanRhythmParameters):
     def incr_burst_step(self, subdivision_24th):
         to_return = False
         if self.in_burst:
-            if subdivision_24th % (self.burst_div*self.prescaler) == 0:
+
+            # use custom burst division for 2_4_8 burst mode
+            if self.burst_engaged_2_4_8:
+                burst_div = self.burst_div_2_4_8
+            else:
+                burst_div = self.burst_div
+
+            if subdivision_24th % (burst_div*self.prescaler) == 0:
                 self.current_burst_step = self.current_burst_step + 1
                 to_return = True
 
@@ -483,6 +513,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
                     if self.burst_steps_left == 0:
                         if self.current_burst_step == self.current_step:
                             self.in_burst = False
+                            self.burst_engaged_2_4_8 = False
                     else:
                         self.burst_steps_left = self.burst_steps_left - 1
 
@@ -500,6 +531,8 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
         if not (self.burst_engaged) and not (self.in_burst):
             self.burst_engaged = True
+            if in_burst_2_4_8:
+                self.burst_engaged_2_4_8 = True
             self.current_burst_step = self.current_step
 
         if not (in_cv) and not (in_burst_2_4_8):
@@ -1158,6 +1191,10 @@ class LxEuclidConfig:
 
         self.tap_delay_ms = delay_ms
 
+    def stop_all_burst_2_4_8(self):
+        for euclidean_rhythm in self.euclidean_rhythms:
+            euclidean_rhythm.stop_burst_2_4_8()
+
     def on_event(self, event, data=None):
         self.state_lock.acquire()
         local_state = self.state
@@ -1193,11 +1230,15 @@ class LxEuclidConfig:
                 self.state = LxEuclidConstant.STATE_MENU_SELECT
                 self.lx_hardware.set_tap_led()
                 self.state_lock.release()
+                # make sure we stop any burst when leaving live state
+                self.stop_all_burst_2_4_8()
                 self.sm_rhythm_param_counter = 0
             if event == LxEuclidConstant.EVENT_MENU_BTN_LONG:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_PARAM_PRESETS
                 self.state_lock.release()
+                # make sure we stop any burst when leaving live state
+                self.stop_all_burst_2_4_8()
                 self.sm_rhythm_param_counter = 0
                 self.lx_hardware.set_tap_led()
                 self.lx_hardware.set_menu_led()
@@ -1212,6 +1253,8 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
+                # make sure we stop any burst when leaving live state
+                self.stop_all_burst_2_4_8()
 
                 self.lx_hardware.set_sw_leds(data)
 
@@ -1260,7 +1303,7 @@ class LxEuclidConfig:
                         # burst_value = 2, 4, 8
                         # burst_div_index = 0, 2, 4 --> index_angle*2
 
-                        self.euclidean_rhythms[euclidean_rhythm_index].burst_div_index = index_angle*2
+                        self.euclidean_rhythms[euclidean_rhythm_index].burst_div_index_2_4_8 = index_angle*2
                         if release_burst:
                             self.euclidean_rhythms[euclidean_rhythm_index].stop_burst_2_4_8(
                             )
