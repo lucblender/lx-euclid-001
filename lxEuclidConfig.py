@@ -418,6 +418,9 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.cv_percent_pulse = percent
         self.set_rhythm()
 
+    def refresh_pulses_per_ratio(self):
+        self.__pulses_ratio = self.pulses / self.beats
+
     def incr_pulses(self):
         self.pulses = self.pulses + 1
         if self.pulses > self.beats:
@@ -426,7 +429,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.pulses_set_0_1 = True
         else:
             self.pulses_set_0_1 = False
-        self.__pulses_ratio = self.pulses / self.beats
+        self.refresh_pulses_per_ratio()
         self.set_rhythm()
 
     def decr_pulses(self):
@@ -437,7 +440,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.pulses_set_0_1 = True
         else:
             self.pulses_set_0_1 = False
-        self.__pulses_ratio = self.pulses / self.beats
+        self.refresh_pulses_per_ratio()
         self.set_rhythm()
 
     def incr_pulses_probability(self):
@@ -2609,6 +2612,7 @@ class LxEuclidConfig:
 
     def reload_rhythms(self):
         for euclidean_rhythm in self.euclidean_rhythms:
+            euclidean_rhythm.refresh_pulses_per_ratio()
             euclidean_rhythm.set_rhythm()
 
     def init_cvs_parameters(self):
