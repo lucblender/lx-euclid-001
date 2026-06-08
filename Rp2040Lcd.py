@@ -1061,12 +1061,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
             elif page == 3:  # Expander focus
                 current_channel_setting = "focus"
                 self.font_writer_font6.text(
-                    current_channel_setting, 100, 130, page_color)
+                    current_channel_setting, 105, 130, page_color)
 
                 focus_mode = self.lx_euclid_config.expander_focus_navigation_type
 
-                texts = [["Default"], ["Fix to", "Ch1"], [
-                    "Fix to", "Ch2"], ["Fix to", "Ch3"], ["Fix to", "Ch4"]]
+                texts = [["Default"], ["Lock ", "Ch1"], [
+                    "Lock", "Ch2"], ["Lock", "Ch3"], ["Lock", "Ch4"]]
 
                 txt_colors = [txt_color]*len(texts)
 
