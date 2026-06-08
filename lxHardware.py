@@ -341,10 +341,14 @@ class LxHardware:
                         self.lx_euclid_config.incr_steps()
                         # resync the burst to the input clock
                         self.lx_euclid_config.test_start_burst()
-                        if not self.lx_euclid_config.is_any_burst_running():
-                            self.stop_internal_clk()
-                            self.clk_subdivision_counter = 0
-                            self.relaunch_internal_clk()
+
+                        # remove the if and the three following in the condition
+                        # it seems more stable without it, to investigate if I keep or not
+                        # if not self.lx_euclid_config.is_any_burst_running():
+                        self.stop_internal_clk()
+                        self.clk_subdivision_counter = 0
+                        self.relaunch_internal_clk()
+
                         self.lxHardwareEventFifo.append(self.clk_rise_event)
 
         except Exception as e:
