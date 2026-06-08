@@ -292,6 +292,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
         self.in_burst = False
         self.in_burst_cv = False
+        self.in_burst_2_4_8 = False
         self.burst_engaged = False
         self.burst_steps_left = 0
         self.current_burst_step = 0
@@ -475,7 +476,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
                 if self.current_burst_step > beat_limit:
                     self.current_burst_step = 0
 
-                if not (self.in_burst_cv):
+                if not (self.in_burst_cv) and not (self.in_burst_2_4_8):
                     if self.burst_steps_left == 0:
                         if self.current_burst_step == self.current_step:
                             self.in_burst = False
@@ -484,22 +485,29 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
         return to_return
 
-    def start_continue_burst(self, in_cv=False):
+    def start_continue_burst(self, in_cv=False, in_burst_2_4_8=False):
 
         # only put in_bust_cv if we were not in burst cv
         if in_cv and not (self.in_burst_cv):
             self.in_burst_cv = in_cv
 
+        # only put in_bust_cv if we were not in burst cv
+        if in_burst_2_4_8 and not (self.in_burst_2_4_8):
+            self.in_burst_2_4_8 = in_burst_2_4_8
+
         if not (self.burst_engaged) and not (self.in_burst):
             self.burst_engaged = True
             self.current_burst_step = self.current_step
 
-        if not (in_cv):
+        if not (in_cv) and not (in_burst_2_4_8):
             # increment the steps_left by the current beat number only if
             self.burst_steps_left = self.burst_steps_left + self.beats
 
     def stop_burst_cv(self):
         self.in_burst_cv = False
+
+    def stop_burst_2_4_8(self):
+        self.in_burst_2_4_8 = False
 
     def incr_gate_length(self):
         if (self.gate_length_ms+10) < MAX_GATE_LENGTH_MS:
@@ -1251,10 +1259,10 @@ class LxEuclidConfig:
 
                         self.euclidean_rhythms[euclidean_rhythm_index].burst_div_index = index_angle*2
                         if release_burst:
-                            self.euclidean_rhythms[euclidean_rhythm_index].stop_burst_cv(
+                            self.euclidean_rhythms[euclidean_rhythm_index].stop_burst_2_4_8(
                             )
                         else:
-                            self.euclidean_rhythms[euclidean_rhythm_index].start_continue_burst(in_cv=True
+                            self.euclidean_rhythms[euclidean_rhythm_index].start_continue_burst(in_burst_2_4_8=True
                                                                                                 )
 
                 self.action_display_info = "b\\"+str(burst_value)
