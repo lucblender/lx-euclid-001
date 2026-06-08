@@ -102,11 +102,13 @@ class LxHardware:
     OUTER_CIRCLE_TOUCH = const(12)
     INNER_CIRCLE_TAP = const(13)
     OUTER_CIRCLE_TAP = const(14)
+    INNER_CIRCLE_RELEASE = const(15)
+    OUTER_CIRCLE_RELEASE = const(16)
 
-    BTN_SWITCHES_RISE = const(15)
-    BTN_SWITCHES_FALL = const(16)
+    BTN_SWITCHES_RISE = const(17)
+    BTN_SWITCHES_FALL = const(18)
 
-    CUSTOM_RHYTHM_UPDATE = const(17)
+    CUSTOM_RHYTHM_UPDATE = const(19)
 
     EEPROM_ADDR = const(0x50)
 
@@ -442,7 +444,9 @@ class LxHardware:
 
     def get_touch_circles_updates(self):
         circles_data = self.capacitives_circles.get_touch_circles_updates()
+
         if circles_data[2] == CapacitivesCircles.INNER_CIRCLE_INCR_EVENT:
+
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_INCR, circles_data))
 
@@ -469,6 +473,11 @@ class LxHardware:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
         elif not circles_data[0] and self.inner_previous_state:
+            # we released inner circle
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.INNER_CIRCLE_RELEASE, circles_data))
+
+            # it can also be considered as tap
             if not self.has_incr_decr_inner:  # to avoid registering a tap after an incr or decr
                 self.lxHardwareEventFifo.append(HandlerEventData(
                     LxHardware.INNER_CIRCLE_TAP, circles_data))
@@ -478,6 +487,11 @@ class LxHardware:
             self.has_incr_decr_outer = False
 
         elif not circles_data[1] and self.outer_previous_state:
+            # we released outer circle
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.OUTER_CIRCLE_RELEASE, circles_data))
+
+            # it can also be considered as tap
             if not self.has_incr_decr_outer:  # to avoid registering a tap after an incr or decr
                 self.lxHardwareEventFifo.append(HandlerEventData(
                     LxHardware.OUTER_CIRCLE_TAP, circles_data))
