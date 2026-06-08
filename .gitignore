@@ -13,3 +13,5 @@ lx-euclide_config.json
 
 /font/*.mpy
 uf2/
+
+*.pdf

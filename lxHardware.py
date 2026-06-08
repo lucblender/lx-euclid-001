@@ -491,59 +491,146 @@ class LxHardware:
 
     def poll_expander_for_updates(self):
         if self.lx_pander_seq is not None:
-            rhythm_found = False
             has_change = self.lx_pander_seq.get_has_change()
             if has_change == LxPanderSeq.LX_PANDER_NEED_INIT:
 
+                # set if we need to flip the expander screen when re-initializing expander
+                self.set_expander_flip_state(self.lx_euclid_config.flip)
+
                 for index, euclidean_rhythm in enumerate(self.lx_euclid_config.euclidean_rhythms):
 
-                    if euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
-                        rhythm_copy = euclidean_rhythm.custom_rhythm.copy(
-                        )
-                        self.set_expander_rhythm(
-                            rhythm_copy, index)
-                        if not rhythm_found:
-                            self.set_expander_focus(index)
-                            rhythm_found = True
+                    if euclidean_rhythm.algo_custom:
+                        rhythm_copy = euclidean_rhythm.custom_rhythm.copy()
+                    else:
+                        rhythm_copy = euclidean_rhythm.rhythm.copy()
+
+                    if euclidean_rhythm.in_burst:
+                        current_step = euclidean_rhythm.current_burst_step
+                    else:
+                        current_step = euclidean_rhythm.current_step
+                    self.set_expander_rhythm(
+                        rhythm_copy, index, euclidean_rhythm.beats, current_step)
+
+                    focus_mode = self.lx_euclid_config.expander_focus_navigation_type
+                    if focus_mode == LxEuclidConstant.EXPANDER_FOCUS_DEFAULT:
+                        self.set_expander_focus(0)
+                    else:
+                        rhythm_index = focus_mode - 1
+                        self.set_expander_focus(rhythm_index)
+
                 self.lx_pander_seq.clear_has_change_init()
 
             elif has_change != LxPanderSeq.LX_PANDER_NO_RHYTHM and has_change != LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
                 new_custom_rhythm = self.lx_pander_seq.get_rhythm(has_change)
                 if new_custom_rhythm is not LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
                     self.lx_euclid_config.euclidean_rhythms[has_change].custom_rhythm = new_custom_rhythm
-                    if self.lx_euclid_config.euclidean_rhythms[has_change].algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
-                        self.lx_euclid_config.euclidean_rhythms[has_change].set_rhythm(
-                        )
-                        self.lxHardwareEventFifo.append(HandlerEventData(
-                            LxHardware.CUSTOM_RHYTHM_UPDATE, None))
+
+                    if not self.lx_euclid_config.euclidean_rhythms[has_change].algo_custom:
+                        self.lx_euclid_config.euclidean_rhythms[has_change].algo_custom = True
+
+                    self.lx_euclid_config.euclidean_rhythms[has_change].set_rhythm(
+                    )
+                    self.lxHardwareEventFifo.append(HandlerEventData(
+                        LxHardware.CUSTOM_RHYTHM_UPDATE, None))
+
+            has_display_change = self.lx_pander_seq.get_has_display_change()
+            if has_display_change != 0:
+                self.get_expander_display_change()
+                self.lxHardwareEventFifo.append(HandlerEventData(
+                    LxHardware.CUSTOM_RHYTHM_UPDATE, None))
 
     def poll_expander_for_rhythm(self, rhythm_index):
         if self.lx_pander_seq is not None:
             new_custom_rhythm = self.lx_pander_seq.get_rhythm(rhythm_index)
             if new_custom_rhythm is not LxPanderSeq.LX_PANDER_ERROR_MESSAGE:
                 self.lx_euclid_config.euclidean_rhythms[rhythm_index].custom_rhythm = new_custom_rhythm
-                if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_custom:
                     self.lx_euclid_config.euclidean_rhythms[rhythm_index].set_rhythm(
                     )
 
-    def set_expander_rhythm_and_focus(self, rhythm, rhythm_index):
+    def get_expander_display_change(self):
         if self.lx_pander_seq is not None:
+            self.lx_euclid_config.focus_rhythm_display = self.lx_pander_seq.get_focus_rhythm()
+            self.lx_euclid_config.focus_page_display = self.lx_pander_seq.get_focus_page()
+
+    def set_expander_rhythm_and_focus(self, rhythm, rhythm_index, length, current_step):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_length(rhythm_index, length)
             self.lx_pander_seq.set_focus_rhythm(rhythm_index)
+            self.lx_pander_seq.set_current_step(current_step)
             self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
             self.poll_expander_for_rhythm(rhythm_index)
 
-    def set_expander_rhythm(self, rhythm, rhythm_index):
+    def set_expander_page(self, rhythm_index, page_index):
         if self.lx_pander_seq is not None:
+            focus_mode = self.lx_euclid_config.expander_focus_navigation_type
+
+            # in default mode we can change page
+            if focus_mode == LxEuclidConstant.EXPANDER_FOCUS_DEFAULT:
+                self.lx_pander_seq.set_focus_page(page_index)
+            # when not in focus mode, we can only change page to the rhythm corresponding to the focus mode (focus_mode-1 because of the default focus mode)
+            elif focus_mode-1 == rhythm_index:
+                self.lx_pander_seq.set_focus_page(page_index)
+
+    def set_expander_current_step_from_lx_euclid(self):
+        if self.lx_pander_seq is not None:
+            rhythm_index = self.get_expander_current_cached_focus()
+            if rhythm_index is not LxPanderSeq.LX_PANDER_NO_RHYTHM:
+                current_euclidean_rhythm = self.lx_euclid_config.euclidean_rhythms[rhythm_index]
+                if current_euclidean_rhythm.in_burst:
+                    current_step = current_euclidean_rhythm.current_burst_step
+                else:
+                    current_step = current_euclidean_rhythm.current_step
+
+                local_offset = current_euclidean_rhythm.offset
+                if current_euclidean_rhythm.has_cv_offset:
+                    local_offset = current_euclidean_rhythm.global_cv_offset
+
+                local_length = len(current_euclidean_rhythm.rhythm)
+
+                current_step = (current_step - local_offset) % local_length
+                self.lx_pander_seq.set_current_step(current_step)
+
+    def set_expander_rhythm(self, rhythm, rhythm_index, length, current_step):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_length(rhythm_index, length)
+            if self.get_expander_current_cached_focus() == rhythm_index:
+                self.lx_pander_seq.set_current_step(current_step)
             self.lx_pander_seq.set_rhythm(rhythm_index, rhythm)
+
+    def set_expander_rhythm_length(self, rhythm_index, length):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_length(rhythm_index, length)
 
     def set_expander_focus(self, rhythm_index):
         if self.lx_pander_seq is not None:
-            if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_index == 4:
+            # now for all rhythm if self.lx_euclid_config.euclidean_rhythms[rhythm_index].algo_custom:
+            focus_mode = self.lx_euclid_config.expander_focus_navigation_type
+
+            # in default mode we can change focus
+            if focus_mode == LxEuclidConstant.EXPANDER_FOCUS_DEFAULT:
                 self.lx_pander_seq.set_focus_rhythm(rhythm_index)
+            # when not in focus mode, we can only focus to the rhythm corresponding to the focus mode (focus_mode-1 because of the default focus mode)
+            elif focus_mode-1 == rhythm_index:
+                self.lx_pander_seq.set_focus_rhythm(rhythm_index)
+
+    def set_expander_current_step(self, step):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_current_step(step)
+
+    def get_expander_current_cached_focus(self):
+        if self.lx_pander_seq is not None:
+            return self.lx_pander_seq.current_focus_rhythm
+        else:
+            return LxPanderSeq.LX_PANDER_NO_RHYTHM
 
     def clear_expander_focus(self):
         if self.lx_pander_seq is not None:
             self.lx_pander_seq.clear_focus_rhythm()
+
+    def set_expander_flip_state(self, value: bool):
+        if self.lx_pander_seq is not None:
+            self.lx_pander_seq.set_flip_state(value)
 
     def update_cv_values(self):
         self.i2c_internal_lock.acquire()

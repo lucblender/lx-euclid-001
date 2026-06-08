@@ -99,7 +99,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
         gc.collect()
         a = ticks_ms()
         self.init_display()
-        print("init", ticks_ms()-a)
         gc.collect()
 
         self.blue = const(0x07E0)
@@ -116,6 +115,9 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.rhythm_colors = [rgb888_to_rgb565(255, 136, 31), rgb888_to_rgb565(
             224, 28, 2), rgb888_to_rgb565(122, 155, 255), rgb888_to_rgb565(95, 255, 226), self.white]
 
+        self.rhythm_colors_low_high = [rgb888_to_rgb565(255, 177, 114), rgb888_to_rgb565(
+            239, 108, 91), rgb888_to_rgb565(174, 194, 255), rgb888_to_rgb565(169, 254, 240), self.white]
+
         self.rhythm_colors_highlight = [rgb888_to_rgb565(255, 219, 197), rgb888_to_rgb565(
             255, 189, 180), rgb888_to_rgb565(227, 234, 255), rgb888_to_rgb565(243, 253, 255), self.white]
 
@@ -128,8 +130,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
         self.pwm = PWM(Pin(BL))
         self.pwm.freq(5000)
 
-        self.font_writer_freesans20 = None  # writer.Writer(self, freesans20)
-        self.font_writer_font6 = None  # writer.Writer(self, font6)
+        # self.font_writer_freesans20 = None  # writer.Writer(self, freesans20)
+        # self.font_writer_font6 = None  # writer.Writer(self, font6)
 
         self.__need_display = False
         self.need_display_lock = allocate_lock()
@@ -153,6 +155,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
             open(PARAM, "r")
         except OSError:
             missing_files += PARAM+"\n"
+
+        self.firmware_version = version
 
         self.display_lxb_logo(version, missing_files)
         gc.collect()
@@ -544,7 +548,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.draw_approx_pie_slice(
                 [120, 120], 90, 100, angle_inner-10, angle_inner+10, self.white)
 
-            txt = "debug"
+            txt = self.firmware_version if self.firmware_version is not None else "debug"
             txt_len = self.font_writer_freesans20.stringlen(txt)
             self.font_writer_freesans20.text(
                 txt, 120-(txt_len//2), 20, self.white)
@@ -558,20 +562,28 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 cv_v_values.append(round(((cv/100)*5), 1))
 
             txt = f"clk:{1-clk_value}"
-            self.font_writer_freesans20.text(txt, 80, 60, self.white)
+            self.font_writer_freesans20.text(txt, 80, 40, self.white)
             txt = f"rst:{1-rst_value}"
-            self.font_writer_freesans20.text(txt, 80, 80, self.white)
+            self.font_writer_freesans20.text(txt, 80, 60, self.white)
             txt = f"cv1:{cv_v_values[0]}V"
-            self.font_writer_freesans20.text(txt, 80, 100, self.white)
+            self.font_writer_freesans20.text(txt, 80, 80, self.white)
             txt = f"cv2:{cv_v_values[1]}V"
-            self.font_writer_freesans20.text(txt, 80, 120, self.white)
+            self.font_writer_freesans20.text(txt, 80, 100, self.white)
             txt = f"cv3:{cv_v_values[2]}V"
-            self.font_writer_freesans20.text(txt, 80, 140, self.white)
+            self.font_writer_freesans20.text(txt, 80, 120, self.white)
             txt = f"cv4:{cv_v_values[3]}V"
-            self.font_writer_freesans20.text(txt, 80, 160, self.white)
+            self.font_writer_freesans20.text(txt, 80, 140, self.white)
+
             if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
+
                 rhythm = self.lx_euclid_config.lx_hardware.lx_pander_seq.cached_test_mode_displayed_rhythm
+
                 if rhythm is not self.lx_euclid_config.lx_hardware.lx_pander_seq.LX_PANDER_ERROR_MESSAGE:
+
+                    txt_version = "expander " + \
+                        self.lx_euclid_config.lx_hardware.lx_pander_seq.get_version_string()
+                    self.font_writer_font6.text(
+                        txt_version, 60, 160, self.white)
                     txt = str(rhythm[:8])
                     self.font_writer_font6.text(txt, 60, 180, self.white)
                     txt = str(rhythm[8:])
@@ -798,12 +810,8 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_font6.text(
                     current_channel_setting, 108, 130, page_color)
 
-                if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
-                    texts = [["Eucl."], ["Exp.", "Eucl."], [
-                        "Inv.", "Exp."], ["Sym.", "Eucl."], ["Seq."]]
-                else:
-                    texts = [["Eucl."], ["Exp.", "Eucl."], [
-                        "Inv.", "Exp."], ["Sym.", "Eucl."]]
+                texts = [["Eucl."], ["Exp.", "Eucl."], [
+                    "Inv.", "Exp."], ["Sym.", "Eucl."]]
 
                 txt_colors = [txt_color]*len(texts)
 
@@ -948,8 +956,12 @@ class LCD_1inch28(framebuf.FrameBuffer):
             self.font_writer_freesans20.text(
                 other_txt, 100, 110, self.white)
 
-            texts = [["Clock", "Source"], [
-                "Sensi", "Touch"], ["Rot", "Screen"]]
+            if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
+                texts = [["Clock", "Source"], [
+                    "Sensi", "Touch"], ["Rot", "Screen"], ["Exp.", "Focus"]]
+            else:
+                texts = [["Clock", "Source"], [
+                    "Sensi", "Touch"], ["Rot", "Screen"]]
 
             self.display_circle_texts(texts, self.white)
 
@@ -1046,6 +1058,21 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 txt_colors[flip_index] = txt_color_highlight
 
                 self.display_circle_texts(texts, txt_colors)
+            elif page == 3:  # Expander focus
+                current_channel_setting = "focus"
+                self.font_writer_font6.text(
+                    current_channel_setting, 105, 130, page_color)
+
+                focus_mode = self.lx_euclid_config.expander_focus_navigation_type
+
+                texts = [["Default"], ["Lock ", "Ch1"], [
+                    "Lock", "Ch2"], ["Lock", "Ch3"], ["Lock", "Ch4"]]
+
+                txt_colors = [txt_color]*len(texts)
+
+                txt_colors[focus_mode] = txt_color_highlight
+
+                self.display_circle_texts(texts, txt_colors)
 
         elif local_state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
 
@@ -1059,7 +1086,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             self.circle(120, 120, 51, self.touch_circle_color_highlight, True)
             self.circle(120, 120, 51-15, self.black, True)
-            if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM and local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
+            if current_euclidean_rhythm.algo_custom and local_state == LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE:
                 pulse_color = self.grey
             else:
                 pulse_color = self.touch_circle_color_highlight
@@ -1073,7 +1100,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 b_len = self.font_writer_freesans20.stringlen(b)
 
                 # for seq algo, display the custom rhythm pulses instead of pulses number
-                if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                if current_euclidean_rhythm.algo_custom:
                     p = str(sum(
                         current_euclidean_rhythm.custom_rhythm[:current_euclidean_rhythm.beats]))
                 else:
@@ -1082,7 +1109,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 self.font_writer_freesans20.text(
                     str(b), 120-(b_len//2), 71, highlight_color)
 
-                if current_euclidean_rhythm.algo_index == LxEuclidConstant.ALGO_CUSTOM_RHYTHM:
+                if current_euclidean_rhythm.algo_custom:
                     pulse_color = self.grey
                 else:
                     pulse_color = highlight_color
@@ -1120,26 +1147,53 @@ class LCD_1inch28(framebuf.FrameBuffer):
         local_state = self.lx_euclid_config.state
         self.lx_euclid_config.state_lock.release()
         local_beat_coord = self.beats_coords
-        for euclidieanRhythm in self.lx_euclid_config.euclidean_rhythms:
+        for rhythm_index, euclidieanRhythm in enumerate(self.lx_euclid_config.euclidean_rhythms):
 
             beat_color = self.rhythm_colors[rhythm_index]
             beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
-
+            in_menu = False
+            in_menu_current_rhythm = False
             highlight_color = self.white
+
             if local_state in [LxEuclidConstant.STATE_PARAM_MENU, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE,  LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY]:
+                in_menu = True
                 offset_radius = self.OFFSET_RADIUS_PARAM
                 local_beat_coord = self.param_beats_coords
                 if rhythm_index != rhythm_param_counter:
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
                     highlight_color = self.grey
+
+                    # get global rhythm and offset w/ CV modification
+                    local_offset = euclidieanRhythm.offset
+                    if euclidieanRhythm.has_cv_offset:
+                        local_offset = euclidieanRhythm.global_cv_offset
+
+                    local_rhythm = euclidieanRhythm.rhythm.copy()
+                else:
+
+                    # get global rhythm and offset without CV modification
+                    local_offset = euclidieanRhythm.offset
+                    local_rhythm = euclidieanRhythm.rhythm_without_CV.copy()
+                    in_menu_current_rhythm = True
+
             elif local_state == LxEuclidConstant.STATE_LIVE:
+                # get global rhythm and offset w/ CV modification
+                local_offset = euclidieanRhythm.offset
+                if euclidieanRhythm.has_cv_offset:
+                    local_offset = euclidieanRhythm.global_cv_offset
+
+                local_rhythm = euclidieanRhythm.rhythm.copy()
+
                 if euclidieanRhythm.is_mute:
                     beat_color = self.grey
                     beat_color_hightlight = self.grey
                 elif euclidieanRhythm.is_fill:
                     beat_color = self.rhythm_colors_highlight[rhythm_index]
                     beat_color_hightlight = self.rhythm_colors_highlight[rhythm_index]
+            else:
+                # this shouldn't happen, but in case, we don't display circle rhythm
+                break
 
             if euclidieanRhythm.in_burst:
                 circle_color = self.white
@@ -1157,12 +1211,6 @@ class LCD_1inch28(framebuf.FrameBuffer):
                     local_current_step = euclidieanRhythm.current_burst_step
                 else:
                     local_current_step = euclidieanRhythm.current_step
-
-            local_offset = euclidieanRhythm.offset
-            if euclidieanRhythm.has_cv_offset:
-                local_offset = euclidieanRhythm.global_cv_offset
-
-            local_rhythm = euclidieanRhythm.rhythm.copy()
 
             len_euclidiean_rhythm = len(local_rhythm)
 
@@ -1191,19 +1239,47 @@ class LCD_1inch28(framebuf.FrameBuffer):
                 coord = coords[index]
                 final_beat_color = beat_color
 
-                if index == local_current_step:
+                # we hide the current beat playing when we are in edit mode
+                if index == local_current_step and not in_menu_current_rhythm:
                     self.circle(coord[0]+120, coord[1] +
                                 120, 10, highlight_color, True)
                     final_beat_color = beat_color_hightlight
 
-                filled = local_rhythm[(
-                    index-local_offset) % len_euclidiean_rhythm]
+                true_index = (index-local_offset) % len_euclidiean_rhythm
+                filled = local_rhythm[true_index]
 
-                self.circle(coord[0]+120, coord[1]+120,
-                            8, final_beat_color, filled)
-                if filled == 0:
-                    self.circle(coord[0]+120, coord[1] +
-                                120, 7, self.black, True)
+                outline_color = final_beat_color
+                if self.lx_euclid_config.lx_hardware.lx_pander_seq is not None:
+                    if rhythm_index == self.lx_euclid_config.focus_rhythm_display:
+                        page = self.lx_euclid_config.focus_page_display
+                        if (page == 0 and true_index < 16) or (page == 1 and true_index >= 16):
+                            outline_color = self.rhythm_colors_low_high[rhythm_index]
+
+                # hightlight the first beat accoarding to the offset
+                if index == local_offset:
+                    # rhythm index 3 has a bright color so we make it bigger to pop out with white
+                    if (rhythm_index == 3 and not in_menu) or (in_menu and rhythm_index == rhythm_param_counter):
+                        hightlight_size = 9
+                    else:
+                        hightlight_size = 8
+
+                    self.circle(coord[0]+120, coord[1]+120,
+                                hightlight_size, self.white, filled)
+                    if filled == 0:
+                        self.circle(coord[0]+120, coord[1] +
+                                    120, 7, self.black, True)
+                    else:
+                        self.circle(coord[0]+120, coord[1] +
+                                    120, 7, final_beat_color, True)
+                else:
+                    self.circle(coord[0]+120, coord[1]+120,
+                                8, outline_color, filled)
+                    if filled == 0:
+                        self.circle(coord[0]+120, coord[1] +
+                                    120, 7, self.black, True)
+                    else:
+                        self.circle(coord[0]+120, coord[1]+120,
+                                    7, final_beat_color, filled)
 
             radius = radius - offset_radius
             rhythm_index = rhythm_index + 1

@@ -5,12 +5,12 @@ from Rp2040Lcd import LCD_1inch28
 # minor.major.fix + add
 MAJOR = 1
 MINOR = 17
-FIX = 4
+FIX = 5
 ADD = "_dev"
 
 MEMORY_MAJOR = 1
 MEMORY_MINOR = 1
-MEMORY_FIX = 2
+MEMORY_FIX = 4
 
 VERSION = f"v{MAJOR}.{MINOR}.{FIX}{ADD}"
 LCD = LCD_1inch28(VERSION)  # do this here before everything cause it will load lxb picture which take lots of memory
@@ -81,6 +81,8 @@ def lxhardware_changed(handlerEventData):
         if lx_euclid_config.state in [LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_OFFSET_PROBABILITY, LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE, LxEuclidConstant.STATE_LIVE]:
             LCD.set_need_display()
         lx_euclid_config.random_gate_length_update()
+
+        lx_hardware.set_expander_current_step_from_lx_euclid()
     elif event == lx_hardware.RST_RISE:
         if lx_euclid_config.preset_recall_ext_reset:
             lx_euclid_config.delegate_load_preset()
