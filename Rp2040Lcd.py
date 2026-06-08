@@ -656,7 +656,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
 
             if page == 0:
                 texts = [["None"], ["Rst"], ["Lgth"], ["Pulse"], [
-                    "Rot"], ["Prob"], ["Fill"], ["Mute"], ["Burst"]]
+                    "Rot"], ["Prob"], ["Fill"], ["Mute"], ["Burst"], ["Burst", "2-4-8"]]
 
                 txt_colors = [txt_color]*len(texts)
                 if self.lx_euclid_config.param_pads_inner_outer_page == 0:  # inner
@@ -684,7 +684,7 @@ class LCD_1inch28(framebuf.FrameBuffer):
                         txt_colors[i] = txt_color_highlight
 
                 macro_txts = ["rst", "lgth", "pulse",
-                              "rot", "prob", "fill", "mute", "burst"]
+                              "rot", "prob", "fill", "mute", "burst", "2-4-8"]
 
                 # -1 because 0 is "None"
                 macro_txt = macro_txts[rotate_action-1]
