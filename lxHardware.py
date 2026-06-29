@@ -223,7 +223,7 @@ class LxHardware:
 
         # used to detect a press on circles
         self.inner_previous_state = False
-        self.outer_previous_sate = False
+        self.outer_previous_state = False
 
         self.cv_manager = CvManager(self.i2c)
 
@@ -397,33 +397,46 @@ class LxHardware:
 
     def get_touch_circles_updates(self):
         circles_data = self.capacitives_circles.get_touch_circles_updates()
+        # circles_data: (inner_updated, outer_updated, inner_incr_decr, outer_incr_decr)
+
+        # --- Inner ring ---
         if circles_data[2] == CapacitivesCircles.INNER_CIRCLE_INCR_EVENT:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_INCR, circles_data))
+            self.has_incr_decr_inner = True
         elif circles_data[2] == CapacitivesCircles.INNER_CIRCLE_DECR_EVENT:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_DECR, circles_data))
-        elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT:
-            self.lxHardwareEventFifo.append(HandlerEventData(
-                LxHardware.OUTER_CIRCLE_INCR, circles_data))
-        elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT:
-            self.lxHardwareEventFifo.append(HandlerEventData(
-                LxHardware.OUTER_CIRCLE_DECR, circles_data))
+            self.has_incr_decr_inner = True
         elif circles_data[0]:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_TOUCH, circles_data))
+        elif not circles_data[0] and self.inner_previous_state:
+            if not self.has_incr_decr_inner:  # to avoid registering a tap after an incr or decr
+                self.lxHardwareEventFifo.append(HandlerEventData(
+                    LxHardware.INNER_CIRCLE_TAP, circles_data))
+            self.has_incr_decr_inner = False
+
+        # --- Outer ring ---
+        if circles_data[3] == CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT:
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.OUTER_CIRCLE_INCR, circles_data))
+            self.has_incr_decr_outer = True
+        elif circles_data[3] == CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT:
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.OUTER_CIRCLE_DECR, circles_data))
+            self.has_incr_decr_outer = True
         elif circles_data[1]:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
-        elif not circles_data[0] and self.inner_previous_state:
-            self.lxHardwareEventFifo.append(HandlerEventData(
-                LxHardware.INNER_CIRCLE_TAP, circles_data))
-        elif not circles_data[1] and self.outer_previous_sate:
-            self.lxHardwareEventFifo.append(HandlerEventData(
-                LxHardware.OUTER_CIRCLE_TAP, circles_data))
+        elif not circles_data[1] and self.outer_previous_state:
+            if not self.has_incr_decr_outer:  # to avoid registering a tap after an incr or decr
+                self.lxHardwareEventFifo.append(HandlerEventData(
+                    LxHardware.OUTER_CIRCLE_TAP, circles_data))
+            self.has_incr_decr_outer = False
 
         self.inner_previous_state = circles_data[0]
-        self.outer_previous_sate = circles_data[1]
+        self.outer_previous_state = circles_data[1]
 
     def update_cv_values(self):
         self.i2c_lock.acquire()

@@ -97,12 +97,8 @@ class CapacitivesCircles():
     def get_touch_circles_updates(self):
         if self.is_mpr_detected:
             local_touch_sensitivity = self.touch_sensitivity
-            datas = []
-            inner_circle_len = 0
-            outer_circle_len = 0
-            angle = 0
-            incr_decr_event = CapacitivesCircles.NO_INCR_DECR_EVENT
-
+            inner_incr_decr_event = CapacitivesCircles.NO_INCR_DECR_EVENT
+            outer_incr_decr_event = CapacitivesCircles.NO_INCR_DECR_EVENT
             inner_angle_updated = False
             outer_angle_updated = False
 
@@ -110,108 +106,115 @@ class CapacitivesCircles():
             temp_data = self.mpr.all_filtered_data()
             self.i2c_lock.release()
 
-            # if there is an error while reading the capacitive touch sensor, we return "0"
             if temp_data == None:
-                return False, False, CapacitivesCircles.NO_INCR_DECR_EVENT, 0
+                return False, False, CapacitivesCircles.NO_INCR_DECR_EVENT, CapacitivesCircles.NO_INCR_DECR_EVENT
 
+            inner_datas = []
+            outer_datas = []
             for i in range(0, 12):
                 data = temp_data[i]
-                if data < (self.calibration_array[i]-CapacitivesCircles.CALIBRATION_THRESHOLD):
-                    if self.list_concordance_sensor[i] < 6:
-                        inner_circle_len += 1
+                logical_pos = self.list_concordance_sensor[i]
+                if data < (self.calibration_array[i] - CapacitivesCircles.CALIBRATION_THRESHOLD):
+                    if logical_pos < 6:
+                        inner_datas.append((logical_pos, data))
                     else:
-                        outer_circle_len += 1
-                    datas.append((self.list_concordance_sensor[i], data))
-            datas = sorted(datas, key=lambda x: x[0])
+                        outer_datas.append((logical_pos, data))
 
-            if len(datas) > 1 and len(datas) < 4:
-                if inner_circle_len > outer_circle_len:
-                    datas = [x for x in datas if x[0] < 6]
-                    outer_circle_len = 0
+            inner_datas = sorted(inner_datas, key=lambda x: x[0])
+            outer_datas = sorted(outer_datas, key=lambda x: x[0])
+
+            # Per-ring filtering: reject 3+ active electrodes (ambiguous read)
+            if len(inner_datas) > 2:
+                inner_datas = []
+            if len(outer_datas) > 2:
+                outer_datas = []
+
+            # Two touched electrodes must be adjacent (dist=1) or wrap-adjacent (dist=5)
+            if len(inner_datas) == 2:
+                dist = abs(inner_datas[0][0] - inner_datas[1][0])
+                if dist != 1 and dist != 5:
+                    inner_datas = []
+            if len(outer_datas) == 2:
+                dist = abs(outer_datas[0][0] - outer_datas[1][0])
+                if dist != 1 and dist != 5:
+                    outer_datas = []
+
+            # --- Inner ring ---
+            if len(inner_datas) > 0:
+                if len(inner_datas) == 1:
+                    angle = inner_datas[0][0] * 60
                 else:
-                    datas = [x for x in datas if x[0] > 5]
-                    inner_circle_len = 0
-            elif len(datas) != 1:
-                datas = []
-
-            if len(datas) == 2:
-                sensor_distance = abs(datas[0][0] - datas[1][0])
-                if sensor_distance != 1 and sensor_distance != 5:
-                    datas = []
-
-            if len(datas) > 0:
-                angle = 0
-                if inner_circle_len > 0:
-                    index_factor_offset = 0
-                else:
-                    index_factor_offset = 6
-
-                if len(datas) == 1:
-                    angle = (datas[0][0]-index_factor_offset)*60
-                else:
-
-                    indexes = [x[0] for x in datas]
-                    if (0 in indexes and 5 in indexes) or (6 in indexes and 11 in indexes):
-
-                        data_first_sensor = datas[1][1]
-                        data_second_sensor = datas[0][1]
-                        index_factor = datas[1][0] - index_factor_offset
+                    indexes = [x[0] for x in inner_datas]
+                    if 0 in indexes and 5 in indexes:
+                        data_first_sensor = inner_datas[1][1]
+                        data_second_sensor = inner_datas[0][1]
+                        index_factor = inner_datas[1][0]
                     else:
-
-                        data_first_sensor = datas[0][1]
-                        data_second_sensor = datas[1][1]
-                        index_factor = datas[0][0] - index_factor_offset
-
-                    # old angle computation, doesn't work well
-                    # factor = (data_first_sensor-50)/(110-50)
-                    # angle = index_factor*60 + factor*60
-
-                    # if 0 in indexes and 1 in indexes:
+                        data_first_sensor = inner_datas[0][1]
+                        data_second_sensor = inner_datas[1][1]
+                        index_factor = inner_datas[0][0]
                     difference = data_first_sensor - data_second_sensor
-                    factor = (difference+90)/180
-                    angle = index_factor*60 + factor*60
+                    factor = (difference + 90) / 180
+                    angle = index_factor * 60 + factor * 60
 
                 if self.flip == True:
                     angle = angle + 180
 
-                if inner_circle_len > 0:
-
-                    if ticks_ms() - self.last_inner_circle_angle_timestamp_ms < CapacitivesCircles.MAX_DELAY_INCR_DECR_MS:
-                        delta = self.last_inner_circle_angle-angle
-                        # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
-                        # and vice versa
-                        if (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] and delta < 340) or delta < -340:
-                            incr_decr_event = CapacitivesCircles.INNER_CIRCLE_INCR_EVENT
-                            self.last_inner_circle_angle = angle
-                        elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] or delta > 340:
-                            incr_decr_event = CapacitivesCircles.INNER_CIRCLE_DECR_EVENT
-                            self.last_inner_circle_angle = angle
-                    else:
-                        # do this to prevent incr-decr when we touch the sensor after long time
+                if ticks_ms() - self.last_inner_circle_angle_timestamp_ms < CapacitivesCircles.MAX_DELAY_INCR_DECR_MS:
+                    delta = self.last_inner_circle_angle - angle
+                    # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
+                    # and vice versa
+                    if (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] and delta < 340) or delta < -340:
+                        inner_incr_decr_event = CapacitivesCircles.INNER_CIRCLE_INCR_EVENT
                         self.last_inner_circle_angle = angle
-                    self.inner_circle_angle = angle
-                    self.last_inner_circle_angle_timestamp_ms = ticks_ms()
-
-                    inner_angle_updated = True
+                    elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] or delta > 340:
+                        inner_incr_decr_event = CapacitivesCircles.INNER_CIRCLE_DECR_EVENT
+                        self.last_inner_circle_angle = angle
                 else:
+                    # do this to prevent incr-decr when we touch the sensor after long time
+                    self.last_inner_circle_angle = angle
+                self.inner_circle_angle = angle
+                self.last_inner_circle_angle_timestamp_ms = ticks_ms()
+                inner_angle_updated = True
 
-                    if ticks_ms() - self.last_outer_circle_angle_timestamp_ms < CapacitivesCircles.MAX_DELAY_INCR_DECR_MS:
-                        delta = self.last_outer_circle_angle-angle
-                        # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
-                        # and vice versa
-                        if (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] and delta < 340) or delta < -340:
-                            incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT
-                            self.last_outer_circle_angle = angle
-                        elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] or delta > 340:
-                            incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT
-                            self.last_outer_circle_angle = angle
+            # --- Outer ring ---
+            if len(outer_datas) > 0:
+                if len(outer_datas) == 1:
+                    angle = (outer_datas[0][0] - 6) * 60
+                else:
+                    indexes = [x[0] for x in outer_datas]
+                    if 6 in indexes and 11 in indexes:
+                        data_first_sensor = outer_datas[1][1]
+                        data_second_sensor = outer_datas[0][1]
+                        index_factor = outer_datas[1][0] - 6
                     else:
-                        # do this to prevent incr-decr when we touch the sensor after long time
-                        self.last_outer_circle_angle = angle
-                    self.outer_circle_angle = angle
-                    self.last_outer_circle_angle_timestamp_ms = ticks_ms()
+                        data_first_sensor = outer_datas[0][1]
+                        data_second_sensor = outer_datas[1][1]
+                        index_factor = outer_datas[0][0] - 6
+                    difference = data_first_sensor - data_second_sensor
+                    factor = (difference + 90) / 180
+                    angle = index_factor * 60 + factor * 60
 
-                    outer_angle_updated = True
-            return inner_angle_updated, outer_angle_updated, incr_decr_event, angle
+                if self.flip == True:
+                    angle = angle + 180
+
+                if ticks_ms() - self.last_outer_circle_angle_timestamp_ms < CapacitivesCircles.MAX_DELAY_INCR_DECR_MS:
+                    delta = self.last_outer_circle_angle - angle
+                    # didn't put 360° in test but a little less to trigger it properly when passing from 360° to 0
+                    # and vice versa
+                    if (delta > CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] and delta < 340) or delta < -340:
+                        outer_incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT
+                        self.last_outer_circle_angle = angle
+                    elif delta < -CapacitivesCircles.STEP_TRIGGER_INCR_DEGREE[local_touch_sensitivity] or delta > 340:
+                        outer_incr_decr_event = CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT
+                        self.last_outer_circle_angle = angle
+                else:
+                    # do this to prevent incr-decr when we touch the sensor after long time
+                    self.last_outer_circle_angle = angle
+                self.outer_circle_angle = angle
+                self.last_outer_circle_angle_timestamp_ms = ticks_ms()
+                outer_angle_updated = True
+
+            return inner_angle_updated, outer_angle_updated, inner_incr_decr_event, outer_incr_decr_event
         else:
-            return False, False, CapacitivesCircles.NO_INCR_DECR_EVENT, 0
+            return False, False, CapacitivesCircles.NO_INCR_DECR_EVENT, CapacitivesCircles.NO_INCR_DECR_EVENT
