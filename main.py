@@ -32,7 +32,7 @@ LONG_LONG_PRESS_MS = 2000
 LONG_PRESS_MS = 500
 DEBOUNCE_MS = 20
 
-CAPACITIVE_CIRCLES_DELAY_READ_MS = 50
+CAPACITIVE_CIRCLES_DELAY_READ_MS = 10
 
 last_timer_launch_ms = ticks_ms()
 last_capacitive_circles_read_ms = ticks_ms()
@@ -185,7 +185,6 @@ def lxhardware_changed(handlerEventData):
 
 
 def display_thread():
-    global last_capacitive_circles_read_ms
     while wait_display_thread:
         sleep(0.1)
     while not stop_thread:
@@ -203,9 +202,6 @@ def display_thread():
                     gc.collect()
                     LCD.display_rhythms()
                     gc.collect()
-                if ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
-                    lx_hardware.get_touch_circles_updates()
-                    last_capacitive_circles_read_ms = ticks_ms()
         except Exception as e_display:
             print("error in display_thread")
             append_error(e_display)
@@ -288,6 +284,10 @@ if __name__ == '__main__':
                     if need_lcd_update:
                         LCD.set_need_display()
 
+
+            if ticks_ms() - last_capacitive_circles_read_ms > CAPACITIVE_CIRCLES_DELAY_READ_MS:
+                lx_hardware.get_touch_circles_updates()
+                last_capacitive_circles_read_ms = ticks_ms()
         print("quit")
     except Exception as e:
         append_error(e)
