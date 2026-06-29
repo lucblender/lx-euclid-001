@@ -147,6 +147,9 @@ class LxHardware:
         # this sm_internal_clock goes 24 time faster than the clock to handle burst
         # clk_subdivision_counter handle this 24 time division
         self.clk_subdivision_counter = 0
+        self.clk_subdivision_burst_counter = 0
+
+        self.bypass_clk_in_burst = False
 
         sw_0_pin = Pin(SW0, Pin.IN, Pin.PULL_UP)
         sw_1_pin = Pin(SW1, Pin.IN, Pin.PULL_UP)
@@ -290,6 +293,10 @@ class LxHardware:
 
     def internal_clk_pin_change(self, pin):
 
+        if self.bypass_clk_in_burst:
+            self.bypass_clk_in_burst = False
+            return
+
         if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
             self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
 
@@ -311,6 +318,15 @@ class LxHardware:
         # 16 --> biggest clock divider (LxEuclidConstant.PRESCALER_LIST[-1])
         self.clk_subdivision_counter = (
             self.clk_subdivision_counter + 1) % (LxEuclidConstant.BURST_SUBDIVISION*LxEuclidConstant.PRESCALER_LIST[-1])
+
+        self.clk_subdivision_burst_counter = self.clk_subdivision_burst_counter + 1
+
+        # we reached the end of a subdivision burst cycle
+        if self.lx_euclid_config.clk_mode == LxEuclidConstant.CLK_IN:
+            if self.clk_subdivision_burst_counter == 24:
+                self.bypass_clk_in_burst = True
+                self.clk_subdivision_burst_counter = 0
+
 
     def clk_pin_change(self, pin):
         try:
@@ -346,7 +362,9 @@ class LxHardware:
                         # it seems more stable without it, to investigate if I keep or not
                         # if not self.lx_euclid_config.is_any_burst_running():
                         self.stop_internal_clk()
+                        self.bypass_clk_in_burst = False
                         self.clk_subdivision_counter = 0
+                        self.clk_subdivision_burst_counter = 0
                         self.relaunch_internal_clk()
 
                         self.lxHardwareEventFifo.append(self.clk_rise_event)
