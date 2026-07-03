@@ -214,8 +214,7 @@ class CapacitivesCircles():
                 self.outer_circle_angle = angle
                 self.last_outer_circle_angle_timestamp_ms = ticks_ms()
                 outer_angle_updated = True
-            to_return = inner_angle_updated, outer_angle_updated, inner_incr_decr_event, outer_incr_decr_event
-            print(to_return)
-            return to_return
+
+            return inner_angle_updated, outer_angle_updated, inner_incr_decr_event, outer_incr_decr_event
         else:
             return False, False, CapacitivesCircles.NO_INCR_DECR_EVENT, CapacitivesCircles.NO_INCR_DECR_EVENT
