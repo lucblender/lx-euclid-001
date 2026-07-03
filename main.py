@@ -5,7 +5,7 @@ from Rp2040Lcd import LCD_1inch28
 # minor.major.fix + add
 MAJOR = 1
 MINOR = 17
-FIX = 5
+FIX = 6
 ADD = "_dev"
 
 MEMORY_MAJOR = 1
@@ -162,6 +162,14 @@ def lxhardware_changed(handlerEventData):
     elif event == lx_hardware.OUTER_CIRCLE_TAP:
         lx_euclid_config.on_event(
             LxEuclidConstant.EVENT_OUTER_CIRCLE_TAP, handlerEventData.data)
+        LCD.set_need_display()
+    elif event == lx_hardware.INNER_CIRCLE_RELEASE:
+        lx_euclid_config.on_event(
+            LxEuclidConstant.EVENT_INNER_CIRCLE_RELEASE, handlerEventData.data)
+        LCD.set_need_display()
+    elif event == lx_hardware.OUTER_CIRCLE_RELEASE:
+        lx_euclid_config.on_event(
+            LxEuclidConstant.EVENT_OUTER_CIRCLE_RELEASE, handlerEventData.data)
         LCD.set_need_display()
     elif event == lx_hardware.BTN_SWITCHES_RISE:
         tmp_time = ticks_ms()

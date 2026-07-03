@@ -102,11 +102,13 @@ class LxHardware:
     OUTER_CIRCLE_TOUCH = const(12)
     INNER_CIRCLE_TAP = const(13)
     OUTER_CIRCLE_TAP = const(14)
+    INNER_CIRCLE_RELEASE = const(15)
+    OUTER_CIRCLE_RELEASE = const(16)
 
-    BTN_SWITCHES_RISE = const(15)
-    BTN_SWITCHES_FALL = const(16)
+    BTN_SWITCHES_RISE = const(17)
+    BTN_SWITCHES_FALL = const(18)
 
-    CUSTOM_RHYTHM_UPDATE = const(17)
+    CUSTOM_RHYTHM_UPDATE = const(19)
 
     EEPROM_ADDR = const(0x50)
 
@@ -145,6 +147,9 @@ class LxHardware:
         # this sm_internal_clock goes 24 time faster than the clock to handle burst
         # clk_subdivision_counter handle this 24 time division
         self.clk_subdivision_counter = 0
+        self.clk_subdivision_burst_counter = 0
+
+        self.bypass_clk_in_burst = False
 
         sw_0_pin = Pin(SW0, Pin.IN, Pin.PULL_UP)
         sw_1_pin = Pin(SW1, Pin.IN, Pin.PULL_UP)
@@ -288,6 +293,17 @@ class LxHardware:
 
     def internal_clk_pin_change(self, pin):
 
+        if self.bypass_clk_in_burst:
+            self.bypass_clk_in_burst = False
+            return
+
+        # we are using 16 bit on the SM
+        # --> 2**16/10/1000 = 6.5536 s
+        if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+            self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
+        else:
+            self.sm_internal_clock.put(self.clock_period_avg_tenth_ms)
+
         if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
             self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
 
@@ -296,19 +312,22 @@ class LxHardware:
                 self.lx_euclid_config.incr_steps()
                 self.lxHardwareEventFifo.append(self.clk_rise_event)
             # relauch only when using tap mode
-        #
-        # we are using 16 bit on the SM
-        # --> 2**16/10/1000 = 6.5536 s
-        if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-            self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
-        else:
-            self.sm_internal_clock.put(self.clock_period_avg_tenth_ms)
+
 
         # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
         # *
         # 16 --> biggest clock divider (LxEuclidConstant.PRESCALER_LIST[-1])
         self.clk_subdivision_counter = (
             self.clk_subdivision_counter + 1) % (LxEuclidConstant.BURST_SUBDIVISION*LxEuclidConstant.PRESCALER_LIST[-1])
+
+        self.clk_subdivision_burst_counter = self.clk_subdivision_burst_counter + 1
+
+        # we reached the end of a subdivision burst cycle
+        if self.lx_euclid_config.clk_mode == LxEuclidConstant.CLK_IN:
+            if self.clk_subdivision_burst_counter == 24:
+                self.bypass_clk_in_burst = True
+                self.clk_subdivision_burst_counter = 0
+
 
     def clk_pin_change(self, pin):
         try:
@@ -328,22 +347,31 @@ class LxHardware:
                         self.last_clock_periods.append(self.delta_tenth_ms)
                     self.last_clock_ticks_tenth_ms = self.temp_ticks_tenth_ms
 
+                    if self.lx_euclid_config.clk_mode == LxEuclidConstant.CLK_IN:
+                        self.lx_euclid_config.incr_steps()
+                        # resync the burst to the input clock
+                        self.lx_euclid_config.test_start_burst()
+
+                        # remove the if and the three following in the condition
+                        # it seems more stable without it, to investigate if I keep or not
+                        # if not self.lx_euclid_config.is_any_burst_running():
+                        self.stop_internal_clk()
+                        self.bypass_clk_in_burst = False
+                        self.clk_subdivision_counter = 0
+                        self.clk_subdivision_burst_counter = 0
+                        self.relaunch_internal_clk()
+
+                        self.lx_euclid_config.update_all_gates_length_percentage_time_ms()
+
+                        self.lxHardwareEventFifo.append(self.clk_rise_event)
+
+
+
                     self.clock_period_accumulator = 0
                     for i in range(0, 8):
                         self.clock_period_accumulator += self.last_clock_periods[i]
                     # ceil div by 8 since we have 8 element in the last_clock_periods deque
                     self.clock_period_avg_tenth_ms = self.clock_period_accumulator // 8
-
-                    if self.lx_euclid_config.clk_mode == LxEuclidConstant.CLK_IN:
-                        self.lx_euclid_config.update_all_gates_length_percentage_time_ms()
-                        self.lx_euclid_config.incr_steps()
-                        # resync the burst to the input clock
-                        self.lx_euclid_config.test_start_burst()
-                        if not self.lx_euclid_config.is_any_burst_running():
-                            self.stop_internal_clk()
-                            self.clk_subdivision_counter = 0
-                            self.relaunch_internal_clk()
-                        self.lxHardwareEventFifo.append(self.clk_rise_event)
 
         except Exception as e:
             print(e)
@@ -442,7 +470,9 @@ class LxHardware:
 
     def get_touch_circles_updates(self):
         circles_data = self.capacitives_circles.get_touch_circles_updates()
+
         if circles_data[2] == CapacitivesCircles.INNER_CIRCLE_INCR_EVENT:
+
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_INCR, circles_data))
 
@@ -485,6 +515,17 @@ class LxHardware:
             # reset both flags in case we touched both circles during a "touch incr/decr" event
             self.has_incr_decr_inner = False
             self.has_incr_decr_outer = False
+
+        # handle release only
+        if not circles_data[0] and self.inner_previous_state:
+            # we released inner circle
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.INNER_CIRCLE_RELEASE, circles_data))
+
+        elif not circles_data[1] and self.outer_previous_state:
+            # we released outer circle
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.OUTER_CIRCLE_RELEASE, circles_data))
 
         self.inner_previous_state = circles_data[0]
         self.outer_previous_state = circles_data[1]

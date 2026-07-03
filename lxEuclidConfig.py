@@ -70,6 +70,8 @@ class LxEuclidConstant:
     CIRCLE_ACTION_FILL = const(6)
     CIRCLE_ACTION_MUTE = const(7)
     CIRCLE_ACTION_BURST = const(8)
+    CIRCLE_ACTION_BURST_2_4_8 = const(9)
+    CIRCLE_ACTION_LENGTH = const(10)
 
     CIRCLE_RHYTHM_1 = const(0)
     CIRCLE_RHYTHM_2 = const(1)
@@ -110,9 +112,12 @@ class LxEuclidConstant:
     EVENT_OUTER_CIRCLE_TOUCH = const(10)
     EVENT_INNER_CIRCLE_TAP = const(11)
     EVENT_OUTER_CIRCLE_TAP = const(12)
-    EVENT_BTN_SWITCHES = const(13)
-    EVENT_TAP_MENU_BTN_LONG = const(14)
-    EVENT_CALIBRATION_COUNTDOWN_END = const(15)
+    EVENT_INNER_CIRCLE_RELEASE = const(13)
+    EVENT_OUTER_CIRCLE_RELEASE = const(14)
+
+    EVENT_BTN_SWITCHES = const(15)
+    EVENT_TAP_MENU_BTN_LONG = const(16)
+    EVENT_CALIBRATION_COUNTDOWN_END = const(17)
 
     PRESET_RECALL_DIRECT_W_RESET = const(0)
     PRESET_EXTERNAL_RESET = const(1)
@@ -203,6 +208,9 @@ class EuclideanRhythmParameters:
         self._burst_div_index = burst_div_index
         self.burst_div = LxEuclidConstant.BURST_LIST[burst_div_index]
 
+        self._burst_div_index_2_4_8 = 0
+        self.burst_div_2_4_8 = LxEuclidConstant.BURST_LIST[0]
+
         if custom_rhythm is None:
             self.custom_rhythm = [0]*32
         else:
@@ -223,6 +231,14 @@ class EuclideanRhythmParameters:
     @burst_div_index.setter
     def burst_div_index(self, burst_div_index):
         self._burst_div_index = burst_div_index
+
+    @property
+    def burst_div_index_2_4_8(self):
+        return self._burst_div_index_2_4_8
+
+    @burst_div_index_2_4_8.setter
+    def burst_div_index_2_4_8(self, burst_div_index_2_4_8):
+        self._burst_div_index_2_4_8 = burst_div_index_2_4_8
 
     def get_custom_rhythm_32bits(self):
         result = 0
@@ -287,7 +303,9 @@ class EuclideanRhythm(EuclideanRhythmParameters):
 
         self.in_burst = False
         self.in_burst_cv = False
+        self.in_burst_2_4_8 = False
         self.burst_engaged = False
+        self.burst_engaged_2_4_8 = False
         self.burst_steps_left = 0
         self.current_burst_step = 0
 
@@ -316,6 +334,17 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             burst_div_index = len(LxEuclidConstant.BURST_LIST)-1
         self._burst_div_index = burst_div_index
         self.burst_div = LxEuclidConstant.BURST_LIST[self._burst_div_index]
+
+    @property
+    def burst_div_index_2_4_8(self):
+        return self._burst_div_index_2_4_8
+
+    @burst_div_index_2_4_8.setter
+    def burst_div_index_2_4_8(self, burst_div_index_2_4_8):
+        if burst_div_index_2_4_8 > len(LxEuclidConstant.BURST_LIST)-1:
+            burst_div_index_2_4_8 = len(LxEuclidConstant.BURST_LIST)-1
+        self._burst_div_index_2_4_8 = burst_div_index_2_4_8
+        self.burst_div_2_4_8 = LxEuclidConstant.BURST_LIST[self._burst_div_index_2_4_8]
 
     def mute(self, mute_by_macro=False):
         self.is_mute = True
@@ -412,6 +441,9 @@ class EuclideanRhythm(EuclideanRhythmParameters):
         self.cv_percent_pulse = percent
         self.set_rhythm()
 
+    def refresh_pulses_per_ratio(self):
+        self.__pulses_ratio = self.pulses / self.beats
+
     def incr_pulses(self):
         self.pulses = self.pulses + 1
         if self.pulses > self.beats:
@@ -420,7 +452,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.pulses_set_0_1 = True
         else:
             self.pulses_set_0_1 = False
-        self.__pulses_ratio = self.pulses / self.beats
+        self.refresh_pulses_per_ratio()
         self.set_rhythm()
 
     def decr_pulses(self):
@@ -431,7 +463,7 @@ class EuclideanRhythm(EuclideanRhythmParameters):
             self.pulses_set_0_1 = True
         else:
             self.pulses_set_0_1 = False
-        self.__pulses_ratio = self.pulses / self.beats
+        self.refresh_pulses_per_ratio()
         self.set_rhythm()
 
     def incr_pulses_probability(self):
@@ -462,7 +494,14 @@ class EuclideanRhythm(EuclideanRhythmParameters):
     def incr_burst_step(self, subdivision_24th):
         to_return = False
         if self.in_burst:
-            if subdivision_24th % (self.burst_div*self.prescaler) == 0:
+
+            # use custom burst division for 2_4_8 burst mode
+            if self.burst_engaged_2_4_8:
+                burst_div = self.burst_div_2_4_8
+            else:
+                burst_div = self.burst_div
+
+            if subdivision_24th % (burst_div*self.prescaler) == 0:
                 self.current_burst_step = self.current_burst_step + 1
                 to_return = True
 
@@ -470,31 +509,41 @@ class EuclideanRhythm(EuclideanRhythmParameters):
                 if self.current_burst_step > beat_limit:
                     self.current_burst_step = 0
 
-                if not (self.in_burst_cv):
+                if not (self.in_burst_cv) and not (self.in_burst_2_4_8):
                     if self.burst_steps_left == 0:
                         if self.current_burst_step == self.current_step:
                             self.in_burst = False
+                            self.burst_engaged_2_4_8 = False
                     else:
                         self.burst_steps_left = self.burst_steps_left - 1
 
         return to_return
 
-    def start_continue_burst(self, in_cv=False):
+    def start_continue_burst(self, in_cv=False, in_burst_2_4_8=False):
 
         # only put in_bust_cv if we were not in burst cv
         if in_cv and not (self.in_burst_cv):
             self.in_burst_cv = in_cv
 
+        # only put in_bust_cv if we were not in burst cv
+        if in_burst_2_4_8 and not (self.in_burst_2_4_8):
+            self.in_burst_2_4_8 = in_burst_2_4_8
+
         if not (self.burst_engaged) and not (self.in_burst):
             self.burst_engaged = True
+            if in_burst_2_4_8:
+                self.burst_engaged_2_4_8 = True
             self.current_burst_step = self.current_step
 
-        if not (in_cv):
+        if not (in_cv) and not (in_burst_2_4_8):
             # increment the steps_left by the current beat number only if
             self.burst_steps_left = self.burst_steps_left + self.beats
 
     def stop_burst_cv(self):
         self.in_burst_cv = False
+
+    def stop_burst_2_4_8(self):
+        self.in_burst_2_4_8 = False
 
     def incr_gate_length(self):
         if (self.gate_length_ms+10) < MAX_GATE_LENGTH_MS:
@@ -1142,6 +1191,10 @@ class LxEuclidConfig:
 
         self.tap_delay_ms = delay_ms
 
+    def stop_all_burst_2_4_8(self):
+        for euclidean_rhythm in self.euclidean_rhythms:
+            euclidean_rhythm.stop_burst_2_4_8()
+
     def on_event(self, event, data=None):
         self.state_lock.acquire()
         local_state = self.state
@@ -1177,11 +1230,15 @@ class LxEuclidConfig:
                 self.state = LxEuclidConstant.STATE_MENU_SELECT
                 self.lx_hardware.set_tap_led()
                 self.state_lock.release()
+                # make sure we stop any burst when leaving live state
+                self.stop_all_burst_2_4_8()
                 self.sm_rhythm_param_counter = 0
             if event == LxEuclidConstant.EVENT_MENU_BTN_LONG:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_PARAM_PRESETS
                 self.state_lock.release()
+                # make sure we stop any burst when leaving live state
+                self.stop_all_burst_2_4_8()
                 self.sm_rhythm_param_counter = 0
                 self.lx_hardware.set_tap_led()
                 self.lx_hardware.set_menu_led()
@@ -1196,6 +1253,8 @@ class LxEuclidConfig:
                 self.state_lock.acquire()
                 self.state = LxEuclidConstant.STATE_RHYTHM_PARAM_INNER_BEAT_PULSE
                 self.state_lock.release()
+                # make sure we stop any burst when leaving live state
+                self.stop_all_burst_2_4_8()
 
                 self.lx_hardware.set_sw_leds(data)
 
@@ -1209,6 +1268,63 @@ class LxEuclidConfig:
                 if isinstance(data, int):
                     self.sm_rhythm_param_counter = data
                 self.menu_lock.release()
+
+            # very special case for burst 2/4/8 we need to detect touch and incr/dect to constantly know if user touch the circle
+            elif ((self.inner_rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8 and event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, LxEuclidConstant.EVENT_INNER_CIRCLE_RELEASE])
+                  or (self.outer_rotate_action == LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8 and event in [LxEuclidConstant.EVENT_OUTER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, LxEuclidConstant.EVENT_OUTER_CIRCLE_RELEASE])):
+
+                if event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TOUCH, LxEuclidConstant.EVENT_INNER_CIRCLE_DECR, LxEuclidConstant.EVENT_INNER_CIRCLE_INCR, LxEuclidConstant.EVENT_INNER_CIRCLE_RELEASE]:
+                    rotate_action = self.inner_rotate_action
+                    action_rhythm = self.inner_action_rhythm
+                    angle = self.lx_hardware.capacitives_circles.inner_circle_angle
+                else:
+                    rotate_action = self.outer_rotate_action
+                    action_rhythm = self.outer_action_rhythm
+                    angle = self.lx_hardware.capacitives_circles.outer_circle_angle
+
+                release_burst = False
+                if event in [LxEuclidConstant.EVENT_INNER_CIRCLE_RELEASE, LxEuclidConstant.EVENT_OUTER_CIRCLE_RELEASE]:
+                    release_burst = True
+
+                # take the angle + 45° to have 0..90 --> 0, 90..180 --> 1, etc...
+                index_angle = angle_to_index(angle+45, 4)
+
+                # we only support burst up to 8
+                # so its 2 -> 4 -> 8 -> 8
+                if index_angle == 3:
+                    index_angle = 2
+
+                burst_value = 2**(index_angle+1)
+
+                for euclidean_rhythm_index in range(0, 4):
+                    if action_rhythm & (1 << euclidean_rhythm_index) != 0:
+                        # Linked to_burst_list: burst is [2, 3, 4, 6, 8]
+                        # index_angle = 0, 1 ,2
+                        # burst_value = 2, 4, 8
+                        # burst_div_index = 0, 2, 4 --> index_angle*2
+
+                        self.euclidean_rhythms[euclidean_rhythm_index].burst_div_index_2_4_8 = index_angle*2
+                        if release_burst:
+                            self.euclidean_rhythms[euclidean_rhythm_index].stop_burst_2_4_8(
+                            )
+                        else:
+                            self.euclidean_rhythms[euclidean_rhythm_index].start_continue_burst(in_burst_2_4_8=True
+                                                                                                )
+
+                self.action_display_info = "b\\"+str(burst_value)
+
+                if action_rhythm == 1:  # circle action only affect one rhythm
+                    self.action_display_index = 0
+                elif action_rhythm == 2:
+                    self.action_display_index = 1
+                elif action_rhythm == 4:
+                    self.action_display_index = 2
+                elif action_rhythm == 8:
+                    self.action_display_index = 3
+                else:  # circle action only affect multiple rhythm --> color will be white
+                    self.action_display_index = 4
+
+                self.need_circle_action_display = True
 
             elif event in [LxEuclidConstant.EVENT_INNER_CIRCLE_TAP, LxEuclidConstant.EVENT_OUTER_CIRCLE_TAP]:
 
@@ -1374,7 +1490,8 @@ class LxEuclidConfig:
             if event == LxEuclidConstant.EVENT_INNER_CIRCLE_TAP:
                 angle_inner = self.lx_hardware.capacitives_circles.inner_circle_angle
                 if self.param_pads_page == 0:  # action
-                    rotate_action_index = angle_to_index(angle_inner, 9)
+                    rotate_action_index = angle_to_index(
+                        angle_inner, LxEuclidConstant.CIRCLE_ACTION_LENGTH)
                     if self.param_pads_inner_outer_page == 0:  # inner
                         previous_rotate_action = self.inner_rotate_action
                         action_rhythm = self.inner_action_rhythm
@@ -2379,13 +2496,13 @@ class LxEuclidConfig:
 
                 # macro parameters
                 self.inner_rotate_action = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr)), LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_BURST, self.inner_rotate_action, eeprom_addr)
+                    incr_addr(eeprom_addr)), LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8, self.inner_rotate_action, eeprom_addr)
 
                 self.inner_action_rhythm = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), 0, MAX_ACTION_RHYTHM, self.inner_action_rhythm, eeprom_addr)
 
                 self.outer_rotate_action = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
-                    incr_addr(eeprom_addr)), LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_BURST, self.outer_rotate_action, eeprom_addr)
+                    incr_addr(eeprom_addr)), LxEuclidConstant.CIRCLE_ACTION_NONE, LxEuclidConstant.CIRCLE_ACTION_BURST_2_4_8, self.outer_rotate_action, eeprom_addr)
 
                 self.outer_action_rhythm = data_set_in_range(self.lx_hardware.get_eeprom_data_int(
                     incr_addr(eeprom_addr)), 0, MAX_ACTION_RHYTHM, self.outer_action_rhythm, eeprom_addr)
@@ -2538,6 +2655,7 @@ class LxEuclidConfig:
 
     def reload_rhythms(self):
         for euclidean_rhythm in self.euclidean_rhythms:
+            euclidean_rhythm.refresh_pulses_per_ratio()
             euclidean_rhythm.set_rhythm()
 
     def init_cvs_parameters(self):
