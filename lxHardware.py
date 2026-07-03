@@ -297,6 +297,13 @@ class LxHardware:
             self.bypass_clk_in_burst = False
             return
 
+        # we are using 16 bit on the SM
+        # --> 2**16/10/1000 = 6.5536 s
+        if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
+            self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
+        else:
+            self.sm_internal_clock.put(self.clock_period_avg_tenth_ms)
+
         if self.lx_euclid_config.incr_burst_steps(self.clk_subdivision_counter):
             self.lxHardwareEventFifo.append(self.clk_burst_rise_event)
 
@@ -305,13 +312,7 @@ class LxHardware:
                 self.lx_euclid_config.incr_steps()
                 self.lxHardwareEventFifo.append(self.clk_rise_event)
             # relauch only when using tap mode
-        #
-        # we are using 16 bit on the SM
-        # --> 2**16/10/1000 = 6.5536 s
-        if self.lx_euclid_config.clk_mode == LxEuclidConstant.TAP_MODE:
-            self.sm_internal_clock.put(self.lx_euclid_config.tap_delay_ms*10)
-        else:
-            self.sm_internal_clock.put(self.clock_period_avg_tenth_ms)
+
 
         # 24 --> smallest common multiplier of burst (LxEuclidConstant.BURST_SUBDIVISION)
         # *
@@ -346,14 +347,7 @@ class LxHardware:
                         self.last_clock_periods.append(self.delta_tenth_ms)
                     self.last_clock_ticks_tenth_ms = self.temp_ticks_tenth_ms
 
-                    self.clock_period_accumulator = 0
-                    for i in range(0, 8):
-                        self.clock_period_accumulator += self.last_clock_periods[i]
-                    # ceil div by 8 since we have 8 element in the last_clock_periods deque
-                    self.clock_period_avg_tenth_ms = self.clock_period_accumulator // 8
-
                     if self.lx_euclid_config.clk_mode == LxEuclidConstant.CLK_IN:
-                        self.lx_euclid_config.update_all_gates_length_percentage_time_ms()
                         self.lx_euclid_config.incr_steps()
                         # resync the burst to the input clock
                         self.lx_euclid_config.test_start_burst()
@@ -367,7 +361,17 @@ class LxHardware:
                         self.clk_subdivision_burst_counter = 0
                         self.relaunch_internal_clk()
 
+                        self.lx_euclid_config.update_all_gates_length_percentage_time_ms()
+
                         self.lxHardwareEventFifo.append(self.clk_rise_event)
+
+
+
+                    self.clock_period_accumulator = 0
+                    for i in range(0, 8):
+                        self.clock_period_accumulator += self.last_clock_periods[i]
+                    # ceil div by 8 since we have 8 element in the last_clock_periods deque
+                    self.clock_period_avg_tenth_ms = self.clock_period_accumulator // 8
 
         except Exception as e:
             print(e)
