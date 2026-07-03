@@ -482,22 +482,9 @@ class LxHardware:
                 LxHardware.INNER_CIRCLE_DECR, circles_data))
 
             self.has_incr_decr_inner = True
-        elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT:
-            self.lxHardwareEventFifo.append(HandlerEventData(
-                LxHardware.OUTER_CIRCLE_INCR, circles_data))
-
-            self.has_incr_decr_outer = True
-        elif circles_data[2] == CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT:
-            self.lxHardwareEventFifo.append(HandlerEventData(
-                LxHardware.OUTER_CIRCLE_DECR, circles_data))
-
-            self.has_incr_decr_outer = True
         elif circles_data[0]:
             self.lxHardwareEventFifo.append(HandlerEventData(
                 LxHardware.INNER_CIRCLE_TOUCH, circles_data))
-        elif circles_data[1]:
-            self.lxHardwareEventFifo.append(HandlerEventData(
-                LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
         elif not circles_data[0] and self.inner_previous_state:
             if not self.has_incr_decr_inner:  # to avoid registering a tap after an incr or decr
                 self.lxHardwareEventFifo.append(HandlerEventData(
@@ -506,6 +493,20 @@ class LxHardware:
             # reset both flags in case we touched both circles during a "touch incr/decr" event
             self.has_incr_decr_inner = False
             self.has_incr_decr_outer = False
+
+        if circles_data[3] == CapacitivesCircles.OUTER_CIRCLE_INCR_EVENT:
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.OUTER_CIRCLE_INCR, circles_data))
+
+            self.has_incr_decr_outer = True
+        elif circles_data[3] == CapacitivesCircles.OUTER_CIRCLE_DECR_EVENT:
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.OUTER_CIRCLE_DECR, circles_data))
+
+            self.has_incr_decr_outer = True
+        elif circles_data[1]:
+            self.lxHardwareEventFifo.append(HandlerEventData(
+                LxHardware.OUTER_CIRCLE_TOUCH, circles_data))
 
         elif not circles_data[1] and self.outer_previous_state:
             if not self.has_incr_decr_outer:  # to avoid registering a tap after an incr or decr
